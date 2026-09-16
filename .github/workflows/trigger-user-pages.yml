@@ -1,0 +1,48 @@
+name: Trigger user-pages sync
+
+# This workflow triggers an immediate sync in the n3xumc0r3.github.io repo
+# (which hosts the site at the root URL https://n3xumc0r3.github.io/).
+# The actual MkDocs build + deploy happens there — see:
+# https://github.com/n3xumc0r3/n3xumc0r3.github.io/blob/main/.github/workflows/sync-from-py-underhood.yml
+#
+# Fallback: even if this trigger fails (no CROSS_REPO_PAT secret configured),
+# the user-pages repo syncs every 30 minutes via cron.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger repository_dispatch on n3xumc0r3.github.io
+        if: env.GH_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
+        run: |
+          RESPONSE=$(curl -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -w "%{http_code}" \
+            -o /tmp/resp.json \
+            https://api.github.com/repos/n3xumc0r3/n3xumc0r3.github.io/dispatches \
+            -d '{"event_type":"sync-from-py-underhood","client_payload":{"ref":"main"}}')
+          echo "HTTP status: $RESPONSE"
+          cat /tmp/resp.json
+          if [ "$RESPONSE" = "204" ]; then
+            echo "✓ Triggered sync on n3xumc0r3/n3xumc0r3.github.io"
+          else
+            echo "⚠ Trigger failed — sync will still happen via cron (every 30 min)"
+          fi
+
+      - name: No PAT configured
+        if: env.GH_TOKEN == ''
+        run: |
+          echo "⚠ CROSS_REPO_PAT secret not configured."
+          echo "  Sync will happen via cron every 30 minutes in n3xumc0r3.github.io repo."
+          echo "  To enable instant deploy: add CROSS_REPO_PAT secret with repo scope to this repo."

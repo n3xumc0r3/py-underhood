@@ -1,0 +1,56 @@
+<!--
+  Material for MkDocs — main.html override
+  Adds Open Graph / Twitter Card meta + JSON-LD structured data on every page.
+  Inherited from the base material theme; only the `htmltitle` and `extrahead`
+  blocks are customized.
+-->
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+
+  {# -- Open Graph / Facebook / Telegram preview -- #}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Python под капотом">
+  <meta property="og:title" content="{{ page.title | default(config.site_name, true) }} — Python под капотом">
+  <meta property="og:description" content="{{ config.site_description }}">
+  <meta property="og:url" content="{{ page.canonical_url }}">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:image" content="https://n3xumc0r3.github.io/assets/cover.png">
+
+  {# -- Twitter Card -- #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page.title | default(config.site_name, true) }} — Python под капотом">
+  <meta name="twitter:description" content="{{ config.site_description }}">
+  <meta name="twitter:image" content="https://n3xumc0r3.github.io/assets/cover.png">
+
+  {# -- JSON-LD structured data: Book schema for Google rich results -- #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": "Python под капотом",
+    "alternateName": "Python Under the Hood",
+    "description": "От синтаксических трюков до internals CPython. Книга о редко используемых, скрытых и продвинутых возможностях Python и интерпретатора CPython.",
+    "inLanguage": "ru",
+    "url": "https://n3xumc0r3.github.io/",
+    "author": {
+      "@type": "Person",
+      "name": "n3xumc0r3",
+      "url": "https://github.com/n3xumc0r3"
+    },
+    "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "publisher": {
+      "@type": "Organization",
+      "name": "py-underhood",
+      "url": "https://github.com/n3xumc0r3/py-underhood"
+    },
+    "about": [
+      {"@type": "Thing", "name": "Python (programming language)"},
+      {"@type": "Thing", "name": "CPython internals"},
+      {"@type": "Thing", "name": "Metaprogramming"},
+      {"@type": "Thing", "name": "Asynchronous programming"}
+    ]
+  }
+  </script>
+{% endblock %}

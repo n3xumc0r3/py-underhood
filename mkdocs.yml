@@ -3,11 +3,13 @@ site_description: >-
   От синтаксических трюков до internals CPython.
   Книга о редко используемых, скрытых и продвинутых возможностях Python.
 site_author: "@n3xumc0r3"
-site_url: https://n3xumc0r3.github.io/py-underhood/
+site_url: https://n3xumc0r3.github.io/
 
-# Repository block is intentionally OMITTED so the top bar shows only
-# the site title + theme toggle + search. No "repo_name" / "repo_url" /
-# "edit_uri" — they would render the GitHub chip in the header.
+# Repo — вернул осознанно: для «Edit on GitHub» + «View source» на каждой странице.
+# Без edit_uri пользователи не смогут слать PRs прямо из браузера.
+repo_url: https://github.com/n3xumc0r3/py-underhood
+repo_name: n3xumc0r3/py-underhood
+edit_uri: edit/main/book/
 
 docs_dir: book
 site_dir: site
@@ -22,13 +24,15 @@ theme:
     - navigation.prev_next         # ← ключевой флаг: "книжная" пагинация
     - navigation.top               # кнопка "наверх" в правом нижнем углу
     - navigation.tracking          # URL обновляется при скролле по якорям
-    - navigation.indexes           # index.md как точка входа
+    - navigation.indexes           # index.md как точка входа (без дубля в sidebar)
     - toc.follow                   # правый TOC следует за скроллом
     - search.suggest               # подсказки в поиске
     - search.highlight             # подсветка в результатах поиска
     - content.code.copy            # кнопка "копировать" у блоков кода
     - content.code.annotate        # аннотации # (1)
     - content.tooltips             # hover-tooltips на сносках/ссылках
+    - content.action.edit          # ✏️ карандаш "Edit on GitHub" вверху страницы
+    - content.action.view          # 👁 глаз "View source" вверху страницы
   # NO navigation.tabs / sections / expand — flat sidebar by default
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -51,7 +55,7 @@ theme:
   # NO logo — Material icon font may not load reliably on first deploy.
   # Site title ("Python под капотом") is enough.
   icon:
-    repo: fontawesome/brands/github  # kept only for footer link, not header
+    repo: fontawesome/brands/github
   favicon: data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ctext%20y%3D%2218%22%20font-size%3D%2218%22%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E
 
 markdown_extensions:
@@ -90,6 +94,7 @@ plugins:
       lang:
         - ru
         - en
+      separator: '[\s\-\.]+'
   - tags
 
 # Custom CSS — rounded corners, stretched content, Obsidian-style links
