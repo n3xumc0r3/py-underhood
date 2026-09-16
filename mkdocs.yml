@@ -5,11 +5,9 @@ site_description: >-
 site_author: "@n3xumc0r3"
 site_url: https://n3xumc0r3.github.io/
 
-# Repo — вернул осознанно: для «Edit on GitHub» + «View source» на каждой странице.
-# Без edit_uri пользователи не смогут слать PRs прямо из браузера.
-repo_url: https://github.com/n3xumc0r3/py-underhood
-repo_name: n3xumc0r3/py-underhood
-edit_uri: edit/main/book/
+# Repo block в header выключен осознанно: блок репо + Edit/View кнопки
+# ломали чистый header. Ссылка на GitHub остаётся в footer через extra.social.
+# PRs идут через GitHub UI напрямую: github.com/n3xumc0r3/py-underhood/pulls
 
 docs_dir: book
 site_dir: site
@@ -31,8 +29,8 @@ theme:
     - content.code.copy            # кнопка "копировать" у блоков кода
     - content.code.annotate        # аннотации # (1)
     - content.tooltips             # hover-tooltips на сносках/ссылках
-    - content.action.edit          # ✏️ карандаш "Edit on GitHub" вверху страницы
-    - content.action.view          # 👁 глаз "View source" вверху страницы
+    # content.action.edit / content.action.view — выключены осознанно:
+    # кнопки карандаша и глаза ломали чистый header. PRs идут через GitHub UI.
   # NO navigation.tabs / sections / expand — flat sidebar by default
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -94,7 +92,11 @@ plugins:
       lang:
         - ru
         - en
-      separator: '[\s\-\.]+'
+      # Широкий разделитель: разбивает по любому не-буквенному символу,
+      # включая запятые, двоеточия, скобки, точки с запятой, и т.д.
+      # Без этого в индексе слова хранятся с прилипшей пунктуацией
+      # ('операторы,' != 'операторы') и поиск по русскому не работает.
+      separator: '[^\wа-яёА-ЯЁ]+'
   - tags
 
 # Custom CSS — rounded corners, stretched content, Obsidian-style links
