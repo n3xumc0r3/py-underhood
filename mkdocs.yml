@@ -5,9 +5,9 @@ site_description: >-
 site_author: "@n3xumc0r3"
 site_url: https://n3xumc0r3.github.io/py-underhood/
 
-repo_name: n3xumc0r3/py-underhood
-repo_url: https://github.com/n3xumc0r3/py-underhood
-edit_uri: edit/main/book/
+# Repository block is intentionally OMITTED so the top bar shows only
+# the site title + theme toggle + search. No "repo_name" / "repo_url" /
+# "edit_uri" — they would render the GitHub chip in the header.
 
 docs_dir: book
 site_dir: site
@@ -15,39 +15,44 @@ site_dir: site
 theme:
   name: material
   language: ru
+  custom_dir: overrides
   features:
-    - navigation.tracking        # URL обновляется при скролле по якорям
-    - navigation.tabs            # верхние табы: Части I-XII / Приложения
-    - navigation.sections        # группы в sidebar
-    - navigation.expand          # раскрытое sidebar по умолчанию
-    - navigation.indexes         # index.md как таб-страница
-    - toc.follow                 # правый TOC следует за скроллом
-    - search.suggest             # подсказки в поиске
-    - search.highlight           # подсветка в результатах
-    - content.code.copy          # кнопка "копировать" у блоков кода
-    - content.code.annotate      # аннотации # (1)
-    - content.tabs.link          # синхронизация табов
+    # Book-style navigation: prev/next at the bottom of every page,
+    # flat sidebar (no nested tabs), right-side TOC follows scroll.
+    - navigation.prev_next         # ← ключевой флаг: "книжная" пагинация
+    - navigation.top               # кнопка "наверх" в правом нижнем углу
+    - navigation.tracking          # URL обновляется при скролле по якорям
+    - navigation.indexes           # index.md как точка входа
+    - toc.follow                   # правый TOC следует за скроллом
+    - search.suggest               # подсказки в поиске
+    - search.highlight             # подсветка в результатах поиска
+    - content.code.copy            # кнопка "копировать" у блоков кода
+    - content.code.annotate        # аннотации # (1)
+    - content.tooltips             # hover-tooltips на сносках/ссылках
+  # NO navigation.tabs / sections / expand — flat sidebar by default
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple
-      accent: amber
+      primary: white              # explicitly white, not the default indigo
+      accent: green               # electric green for links / hover
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-night
         name: Тёмная тема
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep purple
-      accent: amber
+      primary: black
+      accent: light green
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-sunny
         name: Светлая тема
   font:
-    text: Noto Sans
-    code: JetBrains Mono
+    text: IBM Plex Sans
+    code: IBM Plex Mono
+  # NO logo — Material icon font may not load reliably on first deploy.
+  # Site title ("Python под капотом") is enough.
   icon:
-    repo: fontawesome/brands/github
-  logo: material/language-python
+    repo: fontawesome/brands/github  # kept only for footer link, not header
+  favicon: data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ctext%20y%3D%2218%22%20font-size%3D%2218%22%3E%F0%9F%90%8D%3C/text%3E%3C/svg%3E
 
 markdown_extensions:
   - admonition
@@ -57,7 +62,7 @@ markdown_extensions:
   - md_in_html
   - tables
   - toc:
-      permalink: true
+      permalink: "#"
       toc_depth: 3
   - pymdownx.details
   - pymdownx.superfences:
@@ -87,30 +92,33 @@ plugins:
         - en
   - tags
 
+# Custom CSS — rounded corners, stretched content, Obsidian-style links
+extra_css:
+  - stylesheets/extra.css
+
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/n3xumc0r3/py-underhood
-    - icon: fontawesome/brands/python
-      link: https://www.python.org/
+      name: GitHub репозиторий
   generator: false
 
 nav:
-  - Главная: index.md
-  - Часть I. Базовые скрытые особенности: 01-basics.md
-  - Часть II. Контекстные менеджеры: 02-context-managers.md
-  - Часть III. Генераторы и итераторы: 03-generators.md
-  - Часть IV. Асинхронность: 04-async.md
-  - Часть V. Классы и интерфейсы: 05-classes.md
-  - Часть VI. Дескрипторы и property: 06-descriptors.md
-  - Часть VII. Метапрограммирование: 07-metaprogramming.md
-  - Часть VIII. Внутренности CPython: 08-cpython-internals.md
-  - Часть IX. Кодировки и кодеки: 09-encodings.md
-  - Часть X. Интроспекция окружения: 10-introspection.md
-  - Часть XI. Полезные модули stdlib: 11-stdlib.md
-  - Часть XII. Линтеры и директивы: 12-linters.md
-  - Приложения:
-      - A. Системы обнаружения плагиата: appendix-a-plagiarism.md
-      - B. Взаимодействие с системами проверки кода: appendix-b-code-checkers.md
-      - C. Code golf: appendix-c-code-golf.md
-      - D. Где почитать: appendix-d-references.md
+  - 'Главная': index.md
+  - 'Часть I. Базовые скрытые особенности': 01-basics.md
+  - 'Часть II. Контекстные менеджеры': 02-context-managers.md
+  - 'Часть III. Генераторы и итераторы': 03-generators.md
+  - 'Часть IV. Асинхронность': 04-async.md
+  - 'Часть V. Классы и интерфейсы': 05-classes.md
+  - 'Часть VI. Дескрипторы и property': 06-descriptors.md
+  - 'Часть VII. Метапрограммирование': 07-metaprogramming.md
+  - 'Часть VIII. Внутренности CPython': 08-cpython-internals.md
+  - 'Часть IX. Кодировки и кодеки': 09-encodings.md
+  - 'Часть X. Интроспекция окружения': 10-introspection.md
+  - 'Часть XI. Полезные модули stdlib': 11-stdlib.md
+  - 'Часть XII. Линтеры и директивы': 12-linters.md
+  - 'Приложения':
+      - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
+      - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md
+      - 'C. Code golf': appendix-c-code-golf.md
+      - 'D. Где почитать': appendix-d-references.md

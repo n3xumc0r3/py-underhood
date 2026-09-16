@@ -1,0 +1,470 @@
+/* =========================================================================
+   Python под капотом — кастомные стили
+   Палитра: Monochrome + electric green accent (#10b981 / emerald-500)
+   Шрифты: IBM Plex Sans / IBM Plex Mono
+   ========================================================================= */
+
+:root {
+  /* Электрик-зелёный акцент — как в опции "Monochrome + accent" */
+  --py-accent: #10b981;             /* emerald-500 */
+  --py-accent-hover: #059669;       /* emerald-600 */
+  --py-accent-fg: #ffffff;
+
+  /* Чёрно-белая база */
+  --py-bg: #ffffff;
+  --py-bg-soft: #f7f7f7;
+  --py-fg: #111111;
+  --py-fg-muted: #525252;
+  --py-border: #e4e4e4;
+
+  /* Радиусы — мягкое скругление, как в Obsidian/Linear */
+  --py-radius-sm: 6px;
+  --py-radius-md: 10px;
+  --py-radius-lg: 14px;
+  --py-radius-pill: 9999px;
+
+  /* Максимальная ширина контента — растягиваем с дефолтных 61rem */
+  --py-content-max: 90rem;
+
+  /* Material-переменные — переопределяем дефолт */
+  --md-primary-fg-color: var(--py-fg);
+  --md-primary-bg-color: var(--py-bg);
+  --md-primary-fg-color--dark: var(--py-fg);
+  --md-default-bg-color: var(--py-bg);
+  --md-default-fg-color: var(--py-fg);
+  --md-accent-fg-color: var(--py-accent);
+  --md-accent-fg-color--transparent: rgba(16, 185, 129, 0.10);
+  --md-code-bg-color: var(--py-bg-soft);
+  --md-code-fg-color: var(--py-fg);
+  --md-code-default-fg-color: var(--py-fg-muted);
+  --md-typeset-a-color: var(--py-accent);
+  --md-typeset-color: var(--py-fg);
+}
+
+[data-md-color-scheme="slate"] {
+  --py-bg: #0d1117;                /* GitHub dark */
+  --py-bg-soft: #161b22;
+  --py-fg: #e6edf3;
+  --py-fg-muted: #8b949e;
+  --py-border: #30363d;
+
+  --md-default-bg-color: var(--py-bg);
+  --md-default-fg-color: var(--py-fg);
+  --md-typeset-color: var(--py-fg);
+  --md-code-bg-color: var(--py-bg-soft);
+  --md-code-fg-color: var(--py-fg);
+  --md-code-default-fg-color: var(--py-fg-muted);
+}
+
+/* =========================================================================
+   HEADER: чистый, без блока репо, со скруглением поиска
+   ========================================================================= */
+.md-header {
+  background: var(--py-bg);
+  color: var(--py-fg);
+  box-shadow: 0 1px 0 var(--py-border);
+}
+
+.md-header__title {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.md-header__topic:first-child {
+  font-weight: 600;
+}
+
+/* Search input — pill-shaped */
+.md-search__form {
+  border-radius: var(--py-radius-pill);
+  background: var(--py-bg-soft);
+  border: 1px solid var(--py-border);
+}
+
+.md-search__input {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+/* Theme toggle button — pill */
+.md-header__button {
+  border-radius: var(--py-radius-pill);
+}
+
+/* =========================================================================
+   CONTENT: растягиваем с дефолтных 61rem до 90rem
+   ========================================================================= */
+.md-grid {
+  max-width: var(--py-content-max);
+}
+
+.md-content {
+  max-width: var(--py-content-max);
+}
+
+.md-content__inner {
+  padding: 1.5rem 1.5rem 3rem;
+}
+
+.md-content__inner:before {
+  display: none;                   /* убрать горизонтальную линию сверху контента */
+}
+
+/* =========================================================================
+   TYPOGRAPHY: IBM Plex Sans + tighter line-height
+   ========================================================================= */
+body,
+.md-typeset {
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "ss02";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.md-typeset {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--py-fg);
+}
+
+.md-typeset h1 {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--py-fg);
+  margin: 2rem 0 1.25rem;
+  font-size: 1.9rem;
+  line-height: 1.2;
+}
+
+.md-typeset h2 {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--py-fg);
+  margin: 2.25rem 0 1rem;
+  font-size: 1.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--py-border);
+}
+
+.md-typeset h3 {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 600;
+  color: var(--py-fg);
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+/* =========================================================================
+   LINKS: Obsidian-style — мягкое подчёркивание, hover → accent green
+   ========================================================================= */
+.md-typeset a {
+  color: var(--py-accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.md-typeset a:hover {
+  color: var(--py-accent-hover);
+  border-bottom-color: var(--py-accent-hover);
+}
+
+/* Inline code в тексте — Obsidian-style: мягкий фон, скругление, чёрный текст */
+.md-typeset code,
+.md-typeset kbd {
+  font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+  background: var(--py-bg-soft);
+  color: var(--py-fg);
+  padding: 0.15em 0.4em;
+  border-radius: var(--py-radius-sm);
+  font-size: 0.85em;
+  border: 1px solid var(--py-border);
+  white-space: nowrap;
+}
+
+/* Если inline code — это ссылка (Obsidian-style "function reference") */
+.md-typeset a > code,
+.md-typeset a code {
+  color: var(--py-accent);
+  border-color: var(--md-accent-fg-color--transparent);
+  cursor: pointer;
+}
+
+.md-typeset a:hover > code,
+.md-typeset a:hover code {
+  background: var(--md-accent-fg-color--transparent);
+  border-color: var(--py-accent);
+  color: var(--py-accent-hover);
+}
+
+/* =========================================================================
+   CODE BLOCKS: скруглённые, мягкая рамка
+   ========================================================================= */
+.md-typeset pre > code,
+.md-typeset pre {
+  border-radius: var(--py-radius-md);
+}
+
+.md-typeset pre {
+  border: 1px solid var(--py-border);
+  background: var(--py-bg-soft);
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+}
+
+.md-typeset pre code {
+  font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  background: transparent;
+  border: none;
+  padding: 0;
+  white-space: pre;
+}
+
+/* "Copy" button — pill, accent на hover */
+.md-clipboard {
+  border-radius: var(--py-radius-pill);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.md-clipboard:hover {
+  background: var(--md-accent-fg-color--transparent);
+  color: var(--py-accent);
+}
+
+/* =========================================================================
+   BLOCKQUOTE: Obsidian-style callout, soft left border
+   ========================================================================= */
+.md-typeset blockquote {
+  border-left: 3px solid var(--py-accent);
+  background: var(--md-accent-fg-color--transparent);
+  border-radius: 0 var(--py-radius-md) var(--py-radius-md) 0;
+  padding: 0.75rem 1.25rem;
+  margin: 1.25rem 0;
+  color: var(--py-fg);
+}
+
+.md-typeset blockquote p {
+  margin: 0.4rem 0;
+}
+
+/* =========================================================================
+   BUTTONS: rounded pill shape (Material default is square)
+   ========================================================================= */
+.md-button,
+.md-typeset .md-button {
+  border-radius: var(--py-radius-pill);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 500;
+  padding: 0.55em 1.4em;
+  transition: all 0.15s ease;
+  border: 1px solid var(--py-border);
+  background: var(--py-bg);
+  color: var(--py-fg);
+}
+
+.md-button:hover,
+.md-typeset .md-button:hover {
+  background: var(--md-accent-fg-color--transparent);
+  border-color: var(--py-accent);
+  color: var(--py-accent);
+}
+
+/* =========================================================================
+   SEARCH RESULTS, NAVIGATION — rounded cards
+   ========================================================================= */
+.md-search-result__item {
+  border-radius: var(--py-radius-md);
+  margin: 0.25rem 0;
+  transition: background 0.12s ease;
+}
+
+.md-search-result__item:hover {
+  background: var(--py-bg-soft);
+}
+
+.md-search-result__link {
+  border-radius: var(--py-radius-md);
+  padding: 0.5rem 0.75rem;
+}
+
+/* Sidebar nav items — rounded hover */
+.md-nav__link {
+  border-radius: var(--py-radius-sm);
+  padding: 0.35rem 0.65rem;
+  margin: 0.1rem 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.md-nav__link:hover,
+.md-nav__link--active {
+  background: var(--py-bg-soft);
+  color: var(--py-accent);
+}
+
+.md-nav__item {
+  margin: 0;
+}
+
+/* Active nav item — green accent */
+.md-nav__link--active {
+  color: var(--py-accent);
+  font-weight: 500;
+}
+
+/* =========================================================================
+   PREV/NEXT NAVIGATION — book-style at bottom of page
+   ========================================================================= */
+.md-footer__inner {
+  border-top: 1px solid var(--py-border);
+  background: var(--py-bg);
+  color: var(--py-fg);
+  padding: 1.5rem 0;
+}
+
+.md-footer__link {
+  border-radius: var(--py-radius-md);
+  padding: 0.75rem 1.25rem;
+  transition: background 0.15s ease;
+}
+
+.md-footer__link:hover {
+  background: var(--py-bg-soft);
+}
+
+.md-footer__title {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: var(--py-fg-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.md-footer__button {
+  color: var(--py-accent);
+}
+
+/* =========================================================================
+   TABLES — soft borders, rounded corners
+   ========================================================================= */
+.md-typeset table:not([class]) {
+  border-radius: var(--py-radius-md);
+  border: 1px solid var(--py-border);
+  overflow: hidden;
+  box-shadow: none;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--py-bg-soft);
+  border-bottom: 1px solid var(--py-border);
+  font-weight: 600;
+}
+
+.md-typeset table:not([class]) td,
+.md-typeset table:not([class]) th {
+  border-top: 1px solid var(--py-border);
+  padding: 0.6rem 0.9rem;
+}
+
+.md-typeset table:not([class]) tr:first-child td {
+  border-top: none;
+}
+
+/* =========================================================================
+   RIGHT-SIDE TOC — pill-shaped active item
+   ========================================================================= */
+.md-nav--secondary .md-nav__link {
+  border-radius: var(--py-radius-sm);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.md-nav--secondary .md-nav__link--active {
+  background: var(--md-accent-fg-color--transparent);
+  color: var(--py-accent);
+  font-weight: 500;
+}
+
+/* =========================================================================
+   ADMONITIONS — rounded, soft tinted background
+   ========================================================================= */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--py-radius-md);
+  border: 1px solid var(--py-border);
+  box-shadow: none;
+}
+
+/* =========================================================================
+   FOOTER — clean, no github banner
+   ========================================================================= */
+.md-footer-meta {
+  background: var(--py-bg);
+  border-top: 1px solid var(--py-border);
+}
+
+.md-footer-meta__inner {
+  padding: 1rem 1.5rem;
+  color: var(--py-fg-muted);
+  font-size: 0.8rem;
+}
+
+/* =========================================================================
+   SCROLLBARS — subtle, modern
+   ========================================================================= */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--py-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--py-border);
+  border-radius: var(--py-radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--py-fg-muted);
+}
+
+/* =========================================================================
+   MISC: smooth scrolling, focus rings
+   ========================================================================= */
+html {
+  scroll-behavior: smooth;
+}
+
+:focus-visible {
+  outline: 2px solid var(--py-accent);
+  outline-offset: 2px;
+  border-radius: var(--py-radius-sm);
+}
+
+/* =========================================================================
+   ITALIC CITATIONS — fix overflow with long technical italics
+   ========================================================================= */
+.md-typeset em {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Long inline references like "→ см. также: II (контекстные менеджеры...)" */
+.md-typeset blockquote em,
+.md-typeset li em {
+  display: inline;
+}
