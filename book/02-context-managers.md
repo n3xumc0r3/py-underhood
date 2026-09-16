@@ -1,6 +1,6 @@
 # Часть II. Контекстные менеджеры
 
-## 2.1. `with` — внутренности (`__enter__`/`__exit__`)
+## 2.1. `with` — внутренности (`__enter__`/`__exit__`) { #2.1 }
 
 Контекстный менеджер — это объект, реализующий протокол из двух методов:
 
@@ -23,7 +23,7 @@ with X as y:
 
 Если исключения не было — все три `None`.
 
-## 2.2. Свой менеджер через класс
+## 2.2. Свой менеджер через класс { #2.2 }
 
 ```python
 class ManagedResource:
@@ -45,7 +45,7 @@ with ManagedResource():
 # Ресурс закрыт
 ```
 
-## 2.3. `@contextmanager` — без класса
+## 2.3. `@contextmanager` — без класса { #2.3 }
 
 Писать целый класс ради простого менеджера — лень. `contextlib.contextmanager` превращает обычную функцию с одним `yield` в контекстный менеджер:
 
@@ -78,7 +78,7 @@ def open_db(name):
         conn.close()
 ```
 
-## 2.4. `contextlib.suppress` и `contextlib.ExitStack`
+## 2.4. `contextlib.suppress` и `contextlib.ExitStack` { #2.4 }
 
 **`contextlib.suppress(*exceptions)`** — контекстный менеджер, подавляющий указанные исключения:
 
@@ -121,7 +121,7 @@ with ExitStack() as stack:
     # При выходе вызовутся в обратном порядке: cleanup 2, cleanup 1
 ```
 
-## 2.5. Несколько менеджеров в одном `with`
+## 2.5. Несколько менеджеров в одном `with` { #2.5 }
 
 ```python
 # Перечисление через запятую
@@ -152,7 +152,7 @@ with (
 
 ⚠️ **Статический `with A, B` vs динамический `ExitStack`**: `with (*managers):` — `SyntaxError`. Для переменного числа ресурсов — `contextlib.ExitStack` (см. 2.4).
 
-## 2.6. Подавление ошибок через `__exit__`
+## 2.6. Подавление ошибок через `__exit__` { #2.6 }
 
 Если ваш контекстный менеджер вернёт `True` из `__exit__` — **ошибка полностью поглощается**, и программа не падает:
 
@@ -175,7 +175,7 @@ print("Программа продолжает работу")
 
 ⚠️ **Truthy/Falsy контракт `__exit__`**: интерпретатор проверяет результат в булевом контексте. Любое truthy (`True`, `1`, `"str"`) — подавляет. Любое falsy (`None`, `False`, `0`, `""`) — пробрасывает дальше. Поскольку функция без `return` возвращает `None`, стандартный `def __exit__(self, *args): pass` **гарантирует проброс всех ошибок**.
 
-## 2.7. `contextlib.redirect_stdout`/`redirect_stderr`
+## 2.7. `contextlib.redirect_stdout`/`redirect_stderr` { #2.7 }
 
 Перенаправление `sys.stdout`/`sys.stderr` в другой поток, файл или объект:
 
@@ -236,7 +236,7 @@ def test_greeting():
     assert "Hello, Alice" in buf.getvalue()
 ```
 
-## 2.8. `contextlib.closing` и `aclosing`
+## 2.8. `contextlib.closing` и `aclosing` { #2.8 }
 
 `closing` — для объектов, у которых есть метод `close()`, но нет `__enter__`/`__exit__`. Оборачивает их в контекстный менеджер, который вызывает `close()` при выходе.
 
@@ -268,7 +268,7 @@ with closing(Connection("example.com")) as conn:
 
 **Применение**: оборачивать сторонние классы, которые нельзя изменить (например, из C-расширений), но у которых есть `close()`.
 
-### `aclosing` (Python 3.10+) — для async-генераторов
+### `aclosing` (Python 3.10+) — для async-генераторов { #2.8-aclosing }
 
 ```python
 from contextlib import aclosing
@@ -292,7 +292,7 @@ async def main():
 
 `aclosing` вызывает `agen.aclose()` при выходе — корректно закрывает async-генератор, что гарантирует выполнение `finally` блока. Без него генератор может «зависнуть» неочищенным — GC работает синхронно и **не может выполнить `await`** для кода внутри `finally` асинхронного генератора, что приводит к `ResourceWarning: unclosed asynchronous generator`.
 
-### `nullcontext` (Python 3.7+) — менеджер-заглушка
+### `nullcontext` (Python 3.7+) — менеджер-заглушка { #2.8-nullcontext }
 
 Незаменим для **опциональных** контекстных менеджеров — «ничего не делать», если ресурс не нужен:
 
@@ -311,7 +311,7 @@ def read_data(file_or_path):
         return f.read()
 ```
 
-### `chdir` (Python 3.11+) — временная смена рабочей директории
+### `chdir` (Python 3.11+) — временная смена рабочей директории { #2.8-chdir }
 
 ```python
 from contextlib import chdir
@@ -329,7 +329,7 @@ with chdir("/tmp/build"):
 
 ---
 
-### Бенчмарки к Части II
+### Бенчмарки к Части II { #2.8-benchmarki }
 
 **1. Класс-менеджер vs `@contextmanager` vs `contextlib.suppress`.**
 ```python

@@ -1,6 +1,6 @@
 # Часть VIII. Внутренности CPython
 
-## 8.1. Интернация строк и `sys.intern`
+## 8.1. Интернация строк и `sys.intern` { #8.1 }
 
 CPython **автоматически** интернирует строки, которые выглядят как валидные идентификаторы (только латиница, цифры, `_`) — но только те, что появляются в исходном коде как литералы или формируются компилятором. **Runtime-конкатенация** (`"a" + "b"`) интернирования не делает — для неё нужно явное `sys.intern()`:
 
@@ -52,7 +52,7 @@ def process_log(lines):
 
 ⚠️ Интернированные строки **никогда** не удаляются из памяти до конца процесса — это leak. Не стоит интернировать динамически сгенерированные строки (UUID, пути).
 
-## 8.2. Кэш малых чисел (-5..256)
+## 8.2. Кэш малых чисел (-5..256) { #8.2 }
 
 CPython при старте создаёт объекты для целых чисел **от -5 до 256** включительно и хранит их в единственном экземпляре:
 
@@ -86,7 +86,7 @@ print(a is b)   # True — из кэша
 
 `-5` и `256` — границы кэша. Определены в исходниках CPython как `NSMALLNEGINTS = 5` и `NSMALLPOSINTS = 257` (256 + 1 для нуля). Ищите в `Objects/longobject.c` и `Python/pycore_interp.h`.
 
-## 8.3. Замыкания и `__closure__`/cell objects
+## 8.3. Замыкания и `__closure__`/cell objects { #8.3 }
 
 Когда функция возвращает внутреннюю функцию, которая использует переменные внешней, CPython оборачивает эти переменные в **cell objects** — отдельные «ячейки», хранящиеся в `__closure__`:
 
@@ -132,7 +132,7 @@ print(outer.__code__.co_cellvars)    # ('x',) — x используется в�
 print(outer().__code__.co_freevars)   # ('x',) — x взят из внешней
 ```
 
-## 8.4. `sys._getframe` и фреймы
+## 8.4. `sys._getframe` и фреймы { #8.4 }
 
 > **→ см. также:** Часть X (10.7) — Audit hooks (PEP 578) как более безопасный способ мониторинга вызовов; Часть VII (7.11) — `inspect.stack()` как высокоуровневая обёртка над фреймами.
 
@@ -189,7 +189,7 @@ def f():
     print(caller.f_code.co_name)
 ```
 
-## 8.5. `sys.getrefcount` и счётчик ссылок
+## 8.5. `sys.getrefcount` и счётчик ссылок { #8.5 }
 
 CPython управляет памятью через **подсчёт ссылок**. У каждого объекта есть счётчик. Когда становится 0 — объект удаляется.
 
@@ -233,7 +233,7 @@ else:
 
 Как **детектор шпионажа** — не работает: слишком много ложных срабатываний и пропусков. Если задача — найти, кто держит ссылку на объект, используйте `gc.get_referrers(obj)` — он возвращает конкретные объекты-держатели, а не голое число.
 
-## 8.6. Управление GC через `gc` модуль
+## 8.6. Управление GC через `gc` модуль { #8.6 }
 
 CPython использует **подсчёт ссылок** + **циклический GC** для борьбы с циклами (`a.b = c; c.a = a` — счётчики никогда не обнулятся, только GC найдёт).
 
@@ -271,7 +271,7 @@ print(gc.get_stats())   # [{"collections": ..., "collected": ..., "uncollectable
 - Принудительный сбор перед замером памяти.
 - Отладка утечек через `gc.get_referrers`.
 
-## 8.7. Интроспекция функций через `__code__`
+## 8.7. Интроспекция функций через `__code__` { #8.7 }
 
 У каждой функции есть `__code__` — код-объект с метаданными:
 
@@ -308,7 +308,7 @@ print(analyze(f))
 #  'globals_used': (), 'filename': '<stdin>', 'lineno': 1}
 ```
 
-## 8.8. Динамическая смена `__class__`
+## 8.8. Динамическая смена `__class__` { #8.8 }
 
 В Python можно **сменить класс объекта в рантайме**:
 
@@ -365,7 +365,7 @@ class Button:
 - `pickle`/`copy`/`repr` таких объектов могут вести себя неожиданно — они смотрят на `type(obj)`, который теперь `IdleState`, а `__init__` у `Button` ожидает другие аргументы.
 - В реальном коде предпочитают **композицию** (`self.state = IdleState()` + `self.state.click(self)`) — она не ломает систему типов и работает с любым layout.
 
-## 8.9. Доступ к байт-коду через `dis`
+## 8.9. Доступ к байт-коду через `dis` { #8.9 }
 
 `dis` модуль — дизассемблер Python-байт-кода:
 
@@ -413,7 +413,7 @@ for instr in dis.Bytecode(f):
 
 `dis.Bytecode(f)` возвращает итератор инструкций — удобно для программного анализа.
 
-## 8.10. Recursion limit и `RecursionError`
+## 8.10. Recursion limit и `RecursionError` { #8.10 }
 
 CPython по умолчанию ограничивает глубину рекурсии 1000 вызовов (для защиты от stack overflow):
 
@@ -485,7 +485,7 @@ t.join()
 - На **macOS** основной поток имеет фиксированный размер стека (обычно 8 MB), который нельзя изменить через `threading.stack_size` — поэтому глубокая рекурсия **обязательно** должна идти в отдельном потоке (как в примере выше), а не в main thread.
 - `setrecursionlimit(10**6)` + `stack_size(256 MB)` на CPython 3.11+ всё равно может **сегфолтнуть**, если C-стек потока (отличается от Python recursion limit) переполнится — особенно на архитектурах с большим frame size (debug builds, ASan/MSan). Лечится только ещё большим `stack_size` или отказом от рекурсии.
 
-## 8.11. `contextvars` — контекстно-зависимые переменные
+## 8.11. `contextvars` — контекстно-зависимые переменные { #8.11 }
 
 `contextvars` (PEP 567, Python 3.7+) — переменные, значение которых **автоматически копируется** в новые async-задачи (`asyncio.create_task()`, `asyncio.to_thread()`). Главное применение — `request_id`, `user_id`, `trace_id` в логах без явной передачи через аргументы.
 
@@ -559,7 +559,7 @@ ctx.run(some_function, args)        # выполнить функцию с эт�
 
 Это используется во всех современных async-фреймворках: FastAPI, Starlette, aiohttp — для проброса `request_id`/`user_id` без явных аргументов.
 
-## 8.12. `pathlib` — объектно-ориентированные пути
+## 8.12. `pathlib` — объектно-ориентированные пути { #8.12 }
 
 `pathlib` (Python 3.4+) — современная замена `os.path`. Пути как объекты с методами вместо строковых операций.
 
@@ -664,11 +664,11 @@ PurePosixPath('/a/b') == PureWindowsPath('/a/b')  # False — разные ОС
 
 **`Path` vs `os.path`** — в новом коде всегда `pathlib`. `os.path` — только в старом коде.
 
-## 8.13. `types` — продвинутые типы
+## 8.13. `types` — продвинутые типы { #8.13 }
 
 `types` модуль содержит типы, которые обычно создаются автоматически, но могут быть полезны напрямую.
 
-### `MethodType` — метод экземпляра
+### `MethodType` — метод экземпляра { #8.13-methodtype }
 
 ```python
 import types
@@ -691,7 +691,7 @@ print(a.greet())   # 'world'
 
 ⚠️ `a.greet = new_method` просто привяжет функцию как атрибут — вызов `a.greet()` упадёт с `TypeError: new_method() missing 1 required positional argument: 'self'` (функция не стала bound method, поэтому `self` не передан). Через `MethodType` — корректно привязывается.
 
-### `SimpleNamespace` — простой объект с атрибутами
+### `SimpleNamespace` — простой объект с атрибутами { #8.13-simplenamespace }
 
 ```python
 from types import SimpleNamespace
@@ -713,7 +713,7 @@ print(config)   # namespace(host='example.com', port=8080, debug=True, new_attr=
 
 ⚠️ В отличие от `dataclass` — `SimpleNamespace` не имеет аннотаций, не валидируется, не имеет методов. Только для «quick and dirty» структур.
 
-### `MappingProxyType` — immutable view на словарь
+### `MappingProxyType` — immutable view на словарь { #8.13-mappingproxytype }
 
 ```python
 from types import MappingProxyType
@@ -745,7 +745,7 @@ print(c.data['debug'])   # False
 # c.data['debug'] = True   # TypeError — protected
 ```
 
-### `CellType` — тип cell (для замыканий)
+### `CellType` — тип cell (для замыканий) { #8.13-celltype }
 
 ```python
 import types
@@ -765,7 +765,7 @@ print(cell.cell_contents)   # 'hello'
 
 Полезно для тестов замыканий и для ручного создания функций через `FunctionType` (где cellvars/freevars передаются явно).
 
-### `GenericAlias` — тип `list[int]`
+### `GenericAlias` — тип `list[int]` { #8.13-genericalias }
 
 ```python
 import types
@@ -783,7 +783,7 @@ print(list[int].__args__)   # (<class 'int'>,)
 print(dict[str, int].__args__)   # (<class 'str'>, <class 'int'>)
 ```
 
-### `UnionType` — тип `int | str` (PEP 604, Python 3.10+)
+### `UnionType` — тип `int | str` (PEP 604, Python 3.10+) { #8.13-uniontype }
 
 ```python
 import types
@@ -801,11 +801,11 @@ print((int | str | None).__args__)   # (<class 'int'>, <class 'str'>, <class 'No
 
 ⚠️ В современном коде предпочтительно `int | str` вместо `Union[int, str]` (Python 3.10+).
 
-## 8.14. `weakref` — продвинутое
+## 8.14. `weakref` — продвинутое { #8.14 }
 
 (Базовые `weakref.ref`, `WeakValueDictionary`, `WeakKeyDictionary`, `finalize` — см. §11.4.)
 
-### `WeakSet` — множество слабых ссылок
+### `WeakSet` — множество слабых ссылок { #8.14-weakset }
 
 ```python
 import weakref
@@ -828,7 +828,7 @@ import gc; gc.collect()
 print(len(cache))   # 0 — все элементы удалены из cache автоматически
 ```
 
-### `weakref.proxy` — прозрачный прокси
+### `weakref.proxy` — прозрачный прокси { #8.14-weakrefproxy }
 
 В отличие от `weakref.ref` (надо вызывать `ref()` чтобы получить объект), `proxy` ведёт себя как сам объект — обращение к атрибутам автоматически разыменовывает:
 
@@ -849,7 +849,7 @@ del obj
 
 ⚠️ Прокси «прозрачный» для доступа к атрибутам и для `isinstance` — `isinstance(p, Big)` вернёт `True` (прокси делегирует `__class__` к целевому объекту). Но сам `type(p)` — это `<class 'weakproxy'>`, а не `Big`. Поэтому проверка через `type(p) is Big` или `type(p) == Big` уже **даст False**. Если объект удалён — любое обращение к прокси поднимет `ReferenceError`.
 
-### `weakref.finalize` — детерминированный финализатор
+### `weakref.finalize` — детерминированный финализатор { #8.14-weakreffinalize }
 
 В отличие от `__del__`, `finalize` не вызывает проблем с циклами GC:
 
@@ -875,9 +875,9 @@ finalizer()   # вызовет cleanup
 
 Полезно для освобождения ресурсов без `__del__` (который ломает GC в некоторых случаях).
 
-## 8.15. `sys.unraisablehook` и `sys._current_frames`
+## 8.15. `sys.unraisablehook` и `sys._current_frames` { #8.15 }
 
-### `sys.unraisablehook` — обработка «unraisable» исключений
+### `sys.unraisablehook` — обработка «unraisable» исключений { #8.15-sysunraisablehook }
 
 Когда исключение происходит в `__del__` или в C-расширении (где его нельзя пробросить), Python вызывает `sys.unraisablehook`:
 
@@ -900,7 +900,7 @@ Buggy()   # при GC: "UNRAISABLE in <Buggy object>: ValueError: ups"
 
 Зачем: по умолчанию Python печатает такие исключения в stderr, что засоряет логи. Через hook можно их подавить, залогировать, или превратить в alert.
 
-### `sys._current_frames` — стеки всех потоков
+### `sys._current_frames` — стеки всех потоков { #8.15-syscurrentframes }
 
 ```python
 import sys, threading, time
@@ -921,7 +921,7 @@ for thread_id, frame in sys._current_frames().items():
 
 ---
 
-### Бенчмарки к Части VIII
+### Бенчмарки к Части VIII { #8.15-benchmarki }
 
 **1. `sys.intern` — ускорение lookup'а в dict по строковым ключам.**
 ```python

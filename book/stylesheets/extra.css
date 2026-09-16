@@ -468,3 +468,48 @@ html {
 .md-typeset li em {
   display: inline;
 }
+
+/* =========================================================================
+   ⚠️ WARNING HIGHLIGHT — soft yellow for blockquotes / list items / paragraphs
+   that contain the ⚠️ warning emoji.
+   Uses :has() — supported in all modern browsers (Chrome 105+, Safari 15.4+,
+   Firefox 121+). For older browsers, falls back to the default blockquote style.
+   ========================================================================= */
+:root {
+  --py-warn-bg: #fef9c3;          /* yellow-100, very soft */
+  --py-warn-border: #facc15;      /* yellow-400 */
+  --py-warn-fg: #713f12;          /* yellow-900, dark text for contrast */
+}
+
+[data-md-color-scheme="slate"] {
+  --py-warn-bg: rgba(250, 204, 21, 0.08);
+  --py-warn-border: rgba(250, 204, 21, 0.45);
+  --py-warn-fg: #fde68a;          /* yellow-200 for dark mode */
+}
+
+/* Blockquote that contains ⚠️ anywhere inside → yellow callout */
+.md-typeset blockquote:has(~ *),
+.md-typeset blockquote {
+  /* base style already set above; override only when ⚠️ is present */
+}
+
+/* The actual yellow override — :has() with text matching is not directly
+   possible, but :has(strong:contains()) is non-standard. Instead we use a
+   small JS hook in extra.js that adds [data-warn="true"] to qualifying
+   elements. See below for the JS-loaded rule. */
+
+/* JS-applied yellow callout — set by extra.js post-render */
+.md-typeset [data-warn="true"] {
+  background: var(--py-warn-bg) !important;
+  border-left-color: var(--py-warn-border) !important;
+  color: var(--py-warn-fg) !important;
+  border-radius: 0 var(--py-radius-md) var(--py-radius-md) 0 !important;
+}
+
+.md-typeset [data-warn="true"] strong,
+.md-typeset [data-warn="true"] code {
+  color: var(--py-warn-fg) !important;
+}
+
+/* Code blocks: lines containing ⚠️ — pygments outputs each line as <span>,
+   we can't easily target by content. Leave emoji visible as-is in code. */

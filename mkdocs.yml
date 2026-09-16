@@ -96,6 +96,10 @@ plugins:
 extra_css:
   - stylesheets/extra.css
 
+# Custom JS — ⚠️ warning highlighter
+extra_javascript:
+  - javascripts/extra.js
+
 extra:
   social:
     - icon: fontawesome/brands/github

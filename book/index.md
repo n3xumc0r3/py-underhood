@@ -5,7 +5,37 @@
 
 **Структура по сложности:**
 
-[Часть I](01-basics.md) (базовые трюки) → [Часть II](02-context-managers.md) (контекстные менеджеры) → [Часть III](03-generators.md)–[Часть IV](04-async.md) (генераторы, асинхронность) → [Часть V](05-classes.md)–[Часть VI](06-descriptors.md) (классы, дескрипторы) → [Часть VII](07-metaprogramming.md)–[Часть VIII](08-cpython-internals.md) (метапрограммирование, internals CPython) → [Часть IX](09-encodings.md)–[Часть XII](12-linters.md) (кодировки, окружение, stdlib, линтеры) → [Приложение A](appendix-a-plagiarism.md) (системы обнаружения плагиата), [Приложение B](appendix-b-code-checkers.md) (взаимодействие с ними), [Приложение C](appendix-c-code-golf.md) (code golf), [Приложение D](appendix-d-references.md) (справочная литература).
+[Часть I](01-basics.md) — базовые трюки
+
+[Часть II](02-context-managers.md) — контекстные менеджеры
+
+[Часть III](03-generators.md) — генераторы, итераторы
+
+[Часть IV](04-async.md) — асинхронность
+
+[Часть V](05-classes.md) — классы, дескрипторы
+
+[Часть VI](06-descriptors.md) — дескрипторы, property
+
+[Часть VII](07-metaprogramming.md) — метапрограммирование
+
+[Часть VIII](08-cpython-internals.md) — internals CPython
+
+[Часть IX](09-encodings.md) — кодировки, кодеки
+
+[Часть X](10-introspection.md) — интроспекция окружения
+
+[Часть XI](11-stdlib.md) — полезные модули stdlib
+
+[Часть XII](12-linters.md) — линтеры, директивы
+
+[Приложение A](appendix-a-plagiarism.md) — системы обнаружения плагиата
+
+[Приложение B](appendix-b-code-checkers.md) — взаимодействие с системами проверки кода
+
+[Приложение C](appendix-c-code-golf.md) — code golf
+
+[Приложение D](appendix-d-references.md) — справочная литература
 
 ---
 
@@ -15,97 +45,229 @@
 
 [Открыть часть →](01-basics.md)
 
-Подразделы: `1.1` числовые литералы · `1.2` строковые префиксы · `1.3` неявное склеивание · `1.4` f-строки · `1.5` `slice` · `1.6` эллипсис · `1.7` `else` у циклов · `1.8` тернарный · `1.9` моржовый `:=` · `1.10` `match/case` · `1.11` цепочки сравнений · `1.12` распаковка · `1.13` `as` · `1.14` `iter(callable, sentinel)` · `1.15` `assert` и `-O` · `1.16` `breakpoint()` · `1.17` `_` · `1.18` slice assignment · `1.19` списочные без приравнивания · `1.20` PEP 8 нарушается · `1.21` `try/except/else/finally` · `1.22` exception chaining · `1.23` скрытые параметры builtins · `1.24` `__future__` · `1.25` пасхалки.
+- [1.1. Числовые литералы](01-basics.md#1.1)
+- [1.2. Строковые префиксы](01-basics.md#1.2)
+- [1.3. Неявное склеивание строковых литералов](01-basics.md#1.3)
+- [1.4. f-строки](01-basics.md#1.4)
+- [1.5. `slice` как полноценный объект](01-basics.md#1.5)
+- [1.6. Эллипсис `...`](01-basics.md#1.6)
+- [1.7. `else` у циклов](01-basics.md#1.7)
+- [1.8. Тернарный оператор](01-basics.md#1.8)
+- [1.9. Моржовый оператор `:=`](01-basics.md#1.9)
+- [1.10. `match/case`](01-basics.md#1.10)
+- [1.11. Цепочки сравнений](01-basics.md#1.11)
+- [1.12. Множественное присвоение и распаковка](01-basics.md#1.12)
+- [1.13. `as` — все способы применения](01-basics.md#1.13)
+- [1.14. `iter(callable, sentinel)`](01-basics.md#1.14)
+- [1.15. `assert` и флаг `-O`](01-basics.md#1.15)
+- [1.16. `breakpoint()` и `PYTHONBREAKPOINT`](01-basics.md#1.16)
+- [1.17. `_` — переменная-«мусорник»](01-basics.md#1.17)
+- [1.18. Slice assignment](01-basics.md#1.18)
+- [1.19. Списочные выражения без приравнивания](01-basics.md#1.19)
+- [1.20. Стиль: trailing comma, PEP 8](01-basics.md#1.20)
+- [1.21. `try/except/else/finally`](01-basics.md#1.21)
+- [1.22. Exception chaining](01-basics.md#1.22)
+- [1.23. Скрытые параметры встроенных функций](01-basics.md#1.23)
+- [1.24. `__future__` imports](01-basics.md#1.24)
+- [1.25. Пасхалки](01-basics.md#1.25)
 
 ### Часть II. Контекстные менеджеры
 
 [Открыть часть →](02-context-managers.md)
 
-Подразделы: `2.1` `with` internals · `2.2` свой менеджер через класс · `2.3` `@contextmanager` · `2.4` `suppress`/`ExitStack` · `2.5` несколько менеджеров · `2.6` подавление ошибок · `2.7` `redirect_stdout` · `2.8` `closing`/`aclosing`.
+- [2.1. `with` — внутренности](02-context-managers.md#2.1)
+- [2.2. Свой менеджер через класс](02-context-managers.md#2.2)
+- [2.3. `@contextmanager`](02-context-managers.md#2.3)
+- [2.4. `contextlib.suppress` и `ExitStack`](02-context-managers.md#2.4)
+- [2.5. Несколько менеджеров в одном `with`](02-context-managers.md#2.5)
+- [2.6. Подавление ошибок через `__exit__`](02-context-managers.md#2.6)
+- [2.7. `redirect_stdout`/`redirect_stderr`](02-context-managers.md#2.7)
+- [2.8. `closing` и `aclosing`](02-context-managers.md#2.8)
 
 ### Часть III. Генераторы и итераторы
 
 [Открыть часть →](03-generators.md)
 
-Подразделы: `3.1` `yield`/`next`/`StopIteration` · `3.2` genexpr vs listcomp · `3.3` `yield from` · `3.4` `send()`/`throw()`/`close()` · `3.5` бесконечные генераторы · `3.6` `itertools` рецепты · `3.7` экономия памяти · `3.8` `pairwise`/`batched` · `3.9` `collections`.
+- [3.1. `yield`, `next`, `StopIteration`](03-generators.md#3.1)
+- [3.2. Generator expressions vs list comprehensions](03-generators.md#3.2)
+- [3.3. `yield from` — делегирование](03-generators.md#3.3)
+- [3.4. `send()`, `throw()`, `close()`](03-generators.md#3.4)
+- [3.5. Бесконечные генераторы](03-generators.md#3.5)
+- [3.6. `itertools` — избранные рецепты](03-generators.md#3.6)
+- [3.7. Экономия памяти через ленивые вычисления](03-generators.md#3.7)
+- [3.8. `pairwise`, `batched` (Python 3.10+/3.12+)](03-generators.md#3.8)
+- [3.9. `collections` — Counter, defaultdict, deque, ChainMap, OrderedDict, namedtuple](03-generators.md#3.9)
 
 ### Часть IV. Асинхронность
 
 [Открыть часть →](04-async.md)
 
-Подразделы: `4.1` event loop · `4.2` `async def`/`await` · `4.3` `asyncio.run` · `4.4` `gather` · `4.5` `create_task` · `4.6` `wait` · `4.7` `Queue`/`Lock`/`Semaphore` · `4.8` async generators · `4.9` async context managers · `4.10` конкурентность vs параллелизм · `4.11` threads vs asyncio vs multiprocessing · `4.12` `as_completed` · `4.13` `TaskGroup` · `4.14` `timeout`/`shield` · `4.15` `CancelledError` · `4.16` advanced.
+- [4.1. Что такое event loop](04-async.md#4.1)
+- [4.2. `async def`, `await`](04-async.md#4.2)
+- [4.3. `asyncio.run`](04-async.md#4.3)
+- [4.4. `asyncio.gather`](04-async.md#4.4)
+- [4.5. `asyncio.create_task`](04-async.md#4.5)
+- [4.6. `asyncio.wait`](04-async.md#4.6)
+- [4.7. `asyncio.Queue`, `Lock`, `Semaphore`](04-async.md#4.7)
+- [4.8. Async generators](04-async.md#4.8)
+- [4.9. Async context managers](04-async.md#4.9)
+- [4.10. Конкурентность vs параллелизм](04-async.md#4.10)
+- [4.11. Threads vs asyncio vs multiprocessing](04-async.md#4.11)
+- [4.12. `asyncio.as_completed`](04-async.md#4.12)
+- [4.13. `asyncio.TaskGroup` (Python 3.11+)](04-async.md#4.13)
+- [4.14. `asyncio.timeout` и `shield`](04-async.md#4.14)
+- [4.15. `asyncio.CancelledError`](04-async.md#4.15)
+- [4.16. Advanced: `current_task`, `to_thread`, `Runner`, `eager_task_factory`](04-async.md#4.16)
 
 ### Часть V. Классы и интерфейсы
 
 [Открыть часть →](05-classes.md)
 
-Подразделы: `5.1` `dataclasses` · `5.2` `abc.ABC` · `5.3` `Protocol` · `5.4` MRO/C3 · `5.5` mixins · `5.6` `__init_subclass__` · `5.7` `super()` · `5.8` `__slots__` · `5.9` `classmethod` vs `staticmethod` · `5.10` `enum` · `5.11` dataclasses advanced · `5.12` typing advanced · `5.13` dataclasses advanced2 · `5.14` typing для async · `5.15` `TYPE_CHECKING` · `5.16` `ExceptionGroup` · `5.17` dunder-методы.
+- [5.1. `dataclasses`](05-classes.md#5.1)
+- [5.2. `abc.ABC` и `@abstractmethod`](05-classes.md#5.2)
+- [5.3. `Protocol` (PEP 544)](05-classes.md#5.3)
+- [5.4. MRO и C3-линеаризация](05-classes.md#5.4)
+- [5.5. Mixins и множественное наследование](05-classes.md#5.5)
+- [5.6. `__init_subclass__`](05-classes.md#5.6)
+- [5.7. `super()` — подробно](05-classes.md#5.7)
+- [5.8. `__slots__`](05-classes.md#5.8)
+- [5.9. `@classmethod` vs `@staticmethod`](05-classes.md#5.9)
+- [5.10. `enum`](05-classes.md#5.10)
+- [5.11. dataclasses advanced](05-classes.md#5.11)
+- [5.12. typing advanced](05-classes.md#5.12)
+- [5.13. dataclasses advanced2](05-classes.md#5.13)
+- [5.14. typing для async](05-classes.md#5.14)
+- [5.15. `typing.TYPE_CHECKING`](05-classes.md#5.15)
+- [5.16. `ExceptionGroup` и `except*`](05-classes.md#5.16)
+- [5.17. Dunder-методы](05-classes.md#5.17)
 
 ### Часть VI. Дескрипторы и property
 
 [Открыть часть →](06-descriptors.md)
 
-Подразделы: `6.1` `__get__`/`__set__`/`__delete__` · `6.2` data vs non-data · `6.3` `__set_name__` · `6.4` `@property` под капотом · `6.5` `__getattr__` vs `__getattribute__` vs `__setattr__`.
+- [6.1. `__get__`/`__set__`/`__delete__`](06-descriptors.md#6.1)
+- [6.2. Data vs non-data descriptors](06-descriptors.md#6.2)
+- [6.3. `__set_name__`](06-descriptors.md#6.3)
+- [6.4. `@property` — что под капотом](06-descriptors.md#6.4)
+- [6.5. `__getattr__` vs `__getattribute__` vs `__setattr__`](06-descriptors.md#6.5)
 
 ### Часть VII. Метапрограммирование
 
 [Открыть часть →](07-metaprogramming.md)
 
-Подразделы: `7.1` аннотации как данные · `7.2` `setattr`/`getattr`/`delattr` · `7.3` декораторы · `7.4` `functools.wraps` · `7.5` `type()` · `7.6` `types.FunctionType`/`CodeType` · `7.7` `compile`/`exec`/`eval` · `7.8` `locals()`/`globals()` · `7.9` `sys.modules` · `7.10` `builtins` · `7.11` `inspect` · `7.12` `importlib` · `7.13` `ast` · `7.14` `dir()`.
+- [7.1. Аннотации как данные](07-metaprogramming.md#7.1)
+- [7.2. `setattr`/`getattr`/`delattr`](07-metaprogramming.md#7.2)
+- [7.3. Декораторы](07-metaprogramming.md#7.3)
+- [7.4. `functools.wraps`](07-metaprogramming.md#7.4)
+- [7.5. `type()` — динамическое создание классов](07-metaprogramming.md#7.5)
+- [7.6. `types.FunctionType` и `CodeType`](07-metaprogramming.md#7.6)
+- [7.7. `compile`/`exec`/`eval`](07-metaprogramming.md#7.7)
+- [7.8. `locals()` и `globals()`](07-metaprogramming.md#7.8)
+- [7.9. `sys.modules` и `__import__`](07-metaprogramming.md#7.9)
+- [7.10. `builtins`](07-metaprogramming.md#7.10)
+- [7.11. `inspect`](07-metaprogramming.md#7.11)
+- [7.12. `importlib`](07-metaprogramming.md#7.12)
+- [7.13. `ast`](07-metaprogramming.md#7.13)
+- [7.14. `dir()`](07-metaprogramming.md#7.14)
 
 ### Часть VIII. Внутренности CPython
 
 [Открыть часть →](08-cpython-internals.md)
 
-Подразделы: `8.1` интернация строк · `8.2` кэш малых чисел · `8.3` замыкания · `8.4` `sys._getframe` · `8.5` `sys.getrefcount` · `8.6` GC через `gc` · `8.7` `__code__` · `8.8` смена `__class__` · `8.9` `dis` · `8.10` recursion limit · `8.11` `contextvars` · `8.12` `pathlib` · `8.13` `types` · `8.14` `weakref` · `8.15` `sys.unraisablehook`.
+- [8.1. Интернация строк](08-cpython-internals.md#8.1)
+- [8.2. Кэш малых чисел (-5..256)](08-cpython-internals.md#8.2)
+- [8.3. Замыкания и `__closure__`](08-cpython-internals.md#8.3)
+- [8.4. `sys._getframe` и фреймы](08-cpython-internals.md#8.4)
+- [8.5. `sys.getrefcount`](08-cpython-internals.md#8.5)
+- [8.6. Управление GC через `gc`](08-cpython-internals.md#8.6)
+- [8.7. `__code__`](08-cpython-internals.md#8.7)
+- [8.8. Динамическая смена `__class__`](08-cpython-internals.md#8.8)
+- [8.9. `dis` — байт-код](08-cpython-internals.md#8.9)
+- [8.10. Recursion limit](08-cpython-internals.md#8.10)
+- [8.11. `contextvars`](08-cpython-internals.md#8.11)
+- [8.12. `pathlib`](08-cpython-internals.md#8.12)
+- [8.13. `types`](08-cpython-internals.md#8.13)
+- [8.14. `weakref`](08-cpython-internals.md#8.14)
+- [8.15. `sys.unraisablehook`](08-cpython-internals.md#8.15)
 
 ### Часть IX. Кодировки и кодеки
 
 [Открыть часть →](09-encodings.md)
 
-Подразделы: `9.1` PEP 263 · `9.2` `rot_13` и `SyntaxError` · `9.3` кодировки для исходника · `9.4` проверка всех кодировок · `9.5` свой кодек · `9.6` `search_function`.
+- [9.1. PEP 263](09-encodings.md#9.1)
+- [9.2. Почему `rot_13` падает с `SyntaxError`](09-encodings.md#9.2)
+- [9.3. Какие кодировки подходят](09-encodings.md#9.3)
+- [9.4. Скрипт для проверки всех кодировок](09-encodings.md#9.4)
+- [9.5. Свой кодек через `codecs.register()`](09-encodings.md#9.5)
+- [9.6. Механика `search_function`](09-encodings.md#9.6)
 
 ### Часть X. Интроспекция окружения
 
 [Открыть часть →](10-introspection.md)
 
-Подразделы: `10.1` `sys.flags` · `10.2` `sys._xoptions` · `10.3` `os.environ`/`PYTHON*` · `10.4` `sys.implementation`/`platform` · `10.5` `resource.getrlimit` · `10.6` `/proc/self/` · `10.7` audit hooks · `10.8` faulthandler · `10.9` универсальный комбайн.
+- [10.1. `sys.flags`](10-introspection.md#10.1)
+- [10.2. `sys._xoptions`](10-introspection.md#10.2)
+- [10.3. `os.environ` и `PYTHON*`](10-introspection.md#10.3)
+- [10.4. `sys.implementation`, `platform.*`](10-introspection.md#10.4)
+- [10.5. `resource.getrlimit`](10-introspection.md#10.5)
+- [10.6. `/proc/self/`](10-introspection.md#10.6)
+- [10.7. Audit hooks (PEP 578)](10-introspection.md#10.7)
+- [10.8. Faulthandler](10-introspection.md#10.8)
+- [10.9. Универсальный «комбайн»](10-introspection.md#10.9)
 
 ### Часть XI. Полезные модули stdlib
 
 [Открыть часть →](11-stdlib.md)
 
-Подразделы: `11.1`–`11.31` — `functools` (`lru_cache`/`partial`/`reduce`/`singledispatch`/`cached_property`/`total_ordering`), `weakref`, `copy`, `warnings`, `__all__`, `pickle`, `tracemalloc`, `operator`, `queue`, `reprlib`, `os.scandir`, `logging`, `signal`/`atexit`, `datetime`, `bisect`/`heapq`, `csv`/`json`/`urllib.parse`, `mmap`, `shutil`/`tempfile`, `decimal`/`fractions`, `re`, `unicodedata`, `struct`/`memoryview`, `hashlib`/`hmac`/`secrets`, `math`/`statistics`, `random`, `argparse`/`configparser`/`subprocess`, `timeit`/`bdb`/`profile`/`cProfile`/`code`, `venv`/`pip`/`site`.
+- [11.1. `functools.lru_cache`, `functools.cache`](11-stdlib.md#11.1)
+- [11.2. `functools.partial`](11-stdlib.md#11.2)
+- [11.3. `functools.reduce`](11-stdlib.md#11.3)
+- [11.4. `weakref`](11-stdlib.md#11.4)
+- [11.5. `copy`/`deepcopy`](11-stdlib.md#11.5)
+- [11.6. `warnings`](11-stdlib.md#11.6)
+- [11.7. `__all__`](11-stdlib.md#11.7)
+- [11.8. `pickle`](11-stdlib.md#11.8)
+- [11.9. `tracemalloc`](11-stdlib.md#11.9)
+- [11.10. `operator`](11-stdlib.md#11.10)
+- [11.11. `singledispatch`, `cached_property`, `total_ordering`](11-stdlib.md#11.11)
+- [11.12. `queue`](11-stdlib.md#11.12)
+- [11.13. `reprlib`](11-stdlib.md#11.13)
+- [11.14. `os.scandir`, `os.fwalk`](11-stdlib.md#11.14)
+- [11.15. `logging`](11-stdlib.md#11.15)
+- [11.16. `signal` и `atexit`](11-stdlib.md#11.16)
+- [11.17. `datetime`, `timedelta`, `timezone`](11-stdlib.md#11.17)
+- [11.18. `bisect` и `heapq`](11-stdlib.md#11.18)
+- [11.19. `csv`, `json`, `urllib.parse`](11-stdlib.md#11.19)
+- [11.20. `mmap`](11-stdlib.md#11.20)
+- [11.21. `shutil` и `tempfile`](11-stdlib.md#11.21)
+- [11.22. `decimal` и `fractions`](11-stdlib.md#11.22)
+- [11.23. `re`](11-stdlib.md#11.23)
+- [11.24. `unicodedata`](11-stdlib.md#11.24)
+- [11.25. `struct`, `memoryview`](11-stdlib.md#11.25)
+- [11.26. `hashlib`, `hmac`, `secrets`](11-stdlib.md#11.26)
+- [11.27. `math`, `statistics`](11-stdlib.md#11.27)
+- [11.28. `random`](11-stdlib.md#11.28)
+- [11.29. `argparse`, `configparser`, `subprocess`](11-stdlib.md#11.29)
+- [11.30. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop`](11-stdlib.md#11.30)
+- [11.31. `venv`, `pip`, `site`](11-stdlib.md#11.31)
 
 ### Часть XII. Линтеры и директивы в комментариях
 
 [Открыть часть →](12-linters.md)
 
-Подразделы: `12.1` `# -*- coding: ... -*-` · `12.2` `# type: int` · `12.3` `# noqa` · `12.4` `# doctest: +ELLIPSIS` · `12.5` коды flake8/pylint · `12.6` `pyproject.toml`.
+- [12.1. `# -*- coding: ... -*-` (PEP 263)](12-linters.md#12.1)
+- [12.2. `# type: int` (PEP 484)](12-linters.md#12.2)
+- [12.3. `# noqa`](12-linters.md#12.3)
+- [12.4. `# doctest: +ELLIPSIS`](12-linters.md#12.4)
+- [12.5. Коды flake8/pylint](12-linters.md#12.5)
+- [12.6. `pyproject.toml`](12-linters.md#12.6)
 
-### Приложение A. Системы обнаружения плагиата
+### Приложения
 
-[Открыть приложение →](appendix-a-plagiarism.md)
-
-Подразделы: `A.1` Winnowing · `A.2` MOSS/JPlag/Dolos/Codequiry · `A.3` метрики Хальстеда · `A.4` цикломатическая сложность · `A.5` AST-нормализация · `A.6` стилометрия · `A.7` динамический анализ · `A.8` constant folding.
-
-### Приложение B. Взаимодействие с системами проверки кода
-
-[Открыть приложение →](appendix-b-code-checkers.md)
-
-Подразделы: `B.1` косметические приёмы · `B.2` архитектурные · `B.3` перехват через фреймы/ctypes · `B.4` интроспекция окружения · `B.5` песочницы и `__subclasses__()`.
-
-### Приложение C. Code golf — Python на минималках
-
-[Открыть приложение →](appendix-c-code-golf.md)
-
-Подразделы: `C.1`–`C.22` — базовые приёмы сжатия, `bool` как `int`, тернарный vs индексация, unpack в `print`, срезы, short-circuit, `walrus`, `__import__`, битовые операции, `lambda`, `__builtins__`, строки vs регулярки, большие числа, `exit()` vs `sys.exit()`, антипаттерны, числовые константы, продвинутые приёмы, шпаргалка, канонические задачи, разбор реального онелинера, ссылки.
-
-### Приложение D. Где почитать
-
-[Открыть приложение →](appendix-d-references.md)
-
-Библиография: PEP-ы, книги по CPython internals (Anthony Shaw, Luciano Ramalho, Brett Slatkin, David Beazley), исходники CPython, статьи по системам обнаружения плагиата (Winnowing, MOSS, JPlag, Dolos).
+- [Приложение A. Системы обнаружения плагиата](appendix-a-plagiarism.md)
+- [Приложение B. Взаимодействие с системами проверки кода](appendix-b-code-checkers.md)
+- [Приложение C. Code golf — Python на минималках](appendix-c-code-golf.md)
+- [Приложение D. Где почитать](appendix-d-references.md)
 
 ---
 

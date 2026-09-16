@@ -1,6 +1,6 @@
 # Часть III. Генераторы и итераторы
 
-## 3.1. `yield`, `next`, `StopIteration`
+## 3.1. `yield`, `next`, `StopIteration` { #3.1 }
 
 Функция с `yield` вместо `return` — это **генератор**. Она возвращает не значение, а итератор.
 
@@ -68,7 +68,7 @@ print(next(g), next(g), next(g))   # 0 1 2
 # Не вызывает StopIteration — бесконечный
 ```
 
-## 3.2. Generator expressions vs list comprehensions
+## 3.2. Generator expressions vs list comprehensions { #3.2 }
 
 ```python
 # List comprehension — материализует сразу
@@ -108,7 +108,7 @@ print(list(gen))   # [100, 200, 300] (не [10000, 20000, 30000]!)
 
 ⚠️ **`reversed(gen)` падает** — `TypeError: 'generator' object is not reversible`. `reversed()` требует `__reversed__` или `__len__` + `__getitem__`. Сначала материализуйте: `reversed(list(gen))`.
 
-## 3.3. `yield from` — делегирование
+## 3.3. `yield from` — делегирование { #3.3 }
 
 > **→ см. также:** Часть IV (4.8) — `async for` и `async generators` как асинхронный аналог `yield from`. (PEP 380, Python 3.3+)
 
@@ -148,11 +148,11 @@ print(next(g))  # 2
 print(next(g))  # "Внутренний вернул: inner done" + StopIteration
 ```
 
-## 3.4. `send()`, `throw()`, `close()` — корутины на генераторах
+## 3.4. `send()`, `throw()`, `close()` — корутины на генераторах { #3.4 }
 
 Генератор можно использовать как **корутину** — двунаправленно обмениваться данными с вызывающим.
 
-### `send(value)` — отправить значение в генератор
+### `send(value)` — отправить значение в генератор { #3.4-send }
 
 ```python
 def accumulator():
@@ -170,7 +170,7 @@ print(acc.send(5))   # 35
 
 ⚠️ **Первый вызов обязан быть `next()`**, а не `send()` — генератор ещё не дошёл до `yield` и нечего получать значение. Альтернатива: `acc.send(None)` для первого «пинка».
 
-### `throw(exc_type)` — вбросить исключение внутрь
+### `throw(exc_type)` — вбросить исключение внутрь { #3.4-throw }
 
 ```python
 def safe_gen():
@@ -190,7 +190,7 @@ g.throw(ValueError)  # "Поймал ValueError"
 
 Исключение вбрасывается **в точке, где генератор сейчас приостановлен** (на `yield`).
 
-### `close()` — остановить генератор
+### `close()` — остановить генератор { #3.4-close }
 
 ```python
 g = accumulator()
@@ -204,7 +204,7 @@ next(g)             # StopIteration
 
 ⚠️ **`GeneratorExit` наследуется от `BaseException`**, а не от `Exception` — поэтому `except Exception:` его **не поймает**. Это гарантирует, что генератор можно закрыть даже если внутри есть широкий `except Exception`. Внутри `except GeneratorExit` разрешено только освобождать ресурсы и завершаться через `return` — **нельзя `yield`**.
 
-## 3.5. Бесконечные генераторы
+## 3.5. Бесконечные генераторы { #3.5 }
 
 ```python
 def fibonacci():
@@ -236,7 +236,7 @@ print([next(odds) for _ in range(5)])   # [1, 3, 5, 7, 9]
 
 Главный плюс — память не растёт, потому что значения создаются по одному и сразу потребляются.
 
-## 3.6. `itertools` — избранные рецепты
+## 3.6. `itertools` — избранные рецепты { #3.6 }
 
 ```python
 # В реальном коде — импортируйте по имени, не через `*`:
@@ -300,7 +300,7 @@ print(list(b))   # [0, 1, 2, 3, 4]  — b не зависит от a
 
 ⚠️ `groupby` группирует только **подряд идущие** элементы — нужно сначала отсортировать по ключу, иначе один и тот же ключ появится в нескольких группах.
 
-## 3.7. Экономия памяти через ленивые вычисления
+## 3.7. Экономия памяти через ленивые вычисления { #3.7 }
 
 ```python
 # ПЛОХО: загружает весь файл в память
@@ -335,11 +335,11 @@ with open('huge.bin', 'rb') as f:
 - Stream processing — данные приходят порциями.
 - Lazy evaluation — вычисления только когда нужны.
 
-## 3.8. `itertools.pairwise`, `batched` (Python 3.10+/3.12+)
+## 3.8. `itertools.pairwise`, `batched` (Python 3.10+/3.12+) { #3.8 }
 
 Новые ленивые итераторы, которых не было в старых версиях Python:
 
-### `pairwise` (Python 3.10+) — пары соседних элементов
+### `pairwise` (Python 3.10+) — пары соседних элементов { #3.8-pairwise }
 
 ```python
 from itertools import pairwise
@@ -358,7 +358,7 @@ peaks = [b for a, b, c in zip(data, data[1:], data[2:]) if a < b > c]
 # 15, 20 — но это через срезы, а pairwise ленивее
 ```
 
-### `batched` (Python 3.12+) — чанки фиксированного размера
+### `batched` (Python 3.12+) — чанки фиксированного размера { #3.8-batched }
 
 ```python
 from itertools import batched
@@ -396,9 +396,9 @@ list(padded_batched([1, 2, 3, 4, 5, 6, 7], 3))
 # [(1, 2, 3), (4, 5, 6), (7, None, None)]
 ```
 
-## 3.9. `collections` — Counter, defaultdict, deque, ChainMap, OrderedDict, namedtuple
+## 3.9. `collections` — Counter, defaultdict, deque, ChainMap, OrderedDict, namedtuple { #3.9 }
 
-### `Counter` — счётчик элементов
+### `Counter` — счётчик элементов { #3.9-counter }
 
 ```python
 from collections import Counter
@@ -421,7 +421,7 @@ print(c1 | c2)   # union — максимум по каждому ключу: Co
 print(c1 & c2)   # intersection — минимум: Counter({'a': 1, 'b': 1})
 ```
 
-### `set` / `frozenset` — множества и их операции
+### `set` / `frozenset` — множества и их операции { #3.9-set }
 
 `set` — изменяемое множество, `frozenset` — неизменяемое (хешируемое, можно как ключ dict). Создание:
 
@@ -491,7 +491,7 @@ d = {frozenset({1, 2}): "pair"}    # OK — frozenset хешируем
 # d[{1, 2}] = "pair"               # TypeError: unhashable type: 'set'
 ```
 
-### `defaultdict` — словарь с дефолт-фабрикой
+### `defaultdict` — словарь с дефолт-фабрикой { #3.9-defaultdict }
 
 ```python
 from collections import defaultdict
@@ -515,7 +515,7 @@ nested = defaultdict(lambda: defaultdict(list))
 nested['users']['admins'].append('alice')
 ```
 
-### `deque` — двухсторонняя очередь
+### `deque` — двухсторонняя очередь { #3.9-deque }
 
 ```python
 from collections import deque
@@ -544,7 +544,7 @@ d.rotate(-1)   # влево
 print(d)   # deque([5, 1, 2, 3, 4])
 ```
 
-### `ChainMap` — объединение словарей без копирования
+### `ChainMap` — объединение словарей без копирования { #3.9-chainmap }
 
 ```python
 from collections import ChainMap
@@ -573,7 +573,7 @@ import os
 config = ChainMap(os.environ, user_overrides, defaults)
 ```
 
-### `OrderedDict` — словарь с сохранением порядка
+### `OrderedDict` — словарь с сохранением порядка { #3.9-ordereddict }
 
 ⚠️ С Python 3.7 обычный `dict` тоже сохраняет порядок вставки. `OrderedDict` нужен, только если:
 - Требуется равенство по порядку: `OrderedDict([(1,1),(2,2)]) == OrderedDict([(2,2),(1,1)])` → `False`, а для обычных `dict` — `True`.
@@ -610,7 +610,7 @@ class LRU:
             self.cache.popitem(last=False)   # удалить самый старый
 ```
 
-### `namedtuple` — кортеж с именованными полями
+### `namedtuple` — кортеж с именованными полями { #3.9-namedtuple }
 
 ```python
 from collections import namedtuple
@@ -635,7 +635,7 @@ print(Person('Alice', 30))   # Person(name='Alice', age=30, email='')
 
 ⚠️ `namedtuple` неизменяемый и хешируемый — можно использовать как ключ в словаре. Если нужна мутабельность — берите `typing.NamedTuple` (с аннотациями типов) или `dataclass`.
 
-### Бенчмарки к Части III
+### Бенчмарки к Части III { #3.9-benchmarki }
 
 **1. List comprehension vs generator expression — память.**
 ```python

@@ -1,6 +1,6 @@
 # Часть X. Интроспекция окружения
 
-## 10.1. `sys.flags` — флаги командной строки Python
+## 10.1. `sys.flags` — флаги командной строки Python { #10.1 }
 
 `sys.flags` — именованный кортеж с полным набором флагов `python`. Самый точный способ узнать, **как именно Python был запущен**:
 
@@ -40,7 +40,7 @@ flags_dict = {k: getattr(sys.flags, k) for k in dir(sys.flags) if not k.startswi
 raise RuntimeError(f"FLAGS_DUMP: {json.dumps(flags_dict)}")
 ```
 
-## 10.2. `sys._xoptions` — `-X` опции
+## 10.2. `sys._xoptions` — `-X` опции { #10.2 }
 
 Некоторые флаги не имеют поля в `sys.flags` — они передаются через `-X` (расширенные опции), доступны в `sys._xoptions` (словарь):
 
@@ -66,7 +66,7 @@ print(sys._xoptions)
 - `-X frozen_modules=on/off` — использовать ли замороженные модули
 - `-X path` — показать итоговый `sys.path`
 
-## 10.3. `os.environ` и `PYTHON*` переменные
+## 10.3. `os.environ` и `PYTHON*` переменные { #10.3 }
 
 ⚠️ **Переменные `PYTHON*` читаются ТОЛЬКО при старте CPython.** Изменение `os.environ['PYTHONUNBUFFERED'] = '1'` внутри работающего скрипта **не повлияет на текущий процесс** — только на дочерние процессы (запущенные через `subprocess`). Все `PYTHON*` должны быть выставлены **до** запуска `python`.
 
@@ -117,7 +117,7 @@ print(interesting)
 
 ⚠️ **Все `PYTHON*` переменные игнорируются** при флаге `-E` или `-I`.
 
-## 10.4. `sys.implementation`, `platform.*`
+## 10.4. `sys.implementation`, `platform.*` { #10.4 }
 
 ```python
 import sys, platform, os
@@ -152,7 +152,7 @@ print(socket.getfqdn())        # полное доменное имя
 
 Если `os.getppid()` возвращает 1 — скорее всего, процесс запущен в Docker-контейнере (init PID=1). Если `os.getuid()` возвращает 0 — мы root (песочница слабая или её нет).
 
-## 10.5. `resource.getrlimit` — лимиты ресурсов
+## 10.5. `resource.getrlimit` — лимиты ресурсов { #10.5 }
 
 ⚠️ **Модуль `resource` доступен только на POSIX/Unix (Linux, macOS).** На Windows — `ModuleNotFoundError`. Кроссплатформенный код: `try: import resource except ModuleNotFoundError: ...`.
 
@@ -193,7 +193,7 @@ print(tempfile.gettempprefix())  # обычно 'tmp'
 
 Если `RLIMIT_CPU` выставлен в 1 секунду — это песочница. Если `RLIMIT_AS` в 64 МБ — это классическая строгая сэндбокс-конфигурация для учебных тестирующих систем.
 
-## 10.6. `/proc/self/` — Linux-специфичная разведка
+## 10.6. `/proc/self/` — Linux-специфичная разведка { #10.6 }
 
 На Linux `/proc/self/` — это «магический» каталог, показывающий состояние текущего процесса:
 
@@ -241,7 +241,7 @@ print(os.path.exists('/.dockerenv'))  # True для Docker
 
 `/proc/self/environ` часто **полезнее**, чем `os.environ` — даёт вообще всё окружение, не отфильтрованное.
 
-## 10.7. Audit hooks (PEP 578, Python 3.8+)
+## 10.7. Audit hooks (PEP 578, Python 3.8+) { #10.7 }
 
 `sys.addaudithook(hook)` ставит **глобальный перехватчик** для всех «интересных» событий: `import`, `exec`, `eval`, `open`, `socket.*`, `subprocess.Popen`, `compile`, `code.__new__`, и т.д. Полный список событий в [PEP 578](https://peps.python.org/pep-0578/).
 
@@ -265,7 +265,7 @@ open('/tmp/x', 'w').close()
 
 ⚠️ Audit hooks **нельзя удалить** — `sys.addaudithook` односторонний. Начиная с Python 3.12 hooks могут перехватывать сами себя через событие `sys.addaudithook`.
 
-## 10.8. Faulthandler — дамп стеков
+## 10.8. Faulthandler — дамп стеков { #10.8 }
 
 ```python
 import faulthandler
@@ -286,7 +286,7 @@ faulthandler.dump_traceback_later(timeout=5)  # каждые 5 сек
 
 В тестирующей системе с таймаутами (Task timed out) `dump_traceback_later` выведет в stderr стек всех тредов — видно, на чём зависла программа.
 
-## 10.9. Универсальный «комбайн» для одной попытки
+## 10.9. Универсальный «комбайн» для одной попытки { #10.9 }
 
 Если есть только одна попытка, можно слить максимум инфы в stderr/stdout через один `raise`:
 
@@ -326,7 +326,7 @@ raise RuntimeError(f"RECON_DUMP: {json.dumps(info, default=str, indent=2)}")
 
 ---
 
-### Бенчмарки к Части X
+### Бенчмарки к Части X { #10.9-benchmarki }
 
 **1. `sys.flags` vs `os.environ["PYTHON..."]` — где искать флаги.**
 ```python

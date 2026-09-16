@@ -1,6 +1,6 @@
 # Часть VI. Дескрипторы и property
 
-## 6.1. `__get__`/`__set__`/`__delete__` — протокол дескрипторов
+## 6.1. `__get__`/`__set__`/`__delete__` — протокол дескрипторов { #6.1 }
 
 **Дескриптор** — это объект, который реализует один или несколько из методов `__get__`, `__set__`, `__delete__`. Когда такой объект используется как атрибут класса, Python **перехватывает** доступ и вызывает эти методы.
 
@@ -52,7 +52,7 @@ def __delete__(self, instance):
     ...
 ```
 
-## 6.2. Data vs non-data descriptors
+## 6.2. Data vs non-data descriptors { #6.2 }
 
 | Тип | Реализует | Приоритет |
 |------|-----------|-----------|
@@ -81,7 +81,7 @@ print(c.non_data)    # "instance value" — __dict__ экземпляра поб
 
 Это фундаментальное правило, на котором построены `@property` (data descriptor, `__set__` валидирует), `@classmethod`/`@staticmethod` (non-data descriptors).
 
-## 6.3. `__set_name__` — автоматическая инициализация (PEP 487, Python 3.6+)
+## 6.3. `__set_name__` — автоматическая инициализация (PEP 487, Python 3.6+) { #6.3 }
 
 `__set_name__(self, owner, name)` вызывается для каждого дескриптора при создании класса. Позволяет дескриптору узнать, под каким именем он привязан:
 
@@ -115,7 +115,7 @@ print(c.host)         # example.com
 
 Без `__set_name__` пришлось бы передавать имя в `__init__`: `Field("host", "localhost")` — теперь можно автоматически.
 
-## 6.4. `@property` — что под капотом
+## 6.4. `@property` — что под капотом { #6.4 }
 
 > **→ см. также:** Часть VII (7.4) — `functools.wraps` и `cached_property` как частные случаи дескрипторов-декораторов.
 
@@ -186,7 +186,7 @@ c.area = 100   # AttributeError: can't set attribute
 
 ⚠️ **Property не должно быть тяжёлым** — пользователь ожидает мгновенного доступа. Не делайте в `@property` HTTP-запросы или чтение файлов.
 
-## 6.5. `__getattr__` vs `__getattribute__` vs `__setattr__`
+## 6.5. `__getattr__` vs `__getattribute__` vs `__setattr__` { #6.5 }
 
 ```python
 class Flexible:
@@ -211,7 +211,7 @@ class Flexible:
         super().__delattr__(name)
 ```
 
-### `__getattr__` — fallback для отсутствующих атрибутов
+### `__getattr__` — fallback для отсутствующих атрибутов { #6.5-getattr }
 
 ```python
 class DictLike:
@@ -229,7 +229,7 @@ print(d.y)       # "not found" — fallback
 print(d.real_data)  # словарь — обычный доступ, не fallback
 ```
 
-### `__getattribute__` — для каждого доступа (осторожно!)
+### `__getattribute__` — для каждого доступа (осторожно!) { #6.5-getattribute }
 
 ```python
 class Logging:
@@ -257,7 +257,7 @@ def __getattribute__(self, name):
     # if name in self.real_data: ...   # рекурсия!
 ```
 
-### `__setattr__` — для каждого присваивания
+### `__setattr__` — для каждого присваивания { #6.5-setattr }
 
 ```python
 class Immutable:
@@ -286,7 +286,7 @@ obj.x = 2   # AttributeError
 
 ---
 
-### Бенчмарки к Части VI
+### Бенчмарки к Части VI { #6.5-benchmarki }
 
 **1. `@property` vs прямой атрибут vs дескриптор.**
 ```python

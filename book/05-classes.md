@@ -2,7 +2,7 @@
 
 > Эта часть очень большая. Разделы расположены по принципу «от конкретного к абстрактному»: сначала `dataclasses` (как самый частый способ создавать классы), потом ABC/Protocol (контракты), потом internals (MRO, `super`, `__slots__`), потом `enum` и продвинутый `typing`.
 
-## 5.1. `dataclasses` — современные data class builders (PEP 557, Python 3.7+)
+## 5.1. `dataclasses` — современные data class builders (PEP 557, Python 3.7+) { #5.1 }
 
 `@dataclass` автоматически генерирует `__init__`, `__repr__`, `__eq__` (и опционально `__hash__`, `__lt__` и др.) по аннотациям полей:
 
@@ -97,7 +97,7 @@ class Range:
 Range(10, 5)   # ValueError
 ```
 
-## 5.2. `abc.ABC` и `@abstractmethod`
+## 5.2. `abc.ABC` и `@abstractmethod` { #5.2 }
 
 `abc` модуль — для настоящих абстрактных классов. Нельзя инстанцировать, пока не реализованы все абстрактные методы:
 
@@ -144,7 +144,7 @@ class Plugin(ABC):
 
 ⚠️ **Порядок декораторов важен**: `@abstractmethod` всегда **ближе к функции**, чем `@property`/`@classmethod`/`@staticmethod`.
 
-## 5.3. `Protocol` (PEP 544) — структурная типизация
+## 5.3. `Protocol` (PEP 544) — структурная типизация { #5.3 }
 
 В отличие от `ABC` (номинальная типизация — «должен наследоваться»), `Protocol` проверяет **структуру** («должен иметь такие методы»):
 
@@ -185,7 +185,7 @@ print(isinstance(42, HasLen))         # False
 
 `Protocol` — это **duck typing для type checker'а**: «если ходит как утка и крякает как утка — это утка».
 
-## 5.4. MRO и C3-линеаризация
+## 5.4. MRO и C3-линеаризация { #5.4 }
 
 **MRO (Method Resolution Order)** — порядок, в котором Python ищет методы при множественном наследовании. Алгоритм **C3-линеаризация**.
 
@@ -251,7 +251,7 @@ class Y(X): pass
 class Z(X, Y): pass   # TypeError!
 ```
 
-## 5.5. Mixins и множественное наследование
+## 5.5. Mixins и множественное наследование { #5.5 }
 
 **Mixin** — небольшой класс, который **нельзя инстанцировать сам по себе**, он добавляет функциональность другим классам через наследование:
 
@@ -294,7 +294,7 @@ class Plugin(ABC, JsonMixin):
 # Теперь абстрактный класс с JSON-функциональностью
 ```
 
-## 5.6. `__init_subclass__` — хук при наследовании
+## 5.6. `__init_subclass__` — хук при наследовании { #5.6 }
 
 > **→ см. также:** Часть VII (7.5) — `type()` как метапрограммный аналог; Часть VI (6.3) — `__set_name__` для дескрипторов. (PEP 487, Python 3.6+)
 
@@ -333,7 +333,7 @@ class Service(Base, log_level="DEBUG"):
 print(Service.log_level)   # DEBUG
 ```
 
-## 5.7. `super()` — подробно
+## 5.7. `super()` — подробно { #5.7 }
 
 `super()` без аргументов внутри метода эквивалентен `super(CurrentClass, self)`. Возвращает прокси, который вызывает метод следующего класса в MRO.
 
@@ -405,7 +405,7 @@ Document().save()
 
 ⚠️ Если в цепочке один класс забудет `super().save()` — следующие классы не вызовутся.
 
-## 5.8. `__slots__` — оптимизация памяти
+## 5.8. `__slots__` — оптимизация памяти { #5.8 }
 
 > **→ см. также:** Часть VI (6.1–6.2) — `__slots__` работает через data descriptor protocol; Часть VIII (8.2) — internals объектной модели CPython.
 
@@ -446,7 +446,7 @@ c.y = 2
 # c.z = 3   # AttributeError
 ```
 
-### `__slots__` + множественное наследование — `lay-out conflict`
+### `__slots__` + множественное наследование — `lay-out conflict` { #5.8-slots }
 
 Самая частая внезапная ловушка: два класса с непустым `__slots__` нельзя совместно наследовать, если они не имеют общего слотового предка с совместимым C-level layout. CPython хранит slot-атрибуты в **фиксированном смещении внутри C-struct экземпляра** — и если два базовых класса каждый по-своему раскладывают атрибуты, нет способа их «слить».
 
@@ -510,7 +510,7 @@ print(u.to_pickle()[:8])  # b'\x80\x04\x95...'
 - **`functools.cached_property`** **не работает** на slots-классе без `__dict__` — он пытается записать результат в `__dict__`, а его нет. Получите `AttributeError`. Если нужен cached_property на slots-классе — придётся либо добавить `'__dict__'` в `__slots__` (что убивает экономию памяти), либо реализовать кэш вручную через один из slots.
 - **`@property` + `__slots__` с тем же именем** — конфликт, описано выше. Но есть менее очевидное: `@property` **без** сеттера блокирует запись в этот slot, даже если slot был объявлен. То есть `__slots__ = ('x',)` + `@property def x(self): return self._x` приведёт к тому, что `self.x = 1` упадет (нет setter), а `self._x = 1` тоже упадёт (`_x` не в slots). Порядок объявления важен — `property` перекрывает slot.
 
-## 5.9. `@classmethod` vs `@staticmethod`
+## 5.9. `@classmethod` vs `@staticmethod` { #5.9 }
 
 **`@classmethod`** — метод, получающий **класс** первым аргументом (обычно `cls`):
 
@@ -548,7 +548,7 @@ print(Math.is_even(4))   # True
 
 ⚠️ `@classmethod` уважает наследование: `Date.from_string()` в подклассе вернёт экземпляр подкласса, а `Date`.
 
-### Mutable class variables — главная ловушка OOP
+### Mutable class variables — главная ловушка OOP { #5.9-mutable }
 
 **Самая частая ошибка** в классах Python — mutable class variable. Все экземпляры **разделяют** один и тот же объект:
 
@@ -586,7 +586,7 @@ print(cart2.items)   # [] ← корректно, cart2 пуст
 
 ⚠️ `__slots__` защищает от этой ловушки — слоты создаются на экземпляр, не разделяются. Но `__slots__` с mutable default — другая история (нужен `field(default_factory=list)` в dataclass).
 
-## 5.10. `enum` — Enum, IntEnum, IntFlag, auto
+## 5.10. `enum` — Enum, IntEnum, IntFlag, auto { #5.10 }
 
 `enum` модуль — для перечислений. Заменяет константы вида `RED = 1`, `GREEN = 2`.
 
@@ -741,9 +741,9 @@ print(OrderStatus.DELIVERED.can_cancel())  # False
 print(OrderStatus.from_string('paid'))     # OrderStatus.PAID
 ```
 
-## 5.11. `dataclasses` advanced: `asdict`, `fields`, `replace`, `KW_ONLY`
+## 5.11. `dataclasses` advanced: `asdict`, `fields`, `replace`, `KW_ONLY` { #5.11 }
 
-### `dataclasses.asdict` — в словарь (рекурсивно)
+### `dataclasses.asdict` — в словарь (рекурсивно) { #5.11-dataclassesasdict }
 
 ```python
 from dataclasses import dataclass, asdict
@@ -768,7 +768,7 @@ print(asdict(t))
 
 ⚠️ `asdict` рекурсивно обходит вложенные dataclass, list/dict/tuple/... но **не** другие классы. Если внутри есть `datetime` или свой класс — `asdict` оставит его как есть (не преобразует).
 
-### `dataclasses.astuple` — в кортеж
+### `dataclasses.astuple` — в кортеж { #5.11-dataclassesastuple }
 
 ```python
 from dataclasses import astuple
@@ -777,7 +777,7 @@ print(astuple(User("Alice", 30)))   # ('Alice', 30)
 print(astuple(t))   # ('Backend', ('Alice', 30))
 ```
 
-### `dataclasses.fields` — список Field объектов
+### `dataclasses.fields` — список Field объектов { #5.11-dataclassesfields }
 
 ```python
 from dataclasses import fields
@@ -792,7 +792,7 @@ fields_dict = {f.name: f for f in fields(User)}
 print(fields_dict['name'].default)
 ```
 
-### `dataclasses.replace` — копия с изменёнными полями
+### `dataclasses.replace` — копия с изменёнными полями { #5.11-dataclassesreplace }
 
 ```python
 from dataclasses import replace
@@ -805,7 +805,7 @@ print(u)         # User(name='Alice', age=30) — оригинал не изме
 
 ⚠️ Аналогично `_replace` у `namedtuple`, но для `dataclass`.
 
-### `KW_ONLY` (Python 3.10+) — все поля после `KW_ONLY` — keyword-only
+### `KW_ONLY` (Python 3.10+) — все поля после `KW_ONLY` — keyword-only { #5.11-kwonly }
 
 ```python
 from dataclasses import dataclass, field, KW_ONLY
@@ -831,7 +831,7 @@ class Service:
     port: int = field(default=8080, kw_only=True)
 ```
 
-### `metadata` в `field()` — свои аннотации для фреймворков
+### `metadata` в `field()` — свои аннотации для фреймворков { #5.11-metadata }
 
 ```python
 from dataclasses import dataclass, field
@@ -851,9 +851,9 @@ for f in dataclasses.fields(User):
 
 ORM (SQLAlchemy, Pydantic) и сериализаторы читают `metadata` для своей логики.
 
-## 5.12. `typing` advanced: TypeVar, Generic, cast, overload, Literal, final, TypedDict, NamedTuple
+## 5.12. `typing` advanced: TypeVar, Generic, cast, overload, Literal, final, TypedDict, NamedTuple { #5.12 }
 
-### `TypeVar` — обобщённая переменная типа
+### `TypeVar` — обобщённая переменная типа { #5.12-typevar }
 
 ```python
 from typing import TypeVar
@@ -876,7 +876,7 @@ def add(a: Number, b: Number) -> Number:
 StringOrBytes = TypeVar('StringOrBytes', str, bytes)
 ```
 
-### `Generic` — обобщённый класс
+### `Generic` — обобщённый класс { #5.12-generic }
 
 ```python
 from typing import Generic, TypeVar
@@ -897,7 +897,7 @@ int_stack.push(1)
 int_stack.push("x")   # mypy ошибётся
 ```
 
-### `typing.cast` — статическая подсказка, runtime no-op
+### `typing.cast` — статическая подсказка, runtime no-op { #5.12-typingcast }
 
 ```python
 from typing import cast
@@ -914,7 +914,7 @@ print(val.upper())   # mypy считает, что val — str
 
 ⚠️ `cast` не проверяет тип в runtime. Это только для type-checker'а.
 
-### `@overload` — несколько сигнатур
+### `@overload` — несколько сигнатур { #5.12-overload }
 
 ```python
 from typing import overload
@@ -933,7 +933,7 @@ def parse(x):
 
 Реализация одна — overload'ы только для type checker. В runtime работает последняя функция.
 
-### `Literal` — конкретное значение как тип
+### `Literal` — конкретное значение как тип { #5.12-literal }
 
 ```python
 from typing import Literal
@@ -970,7 +970,7 @@ dict-литералы, это типы, а не значения. Discriminated 
 только через `TypedDict` + `Literal`-поле-дискриминатор.
 ```
 
-### `@final` — нельзя наследовать/переопределять
+### `@final` — нельзя наследовать/переопределять { #5.12-final }
 
 ```python
 from typing import final
@@ -994,7 +994,7 @@ class Derived(Base):
 
 В runtime не работает — только для type checker.
 
-### `TypedDict` — типизированный словарь (PEP 589)
+### `TypedDict` — типизированный словарь (PEP 589) { #5.12-typeddict }
 
 ```python
 from typing import TypedDict
@@ -1021,7 +1021,7 @@ u: UserDict = {"name": "Alice", "age": 30, "email": "a@x.com"}
 u["age"] = "30"   # mypy ошибётся — должно быть int
 ```
 
-### `NamedTuple` — typed namedtuple
+### `NamedTuple` — typed namedtuple { #5.12-namedtuple }
 
 ```python
 from typing import NamedTuple
@@ -1048,7 +1048,7 @@ print(v.magnitude())   # 5.0
 
 ⚠️ `NamedTuple` — это тот же `collections.namedtuple`, но с аннотациями. Неизменяемый.
 
-### `Protocol` с типами-параметрами (Python 3.12+)
+### `Protocol` с типами-параметрами (Python 3.12+) { #5.12-protocol }
 
 ```python
 from typing import Protocol, TypeVar
@@ -1066,7 +1066,7 @@ def first(x: SupportsLen[int]) -> int:
 first([1, 2, 3])   # OK
 ```
 
-### `Annotated` (PEP 593) — аннотация с метаданными
+### `Annotated` (PEP 593) — аннотация с метаданными { #5.12-annotated }
 
 `Annotated[T, *metadata]` — тип `T` с дополнительными метаданными для фреймворков. В runtime = `T`, но фреймворки (Pydantic, FastAPI, SQLAlchemy) читают метаданные.
 
@@ -1105,7 +1105,7 @@ class User(Base):
 
 ⚠️ В runtime `Annotated[int, "label"]` ≈ `int` — `isinstance` проверки используют только первый аргумент. Метаданные читаются через `typing.get_type_hints` + ручной разбор.
 
-### `Self` (PEP 673, Python 3.11+)
+### `Self` (PEP 673, Python 3.11+) { #5.12-self }
 
 Тип «этот же класс», для методов, возвращающих экземпляр своего класса. Заменяет необходимость писать `"MyClass"` в строковом виде:
 
@@ -1135,7 +1135,7 @@ b = HttpsBuilder().with_host("x").with_port(443).with_ssl()
 
 До 3.11 использовали `TypeVar("T", bound="Builder")` + `T` как возвращаемый тип.
 
-### `ClassVar` — переменная класса (а не экземпляра)
+### `ClassVar` — переменная класса (а не экземпляра) { #5.12-classvar }
 
 ```python
 from typing import ClassVar
@@ -1155,7 +1155,7 @@ print(Counter.instances)   # 2
 
 ⚠️ `ClassVar` — для type checker. В runtime никаких проверок нет. `dataclass` уважает `ClassVar` и **не** включает её в `__init__`/`__repr__`.
 
-### `Final` — нельзя переназначать
+### `Final` — нельзя переназначать { #5.12-final }
 
 ```python
 from typing import Final
@@ -1167,11 +1167,11 @@ MAX_RETRIES = 5   # mypy ошибётся, в runtime — спокойно
 
 Также как `@final` декоратор (см. §5.12 выше).
 
-### `Literal` — конкретные значения
+### `Literal` — конкретные значения { #5.12-literal }
 
 (См. выше в §5.12.)
 
-### `Never` и `NoReturn` — недостижимый код
+### `Never` и `NoReturn` — недостижимый код { #5.12-never }
 
 ```python
 from typing import Never, NoReturn
@@ -1194,7 +1194,7 @@ def f(x: int):
 
 `Never` (Python 3.11+) — более общее название, чем `NoReturn`. `NoReturn` теперь deprecated как alias для `Never` для контекста «функция без return».
 
-### `Any` vs `object`
+### `Any` vs `object` { #5.12-any }
 
 ```python
 from typing import Any
@@ -1212,7 +1212,7 @@ def g(x: object) -> None:
 
 ⚠️ `Any` отключает проверку типов. `object` — наоборот, самый строгий. Если не уверены — `object` безопаснее (mypy заставит вас кастить).
 
-### `Required` и `NotRequired` (Python 3.11+) — для `TypedDict`
+### `Required` и `NotRequired` (Python 3.11+) — для `TypedDict` { #5.12-required }
 
 ```python
 from typing import TypedDict, Required, NotRequired
@@ -1237,7 +1237,7 @@ class User(_RequiredUser, total=False):
     email: str
 ```
 
-### `TypeAlias` (PEP 613, Python 3.10+)
+### `TypeAlias` (PEP 613, Python 3.10+) { #5.12-typealias }
 
 Явное объявление алиаса типа:
 
@@ -1259,7 +1259,7 @@ type Vector = list[float]
 type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 ```
 
-### `ParamSpec` (PEP 612, Python 3.10+) — параметры декораторов
+### `ParamSpec` (PEP 612, Python 3.10+) — параметры декораторов { #5.12-paramspec }
 
 Для typing декораторов, которые сохраняют сигнатуру исходной функции:
 
@@ -1286,7 +1286,7 @@ add("a", 2)   # mypy ошибётся — int expected
 
 Без `ParamSpec` декоратор принимает `*args: Any, **kwargs: Any` — теряется проверка типов.
 
-### `Concatenate` — добавить параметр к существующей сигнатуре
+### `Concatenate` — добавить параметр к существующей сигнатуре { #5.12-concatenate }
 
 ```python
 from typing import Concatenate
@@ -1300,7 +1300,7 @@ def add_self(func: Callable[Concatenate[int, P], R]) -> Callable[P, R]:
 
 Используется в `functools.partial`-стиле декораторов, которые «впрыскивают» аргумент.
 
-### `TypeGuard` (PEP 647, Python 3.10+) — narrowing типов
+### `TypeGuard` (PEP 647, Python 3.10+) — narrowing типов { #5.12-typeguard }
 
 Для функций-предикатов, которые сужают тип в type checker:
 
@@ -1339,7 +1339,7 @@ def process(x: list[object]):
 
 ⚠️ `TypeIs` **не заменил** `TypeGuard` — оба остаются поддерживаемыми. `TypeIs` строже (не подходит для предикатов вроде `is_not_none`, где тип не сужается, а «обрезается»), `TypeGuard` гибче. Выбирай по семантике: если предикат реально проверяет принадлежность типу — `TypeIs`; если просто проверяет какое-то свойство — `TypeGuard`.
 
-### `LiteralString` (PEP 675, Python 3.11+) — строка как литерал
+### `LiteralString` (PEP 675, Python 3.11+) — строка как литерал { #5.12-literalstring }
 
 ```python
 from typing import LiteralString
@@ -1356,7 +1356,7 @@ run_query(user_input)   # mypy ошибётся — user_input не LiteralStrin
 
 Используется в security-чувствительном коде (DSL, SQL builders).
 
-### `@override` (PEP 698, Python 3.12+) — явно переопределяет
+### `@override` (PEP 698, Python 3.12+) — явно переопределяет { #5.12-override }
 
 ```python
 from typing import override
@@ -1377,7 +1377,7 @@ class Derived(Base):
 
 Защита от опечаток: если в базовом классе переименуют метод — mypy сообщит.
 
-### `@deprecated` (PEP 702, Python 3.13+)
+### `@deprecated` (PEP 702, Python 3.13+) { #5.12-deprecated }
 
 ```python
 from typing import deprecated
@@ -1389,7 +1389,7 @@ def old_func():
 old_func()   # mypy/IDE покажет deprecation warning
 ```
 
-### `reveal_type` — что mypy думает о типе
+### `reveal_type` — что mypy думает о типе { #5.12-revealtype }
 
 ```python
 def f(x):
@@ -1401,7 +1401,7 @@ def f(x):
 
 `reveal_type` — это **mypy-specific** функция, не существует в runtime. Только для отладки аннотаций.
 
-### `get_type_hints` — резолвить строковые аннотации
+### `get_type_hints` — резолвить строковые аннотации { #5.12-gettypehints }
 
 ```python
 from typing import get_type_hints
@@ -1415,7 +1415,7 @@ print(get_type_hints(f))
 
 PEP 563 (`from __future__ import annotations`) делает все аннотации **строками** — `get_type_hints` их резолвит в реальный тип. Полезно для фреймворков, которые читают аннотации в runtime (Pydantic, FastAPI).
 
-### `get_origin` и `get_args` — разобрать generic тип
+### `get_origin` и `get_args` — разобрать generic тип { #5.12-getorigin }
 
 ```python
 from typing import get_origin, get_args, List, Dict
@@ -1434,7 +1434,7 @@ print(get_args(T))     # (typing.Union[int, str],)
 
 Полезно при написании своего ORM/сериализатора — динамически проверять аннотации полей.
 
-### `dataclass_transform` (PEP 712, Python 3.11+)
+### `dataclass_transform` (PEP 712, Python 3.11+) { #5.12-dataclasstransform }
 
 Для декораторов, которые делают то же, что `@dataclass` — добавляют методы, поля и т.д.:
 
@@ -1455,9 +1455,9 @@ class Point:
 
 mypy будет проверять `Point` как dataclass — поддержка `__init__`, `__eq__`, и т.д.
 
-## 5.13. `dataclasses` advanced2: `InitVar`, `__post_init__`, sentinel-поля
+## 5.13. `dataclasses` advanced2: `InitVar`, `__post_init__`, sentinel-поля { #5.13 }
 
-### `InitVar` — поле, передаваемое в `__init__`, но не сохраняемое
+### `InitVar` — поле, передаваемое в `__init__`, но не сохраняемое { #5.13-initvar }
 
 ```python
 from dataclasses import dataclass, InitVar
@@ -1497,7 +1497,7 @@ C("hello", 1)   # OK
 C("hello")       # OK — y = 0 (default)
 ```
 
-### `__post_init__` — инициализация после `__init__`
+### `__post_init__` — инициализация после `__init__` { #5.13-postinit }
 
 ```python
 @dataclass
@@ -1533,7 +1533,7 @@ p = Point(3, 4)
 print(p.magnitude)   # 5.0
 ```
 
-### `KW_ONLY` sentinel (Python 3.10+)
+### `KW_ONLY` sentinel (Python 3.10+) { #5.13-kwonly }
 
 ```python
 from dataclasses import dataclass, KW_ONLY
@@ -1551,11 +1551,11 @@ Service("api", "example.com", 9000)              # TypeError — host/port kw-on
 
 `KW_ONLY` — это просто объект-маркер. Нельзя обращаться к нему как к значению (это не `None` и не `False`), но `dataclass`-декоратор распознаёт его как границу.
 
-### `field(metadata=...)` — аннотации для third-party
+### `field(metadata=...)` — аннотации для third-party { #5.13-field }
 
 (См. §5.11 metadata.)
 
-### `@dataclass(match_args=True)` (Python 3.10+)
+### `@dataclass(match_args=True)` (Python 3.10+) { #5.13-dataclass }
 
 ```python
 @dataclass(match_args=True)
@@ -1571,7 +1571,7 @@ match p:
     case Point(x=x, y=y): print(f"at ({x}, {y})")
 ```
 
-### `@dataclass(order=True)` — генерирует `__lt__`, `__le__`, `__gt__`, `__ge__`
+### `@dataclass(order=True)` — генерирует `__lt__`, `__le__`, `__gt__`, `__ge__` { #5.13-dataclass }
 
 ```python
 @dataclass(order=True)
@@ -1598,9 +1598,9 @@ class User:
 User(30, "Alice") < User(25, "Bob")   # False — 30 > 25, имя игнорируется
 ```
 
-## 5.14. `typing` для async, IO, collections.abc
+## 5.14. `typing` для async, IO, collections.abc { #5.14 }
 
-### typing async-типы
+### typing async-типы { #5.14-typing }
 
 ```python
 from typing import Awaitable, AsyncIterator, AsyncIterable, Coroutine, AsyncGenerator
@@ -1630,7 +1630,7 @@ async def gen() -> AsyncGenerator[int, None]:
 
 Эти типы полезны в аннотациях сигнатур, особенно для абстракций (например, `async def process(stream: AsyncIterator[bytes]) -> None`).
 
-### typing.IO / TextIO / BinaryIO
+### typing.IO / TextIO / BinaryIO { #5.14-typingio }
 
 Абстракции над файлами, чтобы не привязываться к конкретному типу:
 
@@ -1655,7 +1655,7 @@ from io import StringIO, BytesIO
 read_lines(StringIO("hello"))
 ```
 
-### collections.abc — абстрактные базовые классы коллекций
+### collections.abc — абстрактные базовые классы коллекций { #5.14-collectionsabc }
 
 ```python
 from collections.abc import (
@@ -1702,7 +1702,7 @@ from collections.abc import Iterable as IterableABC
 Iterable is IterableABC   # True в Python 3.9+
 ```
 
-### typing-алиасы для collections
+### typing-алиасы для collections { #5.14-typing-aliasy }
 
 Для typing коллекций в старом стиле (Python 3.8 и ниже). В 3.9+ используйте просто `list[int]`, `dict[str, int]`, и т.д.
 
@@ -1732,7 +1732,7 @@ def process(q: Deque[int]) -> None:   # typing.Deque
 
 ⚠️ В Python 3.9+ предпочтительно использовать встроенные типы (`list`, `dict`, `set`, `tuple`) и `collections.deque`, `collections.Counter` напрямую с аннотациями.
 
-### typing.Pattern и typing.Match — regex
+### typing.Pattern и typing.Match — regex { #5.14-typingpattern }
 
 ```python
 from typing import Pattern, Match
@@ -1746,7 +1746,7 @@ if match:
 
 ⚠️ В Python 3.8+ `Pattern` и `Match` deprecated — используйте `re.Pattern[str]` и `re.Match[str]` напрямую.
 
-## 5.15. `typing.TYPE_CHECKING` — типы только для статического анализа
+## 5.15. `typing.TYPE_CHECKING` — типы только для статического анализа { #5.15 }
 
 ```python
 from typing import TYPE_CHECKING
@@ -1777,7 +1777,7 @@ class MyModel:
 
 ⚠️ Аннотации нужно писать как **строки** (`'BigClass'`), либо включить `from __future__ import annotations` (PEP 563) — все аннотации станут строками автоматически.
 
-## 5.16. `ExceptionGroup` и `except*` (PEP 654, Python 3.11+)
+## 5.16. `ExceptionGroup` и `except*` (PEP 654, Python 3.11+) { #5.16 }
 
 ```python
 # Несколько исключений, собранных в одну группу
@@ -1809,11 +1809,11 @@ async def main():
 
 `BaseExceptionGroup` — базовый класс, включая `BaseException` (например, `KeyboardInterrupt`). `ExceptionGroup` — подкласс, который содержит только `Exception` (не `BaseException`). `except*` работает с обоими, но по умолчанию ловит именно `Exception`.
 
-## 5.17. Dunder-методы: полный обзор
+## 5.17. Dunder-методы: полный обзор { #5.17 }
 
 В предыдущих секциях мы уже видели многие dunder'ы (`__init__`, `__eq__`, `__hash__`, `__repr__`, `__setattr__`, `__getattr__`, `__get__`/`__set__`). Этот раздел собирает остальные dunder-методы, которые редко упоминают, но которые определяют поведение объекта в стандартных операциях.
 
-### `__str__` vs `__repr__` — два представления
+### `__str__` vs `__repr__` — два представления { #5.17-str }
 
 ```python
 class Person:
@@ -1841,7 +1841,7 @@ p = Person("Alice", 30)
 
 ⚠️ В коллекциях (`list`, `dict`, `set`) и в tracebacks всегда используется **`__repr__`**, не `__str__`. Поэтому «`print(my_list)` показывает непонятные `<Foo object at 0x...>`» — это потому, что у `Foo` нет `__repr__`.
 
-### `__bool__` / `__len__` — преобразование к bool
+### `__bool__` / `__len__` — преобразование к bool { #5.17-bool }
 
 Когда объект стоит в `if`/`while`/`and`/`or`/`filter` (см. truthiness в 1.8), Python зовёт:
 
@@ -1872,7 +1872,7 @@ if Stack():       # False — len == 0
 
 ⚠️ `__bool__` приоритетнее `__len__`. Если определишь оба — `__bool__` победит.
 
-### `__len__` — для `len()`
+### `__len__` — для `len()` { #5.17-len }
 
 ```python
 class Matrix:
@@ -1889,7 +1889,7 @@ class Matrix:
 
 `len()` вызывает `__len__` напрямую (через C-level `tp_len`), без fallback'а — если `__len__` не определён, `TypeError: object of type 'X' has no len()`.
 
-### `__iter__` / `__next__` — протокол итерации
+### `__iter__` / `__next__` — протокол итерации { #5.17-iter }
 
 ```python
 class Counter:
@@ -1929,7 +1929,7 @@ list(r)        # [1, 2, 3] — снова работает
 
 Альтернатива `__iter__` — генератор (yield), см. Часть III (3.1).
 
-### `__call__` — вызов экземпляра как функции
+### `__call__` — вызов экземпляра как функции { #5.17-call }
 
 ```python
 class Adder:
@@ -1958,7 +1958,7 @@ class Counter:
 - Состояние между вызовами удобнее хранить в атрибутах, чем в closure.
 - Проверка `callable(obj)` работает на экземплярах с `__call__`.
 
-### `__contains__` — для `in`
+### `__contains__` — для `in` { #5.17-contains }
 
 ```python
 class EvenContainer:
@@ -1979,7 +1979,7 @@ class List:
 
 ⚠️ Определи `__contains__`, если у тебя есть **более быстрый способ** проверить принадлежность, чем полный перебор (хеш-таблица, диапазон, regex-матч).
 
-### `__missing__` — для `dict[key]` при отсутствии ключа
+### `__missing__` — для `dict[key]` при отсутствии ключа { #5.17-missing }
 
 ```python
 class DefaultDict(dict):
@@ -2007,7 +2007,7 @@ class CountingDict(dict):
 
 `collections.defaultdict` — это dict, у которого `__missing__` вставляет значение из `default_factory`. То есть `defaultdict(list)['new']` возвращает `[]` и **сохраняет** его в dict.
 
-### `__reversed__` — для `reversed()`
+### `__reversed__` — для `reversed()` { #5.17-reversed }
 
 ```python
 class Countdown:
@@ -2023,7 +2023,7 @@ class Countdown:
 
 Без `__reversed__` Python fallback'ит на `__len__` + `__getitem__` (как в 1.14, протокол `__getitem__`-итерации) — строит индексы от `len-1` до `0`. Это работает, но если у тебя есть более эффективный обратный итератор — определи `__reversed__`.
 
-### `__index__` — для неявного int-конвертирования
+### `__index__` — для неявного int-конвертирования { #5.17-index }
 
 `__index__` вызывается, когда объект используется **как индекс** или в функциях, ожидающих целое:
 
@@ -2055,7 +2055,7 @@ class Hex:
 
 `bool` реализует `__index__` (True=1, False=0), но `float` — **нет** (`int(3.0)` работает через `__int__`, но `bin(3.0)` падает с `TypeError`).
 
-### `__del__` — финализатор при сборке мусора
+### `__del__` — финализатор при сборке мусора { #5.17-del }
 
 `__del__` вызывается, когда объект собирается сборщиком мусора. Это **не** деструктор в C++-смысле — момент вызова **не детерминирован**, и порядок `__del__` для связанных объектов не гарантирован.
 
@@ -2095,7 +2095,7 @@ class TempFile:
 
 ⚠️ Если `__del__` поднимает исключение — Python печатает `Exception ignored in: <obj>` в stderr и **продолжает** работу. Исключение не propagates — его некому ловить.
 
-### Сводная таблица dunder'ов
+### Сводная таблица dunder'ов { #5.17-svodnaya }
 
 | Категория | Dunder | Когда вызывается |
 |---|---|---|
@@ -2116,7 +2116,7 @@ class TempFile:
 | **Класс-мета** | `__class__`, `__dict__`, `__mro__`, `__subclasses__`, `__init_subclass__` | интроспекция (Часть V, VIII) |
 | **Размер** | `__sizeof__` | `sys.getsizeof()` |
 
-### Бенчмарки к Части V
+### Бенчмарки к Части V { #5.17-benchmarki }
 
 **1. `@dataclass` vs обычный класс — память одного экземпляра.**
 ```python
@@ -2234,7 +2234,7 @@ name in frozenset({'x', 'y'})  → если да, raise FrozenInstanceError
 
 **Берите `frozen` для иммутабельности и хешируемости, не для скорости.**
 
-### ⚠️ frozen ≠ глубокая иммутабельность
+### ⚠️ frozen ≠ глубокая иммутабельность { #5.17-frozen }
 
 `frozen=True` замораживает только **переприсваивание атрибутов**: `f.x = 10` упадёт. Но если поле — мутируемый объект (list, dict, set), его **содержимое** можно свободно менять:
 
@@ -2266,7 +2266,7 @@ print(d.get(a2))   # None — хотя "a" и "a2" по логике одна с
 
 **Правило**: для настоящей иммутабельности все поля должны быть иммутабельными типами (`int`, `str`, `tuple`, `frozenset`, другие `frozen` dataclass'ы). Если есть `list`/`dict`/`set` — frozen защищает только от `a.x = ...`, но не от `a.x.append(...)`. Для мутируемых полей используй `tuple`/`frozenset`/`MappingProxyType` либо клонируй при каждом изменении.
 
-### Обход frozen через подкласс
+### Обход frozen через подкласс { #5.17-obhod }
 
 Раз защита = `type(self) is cls OR name in frozenset`, **подкласс** легко обходит frozen для своих новых полей: их имена не в `frozenset`, и `type(self) is cls` ложно (self — экземпляр подкласса, не базового), значит срабатывает `super().__setattr__`:
 

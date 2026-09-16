@@ -1,6 +1,6 @@
 # Часть IV. Асинхронность
 
-## 4.1. Что такое event loop
+## 4.1. Что такое event loop { #4.1 }
 
 **Event loop (цикл событий)** — это единый поток, который:
 1. Хранит очередь задач (корутин).
@@ -32,7 +32,7 @@ async def async_fetch_all():
 
 ⚠️ **Физика event loop**: цикл не опрашивает сокеты непрерывно. Через модуль `selectors` он делегирует наблюдение системным мультиплексорам I/O — `epoll` (Linux), `kqueue` (macOS/BSD), `IOCP` (Windows). Когда все корутины ждут I/O, поток засыпает в `epoll_wait()` с **0% CPU**.
 
-## 4.2. `async def`, `await` — синтаксис и семантика
+## 4.2. `async def`, `await` — синтаксис и семантика { #4.2 }
 
 ```python
 async def fetch(url):
@@ -55,7 +55,7 @@ asyncio.run(main())             # точка входа — запускает e
 
 ⚠️ **Если корутина не была `await`-нута** — её тело никогда не выполнится, и Python выдаст `RuntimeWarning: coroutine '...' was never awaited`.
 
-## 4.3. `asyncio.run` — точка входа
+## 4.3. `asyncio.run` — точка входа { #4.3 }
 
 ```python
 import asyncio
@@ -79,7 +79,7 @@ loop.run_until_complete(main())
 loop.close()
 ```
 
-## 4.4. `asyncio.gather` — конкурентный запуск
+## 4.4. `asyncio.gather` — конкурентный запуск { #4.4 }
 
 ```python
 async def fetch(url):
@@ -116,7 +116,7 @@ results = await asyncio.gather(
 # [html, ConnectionError(...)]
 ```
 
-## 4.5. `asyncio.create_task` — фоновые задачи
+## 4.5. `asyncio.create_task` — фоновые задачи { #4.5 }
 
 ```python
 async def main():
@@ -149,7 +149,7 @@ def run_background_task(coro):
 
 Если фоновая задача упадёт и никто не сделал `await task`, CPython в stderr напечатает: `Task exception was never retrieved`. Чтобы поймать — добавьте callback с `task.exception()`.
 
-## 4.6. `asyncio.wait` — ожидание с таймаутом
+## 4.6. `asyncio.wait` — ожидание с таймаутом { #4.6 }
 
 ```python
 async def main():
@@ -179,9 +179,9 @@ for task in done:
     print(task.result())
 ```
 
-## 4.7. `asyncio.Queue`, `Lock`, `Semaphore`
+## 4.7. `asyncio.Queue`, `Lock`, `Semaphore` { #4.7 }
 
-### `asyncio.Queue` — очередь для producer/consumer
+### `asyncio.Queue` — очередь для producer/consumer { #4.7-asyncioqueue }
 
 ```python
 async def producer(queue):
@@ -207,7 +207,7 @@ asyncio.run(main())
 
 `asyncio.Queue` похож на `queue.Queue`, но `put`/`get` — корутины, приостанавливающие на заполненной/пустой очереди.
 
-### `asyncio.Lock` — мьютекс
+### `asyncio.Lock` — мьютекс { #4.7-asynciolock }
 
 ```python
 lock = asyncio.Lock()
@@ -217,7 +217,7 @@ async def safe_update(shared_state):
         shared_state['count'] += 1
 ```
 
-### `asyncio.Semaphore` — ограничение конкурентности
+### `asyncio.Semaphore` — ограничение конкурентности { #4.7-asynciosemaphore }
 
 ```python
 sem = asyncio.Semaphore(10)   # не больше 10 одновременно
@@ -232,7 +232,7 @@ await asyncio.gather(*[fetch_with_limit(url) for url in urls])
 
 Полезно для ограничения нагрузки на API.
 
-## 4.8. Async generators (`yield` в `async def`)
+## 4.8. Async generators (`yield` в `async def`) { #4.8 }
 
 Python 3.6+ поддерживает `yield` внутри `async def` — это **асинхронный генератор**:
 
@@ -264,7 +264,7 @@ mapping = {x: str(x) async for x in ticker()}               # async dictcomp
 lazy = (x**2 async for x in ticker())                        # async genexp — O(1) память
 ```
 
-## 4.9. Async context managers (`__aenter__`/`__aexit__`)
+## 4.9. Async context managers (`__aenter__`/`__aexit__`) { #4.9 }
 
 Асинхронный контекстный менеджер реализует `__aenter__` и `__aexit__` как корутины:
 
@@ -307,7 +307,7 @@ async def main():
         ...
 ```
 
-## 4.10. Конкурентность vs параллелизм
+## 4.10. Конкурентность vs параллелизм { #4.10 }
 
 **Параллелизм (parallelism)** — несколько задач **физически** выполняются одновременно (на разных ядрах CPU). В CPython даётся через `multiprocessing` (отдельные процессы — отдельные GIL'ы) или через C-расширения, которые отпускают GIL (`numpy`, `regex`, некоторые операции `hashlib`). `threading` **не** даёт параллелизма для pure-Python кода из-за GIL.
 
@@ -333,7 +333,7 @@ with ThreadPoolExecutor(10) as ex:
 - **CPU-bound** (тяжёлые расчёты) → multiprocessing (GIL мешает threads в CPython).
 - **I/O-bound** (сеть, диск, БД) → asyncio (один поток, много ожиданий).
 
-## 4.11. Threads vs asyncio vs multiprocessing — когда что
+## 4.11. Threads vs asyncio vs multiprocessing — когда что { #4.11 }
 
 | Подход | Когда использовать | Плюсы | Минусы |
 |--------|-------------------|-------|--------|
@@ -343,7 +343,7 @@ with ThreadPoolExecutor(10) as ex:
 | **`concurrent.futures.ThreadPoolExecutor`** | I/O-bound, простая миграция синхронного кода | API как `map` — простой переход | Те же ограничения GIL |
 | **`concurrent.futures.ProcessPoolExecutor`** | CPU-bound, простая миграция | API как `map` | Те же ограничения multiprocessing |
 
-### ThreadPool — для блокирующего I/O
+### ThreadPool — для блокирующего I/O { #4.11-threadpool }
 
 ```python
 from concurrent.futures import ThreadPoolExecutor
@@ -355,7 +355,7 @@ with ThreadPoolExecutor(max_workers=10) as executor:
     results = list(executor.map(fetch, urls))
 ```
 
-### ProcessPool — для CPU-bound
+### ProcessPool — для CPU-bound { #4.11-processpool }
 
 ```python
 from concurrent.futures import ProcessPoolExecutor
@@ -367,7 +367,7 @@ with ProcessPoolExecutor(max_workers=4) as executor:
     results = list(executor.map(heavy_compute, [10**7] * 4))
 ```
 
-### asyncio — для большого количества I/O
+### asyncio — для большого количества I/O { #4.11-asyncio }
 
 ```python
 import asyncio, aiohttp
@@ -393,7 +393,7 @@ async def main():
     result = await asyncio.to_thread(requests.get, 'https://api.com')
 ```
 
-### Decision-фреймворк: что выбрать
+### Decision-фреймворк: что выбрать { #4.11-decision-freymvork }
 
 | Задача | Решение | Почему |
 |---|---|---|
@@ -413,7 +413,7 @@ async def main():
 - **1000+** — только asyncio, потоки упираются в лимиты OS (на Linux ~32000 потоков на процесс по умолчанию, на macOS ~2560).
 - **CPU-bound** — threads **никогда** не дают ускорения в CPython (GIL), только multiprocessing или C-расширения.
 
-## 4.12. `asyncio.as_completed` — по мере завершения
+## 4.12. `asyncio.as_completed` — по мере завершения { #4.12 }
 
 В отличие от `gather` (который ждёт всех), `as_completed` даёт результаты **по мере готовности**:
 
@@ -447,7 +447,7 @@ asyncio.run(main())
 
 ⚠️ `as_completed` возвращает не задачи, а await-able корутины — `await` каждую по очереди.
 
-## 4.13. `asyncio.TaskGroup` (Python 3.11+) — структурированная конкурентность
+## 4.13. `asyncio.TaskGroup` (Python 3.11+) — структурированная конкурентность { #4.13 }
 
 > **→ см. также:** Часть V (5.16) — `ExceptionGroup` и `except*` для обработки ошибок из TaskGroup.
 
@@ -507,9 +507,9 @@ async def main():
 
 ⚠️ `except*` — новый синтаксис Python 3.11 для обработки `ExceptionGroup`. Используйте `except*` (со звёздочкой), а не `except`.
 
-## 4.14. `asyncio.timeout` (Python 3.11+) и `asyncio.shield`
+## 4.14. `asyncio.timeout` (Python 3.11+) и `asyncio.shield` { #4.14 }
 
-### `asyncio.timeout` — современный способ задать таймаут
+### `asyncio.timeout` — современный способ задать таймаут { #4.14-asynciotimeout }
 
 ```python
 import asyncio
@@ -539,7 +539,7 @@ except asyncio.TimeoutError:   # в 3.11+ это просто TimeoutError
     print("timeout")
 ```
 
-### `asyncio.shield` — защита от внешней отмены
+### `asyncio.shield` — защита от внешней отмены { #4.14-asyncioshield }
 
 `shield(coro)` защищает внутреннюю корутину от **внешней** отмены: если отменят корутину, которая делает `await asyncio.shield(inner)`, внутренняя `inner` продолжит выполняться. Сам `shield` при этом поднимет `CancelledError` в вызывающем коде, но `inner` это не затронет.
 
@@ -585,7 +585,7 @@ async def main():
 
 В Python 3.11+ **`TaskGroup`** во многих случаях делает `shield` избыточным — структурированная конкурентность даёт более чистые гарантии. Но для **точечной** защиты одной операции `shield` всё ещё полезен.
 
-## 4.15. `asyncio.CancelledError` — корректная отмена
+## 4.15. `asyncio.CancelledError` — корректная отмена { #4.15 }
 
 Когда задачу отменяют (`task.cancel()`), внутри неё поднимается `asyncio.CancelledError` (в Python 3.8+ это `BaseException`, не `Exception`):
 
@@ -680,9 +680,9 @@ async def fetch_with_retry(url, max_retries=3):
     raise RuntimeError("Все попытки провалены")
 ```
 
-## 4.16. `asyncio.current_task`, `all_tasks`, `run_coroutine_threadsafe`, `to_thread`, `Runner`, `eager_task_factory`
+## 4.16. `asyncio.current_task`, `all_tasks`, `run_coroutine_threadsafe`, `to_thread`, `Runner`, `eager_task_factory` { #4.16 }
 
-### `asyncio.current_task` — текущая задача
+### `asyncio.current_task` — текущая задача { #4.16-asynciocurrenttask }
 
 ```python
 import asyncio
@@ -704,7 +704,7 @@ async def worker():
     log.info(f"[{task.get_name()}] started")
 ```
 
-### `asyncio.all_tasks` — все активные задачи в этом loop
+### `asyncio.all_tasks` — все активные задачи в этом loop { #4.16-asyncioalltasks }
 
 ```python
 import asyncio
@@ -732,7 +732,7 @@ asyncio.run(main())
 
 ⚠️ Включает `main` (текущую). Чтобы получить только фоновые — отфильтровать `t is not asyncio.current_task()`.
 
-### `asyncio.run_coroutine_threadsafe` — запустить корутину из другого потока
+### `asyncio.run_coroutine_threadsafe` — запустить корутину из другого потока { #4.16-asyncioruncoroutinethreadsafe }
 
 Если у вас есть event loop в одном потоке, а из другого потока нужно поставить корутину в очередь:
 
@@ -764,7 +764,7 @@ loop.close()
 
 `run_coroutine_threadsafe` ставит корутину в очередь loop'а, возвращает `concurrent.futures.Future`, по которому можно дождаться из любого потока. Используется, когда event loop крутится в одном потоке, а UI/сервер в другом.
 
-### `asyncio.iscoroutine`, `iscoroutinefunction`, `isfuture`
+### `asyncio.iscoroutine`, `iscoroutinefunction`, `isfuture` { #4.16-asyncioiscoroutine }
 
 ```python
 import asyncio
@@ -783,7 +783,7 @@ async def maybe_await(obj):
     return obj
 ```
 
-### `asyncio.to_thread` (Python 3.9+) — синхронный код в потоке из async
+### `asyncio.to_thread` (Python 3.9+) — синхронный код в потоке из async { #4.16-asynciotothread }
 
 Запускает синхронную функцию в отдельном потоке, возвращая await-able. Это самый простой способ интегрировать blocking-код в asyncio-программу:
 
@@ -809,7 +809,7 @@ asyncio.run(main())
 
 ⚠️ **`to_thread` НЕ даёт параллелизма для pure-Python CPU-кода** — GIL всё ещё мешает. Только для I/O или C-расширений, отпускающих GIL.
 
-### `asyncio.Runner` (Python 3.11+) — несколько `asyncio.run` в одном процессе
+### `asyncio.Runner` (Python 3.11+) — несколько `asyncio.run` в одном процессе { #4.16-asynciorunner }
 
 Если нужно запустить несколько независимых asyncio-программ последовательно в одном процессе (например, в тестах), `asyncio.run` создаёт и закрывает event loop каждый раз — это дорого. `Runner` переиспользует loop:
 
@@ -827,7 +827,7 @@ with asyncio.Runner() as runner:
 
 Полезно в тестах (`pytest-asyncio`) и в CLI-утилитах, где несколько корутин запускаются по очереди.
 
-### `asyncio.eager_task_factory` (Python 3.12+) — eager task creation
+### `asyncio.eager_task_factory` (Python 3.12+) — eager task creation { #4.16-asyncioeagertaskfactory }
 
 По умолчанию `create_task` планирует задачу — она начнёт выполняться при следующем проходе event loop'а. С `eager_task_factory` задача начинает выполняться **сразу** (синхронно), и только если упрётся в `await` — приостанавливается:
 
@@ -846,7 +846,7 @@ async def main():
 
 ---
 
-### Бенчмарки к Части IV
+### Бенчмарки к Части IV { #4.16-benchmarki }
 
 Все замеры asyncio — на `asyncio.run` с `httpx`/`asyncio.sleep`, замеры потоков —
 `concurrent.futures.ThreadPoolExecutor`. I/O имитируется через `time.sleep`/`asyncio.sleep`,

@@ -1,6 +1,6 @@
 # Часть VII. Метапрограммирование
 
-## 7.1. Аннотации как данные (`__annotations__`)
+## 7.1. Аннотации как данные (`__annotations__`) { #7.1 }
 
 Аннотации типов — это **данные**, доступные в рантайме:
 
@@ -31,7 +31,7 @@ print(calculate_something())   # 42
 
 ⚠️ **Получение аннотаций в Python 3.10+**: `typing.get_type_hints(func)` делает правильный резолв строковых аннотаций (PEP 563, `from __future__ import annotations`), но для `result: 42` вернёт литеральное значение `42`, не тип.
 
-## 7.2. `setattr`/`getattr`/`delattr`
+## 7.2. `setattr`/`getattr`/`delattr` { #7.2 }
 
 Три функции для динамической работы с атрибутами:
 
@@ -56,7 +56,7 @@ value = getattr(obj, "missing_key", "default")
 
 ⚠️ `setattr/getattr` могут не вызвать `@property` и дескрипторы — обычно вызывают, но через `__getattr__`/`__getattribute__` тоже идут. `__dict__`-обход этого не делает.
 
-## 7.3. Декораторы (параметризованные, классовые)
+## 7.3. Декораторы (параметризованные, классовые) { #7.3 }
 
 **Простой декоратор:**
 
@@ -118,7 +118,7 @@ print(p)   # Point({'x': 1, 'y': 2})
 
 Декоратор класса получает класс, может его модифицировать и вернуть.
 
-## 7.4. `functools.wraps` — зачем нужен
+## 7.4. `functools.wraps` — зачем нужен { #7.4 }
 
 Без `@wraps` функция-обёртка теряет метаданные исходной функции:
 
@@ -163,7 +163,7 @@ print(add.__wrapped__)   # <function add> — доступ к оригиналу
 
 **Практическое применение**: `inspect.signature` без `@wraps` вернёт сигнатуру обёртки, а не оригинала. Это ломает `inject`-фреймворки, `pytest` (который инспектирует аргументы), OpenAPI-генераторы (FastAPI) и т.д.
 
-## 7.5. `type()` — динамическое создание классов
+## 7.5. `type()` — динамическое создание классов { #7.5 }
 
 `type` — это и функция для получения типа, и **метакласс** для создания новых классов:
 
@@ -204,7 +204,7 @@ print(u.greet())   # "Hi, I'm Alice"
 
 Полезно, когда структуру класса нужно построить из конфигурации или динамических данных.
 
-## 7.6. `types.FunctionType` и `types.CodeType`
+## 7.6. `types.FunctionType` и `types.CodeType` { #7.6 }
 
 > **→ см. также:** Часть VIII (8.7) — интроспекция через `__code__`, (8.9) — `dis` для дизассемблирования.
 
@@ -252,7 +252,7 @@ another_func.__code__ = template.__code__
 print(another_func())   # 42 — теперь another_func ведёт себя как template
 ```
 
-## 7.7. `compile`/`exec`/`eval`
+## 7.7. `compile`/`exec`/`eval` { #7.7 }
 
 ```python
 # compile(source, filename, mode) — компилирует строку в code object
@@ -365,7 +365,7 @@ print(safe_eval_math("__import__('os')"))   # ❌ ValueError
 
 Правило: `eval(untrusted_input)` == `exec(untrusted_input)` по уровню угрозы. Если бы не принимаете `exec`, не принимайте и `eval`.
 
-## 7.8. `locals()` и `globals()`
+## 7.8. `locals()` и `globals()` { #7.8 }
 
 ```python
 # globals() — словарь глобального пространства имён модуля
@@ -407,7 +407,7 @@ print(result)   # 20
 
 ⚠️ В CPython `locals()` возвращает **копию** локальных переменных. Изменения через `locals()['x'] = ...` **не** сохраняются обратно. В `globals()` изменения сохраняются (это сам словарь модуля).
 
-## 7.9. `sys.modules` и `__import__`
+## 7.9. `sys.modules` и `__import__` { #7.9 }
 
 `sys.modules` — глобальный кэш всех импортированных модулей. Можно импортировать «тихо», не создавая переменную:
 
@@ -450,7 +450,7 @@ math = importlib.import_module('math')
 print(math.sqrt(16))   # 4.0
 ```
 
-## 7.10. `builtins` — переопределение и интроспекция
+## 7.10. `builtins` — переопределение и интроспекция { #7.10 }
 
 `builtins` модуль содержит все встроенные функции и константы (`len`, `print`, `True`, `None`, `Exception`, ...). К ним можно получить доступ и **переопределить**:
 
@@ -501,11 +501,11 @@ c = C()
 print(vars(c))   # {'x': 1, 'y': 2} — то же, что c.__dict__
 ```
 
-## 7.11. `inspect` — интроспекция всего
+## 7.11. `inspect` — интроспекция всего { #7.11 }
 
 `inspect` модуль — высокоуровневый интерфейс к интроспекции. Бóльшая часть того, что можно через `__code__`/`__closure__`/`__dict__`/`sys._getframe`, делается через `inspect` удобнее.
 
-### Сигнатуры функций
+### Сигнатуры функций { #7.11-signatury }
 
 ```python
 import inspect
@@ -524,7 +524,7 @@ for name, param in sig.parameters.items():
 # kwargs: <class 'inspect._empty'>, default=<class 'inspect._empty'>, kind=VAR_KEYWORD
 ```
 
-### Источник кода функции
+### Источник кода функции { #7.11-istochnik }
 
 ```python
 def my_func():
@@ -541,7 +541,7 @@ print(inspect.getsource(inspect))
 
 ⚠️ `getsource` работает только для функций, определённых в `.py`-файле (не в REPL и не в `compile`-строке).
 
-### Список атрибутов и методов с фильтрами
+### Список атрибутов и методов с фильтрами { #7.11-spisok }
 
 ```python
 class C:
@@ -576,7 +576,7 @@ for name, cls in inspect.getmembers(my_module, inspect.isclass):
     print(name, cls)
 ```
 
-### Стек вызовов
+### Стек вызовов { #7.11-stek }
 
 ```python
 def f():
@@ -611,7 +611,7 @@ f()
 
 `inspect.stack()` — обёртка над `sys._getframe` + `inspect.getframeinfo` — даёт готовые `FrameInfo` объекты с уже распарсенным контекстом.
 
-### Параметры и `bind`
+### Параметры и `bind` { #7.11-parametry }
 
 ```python
 sig = inspect.signature(f)
@@ -637,7 +637,7 @@ def my_decorator(func):
     return wrapper
 ```
 
-### `inspect.getmro` — MRO любого класса
+### `inspect.getmro` — MRO любого класса { #7.11-inspectgetmro }
 
 ```python
 class A: pass
@@ -649,7 +649,7 @@ print(inspect.getmro(C))
 # То же, что C.__mro__
 ```
 
-### `inspect.getcallargs` — как бы вызвали с конкретными аргументами
+### `inspect.getcallargs` — как бы вызвали с конкретными аргументами { #7.11-inspectgetcallargs }
 
 ```python
 def f(x, y=10):
@@ -662,7 +662,7 @@ print(inspect.getcallargs(f, x=5))          # {'x': 5, 'y': 10}
 
 Используется в тестах и в mock-фреймворках (например, `unittest.mock`).
 
-### `inspect.isgenerator`, `iscoroutine`, `isawaitable`
+### `inspect.isgenerator`, `iscoroutine`, `isawaitable` { #7.11-inspectisgenerator }
 
 ```python
 import inspect
@@ -675,11 +675,11 @@ print(inspect.iscoroutinefunction(coro))  # True
 print(inspect.isasyncgenfunction(lambda: (yield)))   # проверяет async generator
 ```
 
-## 7.12. `importlib` — программный импорт
+## 7.12. `importlib` — программный импорт { #7.12 }
 
 `importlib` — современная альтернатива `__import__` для программного управления импортами.
 
-### `importlib.import_module` — основной API
+### `importlib.import_module` — основной API { #7.12-importlibimportmodule }
 
 ```python
 import importlib
@@ -697,7 +697,7 @@ backend_name = config['backend']   # 'redis' или 'memcached'
 backend = importlib.import_module(f'backends.{backend_name}')
 ```
 
-### `importlib.reload` — перезагрузить модуль
+### `importlib.reload` — перезагрузить модуль { #7.12-importlibreload }
 
 ```python
 import importlib
@@ -709,7 +709,7 @@ importlib.reload(my_module)
 
 ⚠️ `reload` **не** обновляет ссылки `from my_module import X` — только `my_module.X`. Также не обновляет экземпляры классов из модуля (они останутся старого типа).
 
-### `importlib.invalidate_caches` — пересканировать sys.path
+### `importlib.invalidate_caches` — пересканировать sys.path { #7.12-importlibinvalidatecaches }
 
 ```python
 import importlib
@@ -719,7 +719,7 @@ importlib.invalidate_caches()
 # Теперь новый import найдёт свежесозданный модуль
 ```
 
-### `importlib.util` — продвинутое API
+### `importlib.util` — продвинутое API { #7.12-importlibutil }
 
 ```python
 from importlib.util import spec_from_file_location, module_from_spec
@@ -734,7 +734,7 @@ print(module.my_function())   # выполняем загруженный мод
 
 Это позволяет загружать плагины из любых путей, обходя стандартную систему импорта.
 
-### `importlib.resources` — доступ к файлам ресурсов в пакете
+### `importlib.resources` — доступ к файлам ресурсов в пакете { #7.12-importlibresources }
 
 ```python
 from importlib import resources
@@ -749,7 +749,7 @@ data = resources.files('mypackage').joinpath('data/icon.png').read_bytes()
 
 Заменяет старый трюк с `pkg_resources` (из setuptools). Работает даже если пакет запакован в zip (внутри .egg, .whl).
 
-### `importlib.metadata` — метаданные установленных пакетов
+### `importlib.metadata` — метаданные установленных пакетов { #7.12-importlibmetadata }
 
 ```python
 from importlib.metadata import distributions, version, metadata, entry_points
@@ -771,11 +771,11 @@ for ep in entry_points(group='pytest.plugins'):
     print(ep.name, ep.value)
 ```
 
-## 7.13. `ast` — разбор исходного кода в AST
+## 7.13. `ast` — разбор исходного кода в AST { #7.13 }
 
 `ast` — парсер Python, превращает исходник в абстрактное синтаксическое дерево. Используется линтерами, форматерами, антиплагиат-системами.
 
-### `ast.parse` — строка в AST
+### `ast.parse` — строка в AST { #7.13-astparse }
 
 ```python
 import ast
@@ -792,7 +792,7 @@ print(ast.dump(tree, indent=2))
 #   op=Add(), right=Constant(1))]))])
 ```
 
-### `ast.unparse` — AST обратно в код (Python 3.9+)
+### `ast.unparse` — AST обратно в код (Python 3.9+) { #7.13-astunparse }
 
 ```python
 tree = ast.parse("x = 1")
@@ -801,7 +801,7 @@ print(ast.unparse(tree))   # 'x = 1'
 
 Полезно для генерации кода по AST.
 
-### `ast.literal_eval` — безопасный `eval` для литералов
+### `ast.literal_eval` — безопасный `eval` для литералов { #7.13-astliteraleval }
 
 ```python
 import ast
@@ -816,7 +816,7 @@ ast.literal_eval("[1, 2, {'key': 'value'}]")
 
 ⚠️ В отличие от `eval()`, `literal_eval` **безопасен** — не выполняет произвольный код. Но всё равно не идеален — большие литералы могут уронить парсер через stack overflow.
 
-### `ast.NodeVisitor` — обход AST
+### `ast.NodeVisitor` — обход AST { #7.13-astnodevisitor }
 
 ```python
 import ast
@@ -834,7 +834,7 @@ counter.visit(tree)
 print(f"Found {counter.count} functions")
 ```
 
-### `ast.NodeTransformer` — модификация AST
+### `ast.NodeTransformer` — модификация AST { #7.13-astnodetransformer }
 
 ```python
 class DoubleMultiplier(ast.NodeTransformer):
@@ -854,7 +854,7 @@ ast.fix_missing_locations(new_tree)
 print(ast.unparse(new_tree))   # 'x * y * 2'
 ```
 
-### `ast.walk` — итерация по всем узлам
+### `ast.walk` — итерация по всем узлам { #7.13-astwalk }
 
 ```python
 tree = ast.parse("x = 1; y = x + 2")
@@ -875,7 +875,7 @@ for node in ast.walk(tree):
 # Constant
 ```
 
-### Полный пример: оптимизация `x + 0` → `x` (constant folding)
+### Полный пример: оптимизация `x + 0` → `x` (constant folding) { #7.13-polnyy }
 
 Реалистичная трансформация — найти все `BinOp` вида `something + 0` и заменить на `something`. Это базовая оптимизация, которую делают компиляторы; на Python её можно реализовать через `NodeTransformer`:
 
@@ -909,7 +909,7 @@ print(ast.unparse(tree))
 #     return x + y + z
 ```
 
-### Полный пример: подмена имён переменных (обфускация)
+### Полный пример: подмена имён переменных (обфускация) { #7.13-polnyy }
 
 Превращаем осмысленные имена в `_0`, `_1`, `_2`... — типичный шаг обфускации:
 
@@ -950,7 +950,7 @@ print(ast.unparse(tree))
 
 ⚠️ Этот приём **не отменяет** плагиат-детекторы (см. Приложение A) — они тоже работают через AST-нормализацию, сливают `_0`, `_1` обратно в `IDENTIFIER`. Но он скрывает смысл от **человека**, читающего код.
 
-### Полный пример: instrumentation — подсчёт вызовов функций
+### Полный пример: instrumentation — подсчёт вызовов функций { #7.13-polnyy }
 
 Вставляем `__count_X += 1` в начало каждой функции — типичная основа профайлеров и coverage-инструментов:
 
@@ -994,7 +994,7 @@ print(ast.unparse(tree))
 
 Применения `ast`: написание своих линтеров, форматеров (Black, autopep8), анализаторов зависимостей, обфускаторов, и — да — систем плагиата (см. Приложение A).
 
-## 7.14. `dir()` — самый быстрый способ исследования API
+## 7.14. `dir()` — самый быстрый способ исследования API { #7.14 }
 
 `dir()` — встроенная функция, возвращающая **сортированный список имён атрибутов** объекта. Это первая команда, которую пишут, когда встречают незнакомый объект: `dir(obj)` показывает всё, что у него есть.
 
@@ -1020,7 +1020,7 @@ print(ast.unparse(tree))
 ['__class__', '__delattr__', '__dict__', '__dir__', ..., 'inc', 'reset', 'value']
 ```
 
-### Как работает `dir()` под капотом
+### Как работает `dir()` под капотом { #7.14-kak }
 
 1. Вызывает метод `obj.__dir__()` (если он есть). **Любой класс может переопределить `__dir__`**, чтобы вернуть кастомный список — например, скрыть приватные атрибуты или добавить виртуальные.
 2. Если `__dir__` не определён — `dir()` собирает атрибуты сам:
@@ -1045,7 +1045,7 @@ class Hidden:
 'password'
 ```
 
-### `dir()` vs `vars()` vs `inspect.getmembers()`
+### `dir()` vs `vars()` vs `inspect.getmembers()` { #7.14-dir }
 
 Три функции, которые часто путают:
 
@@ -1082,7 +1082,7 @@ MappingProxyType({...})   # у модулей __dict__ — read-only mappingprox
  ('tzinfo', <class 'datetime.tzinfo'>)]
 ```
 
-### Практические приёмы с `dir()`
+### Практические приёмы с `dir()` { #7.14-prakticheskie }
 
 ```python
 # 1. Найти все методы объекта по префиксу/суффиксу
@@ -1113,7 +1113,7 @@ isdecimal: False
 {'count'}   # у tuple свой count, но и у list он есть — пересечение
 ```
 
-### `dir()` без аргументов — для текущей области видимости
+### `dir()` без аргументов — для текущей области видимости { #7.14-dir }
 
 ```python
 >>> x = 1
@@ -1133,7 +1133,7 @@ isdecimal: False
 `dir()` — это самый быстрый способ понять, **что вообще умеет объект**. Запомни: увидел новый класс — первым делом `dir(obj)`, потом уже читай `help(obj.method)` или доку.
 
 
-### Бенчмарки к Части VII
+### Бенчмарки к Части VII { #7.14-benchmarki }
 
 **1. `functools.wraps` — цена «правильного» декоратора.**
 ```python

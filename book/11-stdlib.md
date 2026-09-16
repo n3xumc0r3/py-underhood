@@ -1,6 +1,6 @@
 # Часть XI. Полезные модули стандартной библиотеки
 
-## 11.1. `functools.lru_cache`, `functools.cache`
+## 11.1. `functools.lru_cache`, `functools.cache` { #11.1 }
 
 > **→ см. также:** Часть VII (7.4) — `functools.wraps` и общее устройство декораторов; Часть VIII (8.5) — `OrderedDict`-based LRU как альтернатива C-реализации `lru_cache`.
 
@@ -100,7 +100,7 @@ class Repo:
 
 Ещё одно последствие: кэш на методе **общий для всех экземпляров** — то есть `Service().get_user(1)` и `Service().get_user(1)` разделят кэш-попадание, даже если это разные объекты с разными подключениями к БД. Если это не желаемое поведение — кэш должен быть на экземпляре.
 
-## 11.2. `functools.partial`
+## 11.2. `functools.partial` { #11.2 }
 
 «Заморозить» часть аргументов функции, получив новую функцию с оставшимися:
 
@@ -159,7 +159,7 @@ sub(3)            # 7 (10-3), позиционный аргумент нельз
 
 ⚠️ **У `partial` нет `__name__` и `__doc__`** — при передаче во фреймворки (Celery, Flask) используйте `functools.update_wrapper(p, p.func)`.
 
-## 11.3. `functools.reduce`
+## 11.3. `functools.reduce` { #11.3 }
 
 Свертка последовательности в одно значение через бинарную функцию:
 
@@ -200,7 +200,7 @@ product = reduce(lambda a, b: a * b, [1, 2, 3])
 product = prod([1, 2, 3])
 ```
 
-## 11.4. `weakref`
+## 11.4. `weakref` { #11.4 }
 
 Слабые ссылки — указатели на объекты, не препятствующие их сборке мусором:
 
@@ -259,7 +259,7 @@ weakref.finalize(obj, cleanup, obj)
 del obj   # вызовет cleanup(obj)
 ```
 
-## 11.5. `copy`/`deepcopy`
+## 11.5. `copy`/`deepcopy` { #11.5 }
 
 ```python
 import copy
@@ -301,7 +301,7 @@ class Node:
 
 ⚠️ `deepcopy` медленный. Для больших объектов (DataFrame, NumPy array) используйте их собственные методы (`df.copy(deep=True)`, `arr.copy()`).
 
-## 11.6. `warnings`
+## 11.6. `warnings` { #11.6 }
 
 Предупреждения — для deprecation, для подсветки проблем без прерывания работы:
 
@@ -347,7 +347,7 @@ class MyCustomWarning(UserWarning):
 warnings.warn("...", MyCustomWarning)
 ```
 
-## 11.7. `__all__`
+## 11.7. `__all__` { #11.7 }
 
 `__all__` — список имён, которые экспортируются по `from module import *`:
 
@@ -380,7 +380,7 @@ print(_PrivateClass)  # NameError
 
 ⚠️ **`__all__` не скрывает** имена от `import module; module._private_func` — это лишь про `*`-импорт. Для настоящей приватности — отдельный модуль или префикс `_`.
 
-## 11.8. `pickle` и его опасности
+## 11.8. `pickle` и его опасности { #11.8 }
 
 `pickle` сериализует почти любой Python-объект. **Но**: `pickle.loads(data)` исполняет произвольный код через `__reduce__`:
 
@@ -408,7 +408,7 @@ pickle.loads(payload)   # напечатает "HACKED" — команда вы�
 - `protobuf`, `msgpack` — для продакшена.
 - `marshal` — для внутренних файлов Python (тоже небезопасен).
 
-## 11.9. `tracemalloc`
+## 11.9. `tracemalloc` { #11.9 }
 
 Профайлер памяти — показывает, где выделялись объекты:
 
@@ -461,7 +461,7 @@ for stat in filtered.statistics('traceback'):
     print(stat.traceback)
 ```
 
-## 11.10. `operator` модуль
+## 11.10. `operator` модуль { #11.10 }
 
 Функциональные аналоги операторов — передаются как callback'и:
 
@@ -528,9 +528,9 @@ list(map(add, [1, 2, 3], [10, 20, 30]))   # [11, 22, 33]
 
 Главный кейс — передавать операторы как объекты в `map`, `reduce`, `sorted(key=...)`, конвейеры обработки данных.
 
-## 11.11. `functools.singledispatch`, `cached_property`, `total_ordering`
+## 11.11. `functools.singledispatch`, `cached_property`, `total_ordering` { #11.11 }
 
-### `singledispatch` — полиморфизм по типу первого аргумента
+### `singledispatch` — полиморфизм по типу первого аргумента { #11.11-singledispatch }
 
 ```python
 from functools import singledispatch
@@ -573,7 +573,7 @@ def _(obj: datetime.datetime):
 
 ⚠️ `singledispatch` работает только по типу **первого аргумента**. Для метода класса — `singledispatchmethod` (Python 3.8+).
 
-### `cached_property` — `@property` с кэшем
+### `cached_property` — `@property` с кэшем { #11.11-cachedproperty }
 
 ```python
 from functools import cached_property
@@ -597,7 +597,7 @@ print(df.stats)   # {'mean': 2.5, 'max': 4} — без вычисления
 
 ⚠️ Требует `__dict__` (не работает с `__slots__` без явного `'__dict__'` в слотах). Не потокобезопасен (для многопоточного — `functools.cached_property` + `threading.Lock`).
 
-### `total_ordering` — дополнить `__lt__` до всех сравнений
+### `total_ordering` — дополнить `__lt__` до всех сравнений { #11.11-totalordering }
 
 ```python
 from functools import total_ordering
@@ -624,7 +624,7 @@ print(s1 != s2)    # True
 
 Требуется определить `__eq__` и один из (`__lt__`, `__le__`, `__gt__`, `__ge__`). Остальные сгенерируются из этих двух.
 
-## 11.12. `queue` — Queue, LifoQueue, PriorityQueue, SimpleQueue
+## 11.12. `queue` — Queue, LifoQueue, PriorityQueue, SimpleQueue { #11.12 }
 
 Потокобезопасные очереди для producer/consumer паттерна в `threading`.
 
@@ -708,7 +708,7 @@ for t in threads:
 
 ⚠️ `queue.Queue` — для `threading`. Для `asyncio` — `asyncio.Queue` (см. §4.7).
 
-## 11.13. `reprlib` — ограничение repr для больших структур
+## 11.13. `reprlib` — ограничение repr для больших структур { #11.13 }
 
 `reprlib` — для управления тем, как `repr()` показывает большие объекты (рекурсивно обрезает).
 
@@ -737,9 +737,9 @@ print(r.repr({'a': [1, 2, 3, 4, 5, 6, 7], 'b': {'c': 'd'}}))
 
 Полезно для отладки — большие структуры не засоряют вывод. Используется внутри `dataclasses`, `pprint`, и т.д.
 
-## 11.14. `os.scandir`, `os.fwalk` — продвинутое обход файловой системы
+## 11.14. `os.scandir`, `os.fwalk` — продвинутое обход файловой системы { #11.14 }
 
-### `os.scandir` — быстрее `os.listdir`
+### `os.scandir` — быстрее `os.listdir` { #11.14-osscandir }
 
 ```python
 import os
@@ -763,7 +763,7 @@ with os.scandir('/tmp') as entries:
 
 `scandir` возвращает `DirEntry` объекты, которые кэшируют `stat()` — `is_dir()`, `is_file()`, `stat()` работают без дополнительного syscall (на Windows) или с одним syscall (на Linux, но кэшированным).
 
-### `os.walk` — стандартный обход дерева
+### `os.walk` — стандартный обход дерева { #11.14-oswalk }
 
 ```python
 for root, dirs, files in os.walk('/home/user'):
@@ -789,7 +789,7 @@ for root, dirs, files in os.walk('.'):
 
 ⚠️ Важно: `dirs[:] = ...` (присваивание срезу) изменяет список, который `walk` использует дальше. Без `[:]` создаётся новый список — `walk` про изменения не узнает.
 
-### `os.fwalk` — с файловыми дескрипторами
+### `os.fwalk` — с файловыми дескрипторами { #11.14-osfwalk }
 
 ```python
 for root, dirs, files, root_fd in os.fwalk('/home/user'):
@@ -800,7 +800,7 @@ for root, dirs, files, root_fd in os.fwalk('/home/user'):
 
 `fwalk` использует `*at` системные вызовы (`openat`, `readdir`) — более безопасно (нет race conditions типа symlink attacks). Используется реже, но в security-чувствительном коде — обязательно.
 
-### `pathlib` — современная альтернатива
+### `pathlib` — современная альтернатива { #11.14-pathlib }
 
 ```python
 from pathlib import Path
@@ -815,7 +815,7 @@ for p in Path('/tmp').iterdir():
         print(p.stat().st_size, p)
 ```
 
-## 11.15. `logging` — стандартная библиотека логирования
+## 11.15. `logging` — стандартная библиотека логирования { #11.15 }
 
 ```python
 import logging
@@ -919,9 +919,9 @@ LOGGING_CONFIG = {
 logging.config.dictConfig(LOGGING_CONFIG)
 ```
 
-## 11.16. `signal` и `atexit`
+## 11.16. `signal` и `atexit` { #11.16 }
 
-### `signal` — обработка Unix-сигналов
+### `signal` — обработка Unix-сигналов { #11.16-signal }
 
 ```python
 import signal
@@ -951,7 +951,7 @@ finally:
 
 ⚠️ `signal` работает только в главном потоке. В потоках и async — исключение `ValueError: signal only works in main thread`.
 
-### `atexit` — финализаторы при выходе
+### `atexit` — финализаторы при выходе { #11.16-atexit }
 
 ```python
 import atexit
@@ -976,7 +976,7 @@ print("Program running...")
 
 Только при нормальном завершении или `sys.exit()`. Если нужно гарантированно — `signal.signal(SIGTERM, ...)` + cleanup.
 
-### Типичные Unix-сигналы для daemon-процессов
+### Типичные Unix-сигналы для daemon-процессов { #11.16-tipichnye }
 
 | Сигнал | Номер | Когда приходит | Типичная реакция |
 |---|---|---|---|
@@ -989,7 +989,7 @@ print("Program running...")
 | `SIGALRM` | 14 | `signal.alarm(N)` | таймер (только Unix) |
 | `SIGCHLD` | 17 | дочерний процесс завершился | `wait()` для reaping (иначе зомби) |
 
-### Связка `signal` + `atexit` для graceful shutdown
+### Связка `signal` + `atexit` для graceful shutdown { #11.16-svyazka }
 
 В production нужно обрабатывать и `SIGTERM` (от оркестратора), и `SIGINT` (от разработчика в Ctrl+C), и нормальный выход через `sys.exit`:
 
@@ -1031,7 +1031,7 @@ print("Завершение работы")
 - Не перехватывает `SIGKILL` и `SIGSTOP` — их невозможно перехватить в принципе.
 - На Windows поддерживаются только `SIGINT`, `SIGBREAK`, `SIGTERM` (но `SIGTERM` эмулируется через `TerminateProcess`), `SIGALRM` не работает.
 
-## 11.17. `datetime`, `timedelta`, `timezone`
+## 11.17. `datetime`, `timedelta`, `timezone` { #11.17 }
 
 ```python
 import datetime
@@ -1082,9 +1082,9 @@ aware_msk = datetime.datetime.now(tz_msk)
 
 ⚠️ Всегда используйте **tz-aware** datetime в коде, который работает с разными часовыми поясами. Naive datetime — главная причина багов в коде, который работает с временем.
 
-## 11.18. `bisect` и `heapq` — быстрые операции на отсортированных данных
+## 11.18. `bisect` и `heapq` — быстрые операции на отсортированных данных { #11.18 }
 
-### `bisect` — бинарный поиск в отсортированном списке
+### `bisect` — бинарный поиск в отсортированном списке { #11.18-bisect }
 
 ```python
 import bisect
@@ -1107,7 +1107,7 @@ print(bisect.bisect_right(nums, 2))  # 4 — позиция после посл�
 
 O(log n) для поиска, O(n) для вставки (из-за сдвига).
 
-### `heapq` — куча (heap)
+### `heapq` — куча (heap) { #11.18-heapq }
 
 Куча — список, поддерживающий быстрое извлечение минимума. Не сортирует весь список, но всегда даёт O(1) на минимум и O(log n) на insert/extract.
 
@@ -1157,9 +1157,9 @@ print(pop_task())   # "medium"
 print(pop_task())   # "low"
 ```
 
-## 11.19. `csv`, `json`, `urllib.parse`
+## 11.19. `csv`, `json`, `urllib.parse` { #11.19 }
 
-### `csv` — чтение/запись CSV
+### `csv` — чтение/запись CSV { #11.19-csv }
 
 ```python
 import csv
@@ -1190,7 +1190,7 @@ csv.writer(f, dialect='excel-tab')   # tab-separated
 csv.register_dialect('myformat', delimiter=';', quotechar='"')
 ```
 
-### `json` — JSON
+### `json` — JSON { #11.19-json }
 
 ```python
 import json
@@ -1230,7 +1230,7 @@ json.dumps({'ts': datetime.datetime.now()}, cls=MyEncoder)
 
 ⚠️ `json.loads` падает на `NaN`/`Infinity` (стандартно). `parse_constant=lambda x: None` — отключить.
 
-### `urllib.parse` — работа с URL
+### `urllib.parse` — работа с URL { #11.19-urllibparse }
 
 ```python
 from urllib.parse import urlparse, parse_qs, urlencode, urljoin
@@ -1256,7 +1256,7 @@ full = urljoin('https://example.com/api/v1/', '../v2/users')
 # 'https://example.com/api/v2/users'
 ```
 
-## 11.20. `mmap` — memory-mapped files
+## 11.20. `mmap` — memory-mapped files { #11.20 }
 
 `mmap` — отображение файла в память. Большие файлы читаются как память (через swap), не загружаясь целиком в RAM.
 
@@ -1280,7 +1280,7 @@ with open('huge.bin', 'r+b') as f:
     mm.close()
 ```
 
-### `find()` / `rfind()` — поиск без загрузки в RAM
+### `find()` / `rfind()` — поиск без загрузки в RAM { #11.20-find }
 
 Главное преимущество `mmap` для больших файлов — поиск подстроки **без чтения файла в Python**. Поиск идёт в C-уровневом `memmem`/`find` ОС, который работает постранично и не аллоцирует Python-объекты:
 
@@ -1312,7 +1312,7 @@ with open('huge.log', 'rb') as f:
 
 ⚠️ `find`/`rfind` работают только на **bytes** (`mmap.mmap` всегда байтовый, не str). Для текстового поиска — `b'ERROR'`, не `'ERROR'`.
 
-### Случайный доступ через `seek()` и срезы
+### Случайный доступ через `seek()` и срезы { #11.20-sluchaynyy }
 
 `mmap` поддерживает оба способа — `seek` (как у file) и индексацию (как у bytes). Срезы на mmap **не копируют** данные в новую память до момента фактического использования:
 
@@ -1331,7 +1331,7 @@ mv = memoryview(mm)
 chunk = mv[100_000_000:100_004_096]   # не копирует, пока не понадобится
 ```
 
-### `MAP_SHARED` — разделяемая память между процессами
+### `MAP_SHARED` — разделяемая память между процессами { #11.20-mapshared }
 
 Когда несколько процессов должны работать с одним и тем же регионом памяти, `mmap` с `MAP_SHARED` даёт дешёвый IPC — без pickle, без очередей, без sockets. Изменения, сделанные одним процессом, **сразу** видны другим:
 
@@ -1357,7 +1357,7 @@ with open(shared_path, 'w+b') as f:
 
 ⚠️ На Windows `MAP_SHARED` работает только для **файлов** (не анонимной памяти). Для анонимной shared memory между процессами на всех платформах — `multiprocessing.shared_memory` (Python 3.8+), см. ниже.
 
-### `multiprocessing.shared_memory` — кроссплатформенная shared memory
+### `multiprocessing.shared_memory` — кроссплатформенная shared memory { #11.20-multiprocessingsharedmemory }
 
 Python 3.8+ даёт высокоуровневую обёртку над `mmap` для IPC между процессами:
 
@@ -1401,7 +1401,7 @@ if __name__ == '__main__':
 - **Синхронизация на тебе** — `multiprocessing.Lock` или `mmap`+атомики. Без этого — race conditions.
 - **Размер фиксирован** при создании; для динамических данных — `multiprocessing.Array` или `queue.Queue`.
 
-### `access=` — режимы доступа
+### `access=` — режимы доступа { #11.20-access }
 
 | Флаг | Чтение | Запись | Синхронизация с файлом |
 |---|---|---|---|
@@ -1415,7 +1415,7 @@ mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_COPY)
 mm[0:4] = b'TEST'   # изменяет только память, не файл
 ```
 
-### ⚠️ Платформенные особенности
+### ⚠️ Платформенные особенности { #11.20-platformennye }
 
 | Платформа | Что отличается |
 |---|---|
@@ -1427,9 +1427,9 @@ mm[0:4] = b'TEST'   # изменяет только память, не файл
 
 > **→ см. также:** Часть IV (4.11) — `multiprocessing` для CPU-bound параллелизма; `multiprocessing.shared_memory` — логичное расширение mmap для межпроцессного обмена.
 
-## 11.21. `shutil` и `tempfile`
+## 11.21. `shutil` и `tempfile` { #11.21 }
 
-### `shutil` — высокоуровневые операции с файлами
+### `shutil` — высокоуровневые операции с файлами { #11.21-shutil }
 
 ```python
 import shutil
@@ -1457,7 +1457,7 @@ shutil.make_archive('backup', 'zip', root_dir='src')   # создает backup.z
 shutil.unpack_archive('backup.zip', 'unpacked/')
 ```
 
-### `tempfile` — временные файлы
+### `tempfile` — временные файлы { #11.21-tempfile }
 
 ```python
 import tempfile
@@ -1487,9 +1487,9 @@ fd, path = tempfile.mkstemp()
 
 ⚠️ `TemporaryDirectory` через `with` — самый безопасный вариант. Если не `with` — то `shutil.rmtree(tmpdir)` вручную в `finally`.
 
-## 11.22. `decimal` и `fractions`
+## 11.22. `decimal` и `fractions` { #11.22 }
 
-### `decimal` — точная арифметика с фиксированной точкой
+### `decimal` — точная арифметика с фиксированной точкой { #11.22-decimal }
 
 Для финансовых расчётов, где `float` даёт погрешности:
 
@@ -1525,7 +1525,7 @@ price = Decimal('19.999')
 rounded = price.quantize(Decimal('0.01'))   # Decimal('20.00')
 ```
 
-### `fractions` — рациональные числа
+### `fractions` — рациональные числа { #11.22-fractions }
 
 ```python
 from fractions import Fraction
@@ -1549,7 +1549,7 @@ print(Fraction(5, 4) / Fraction(3, 2))   # Fraction(5, 6)
 
 ⚠️ `Fraction` — точные, но **медленные** (целочисленная арифметика с произвольной точностью). Для большинства задач `float` достаточно.
 
-## 11.23. `re` — регулярные выражения
+## 11.23. `re` — регулярные выражения { #11.23 }
 
 ```python
 import re
@@ -1654,7 +1654,7 @@ new_str, count = re.subn(r'\d+', 'N', 'a1 b22 c333')
 
 ⚠️ **Не используйте re для парсинга XML/HTML** — используйте `xml.etree.ElementTree` или `lxml`. Регулярки не справляются с вложенными структурами.
 
-## 11.24. `unicodedata` — нормализация Unicode
+## 11.24. `unicodedata` — нормализация Unicode { #11.24 }
 
 Строки, выглядящие одинаково, могут быть разными:
 
@@ -1704,9 +1704,9 @@ print(normalize_search('Café'))   # 'cafe'
 print(normalize_search('CAFÉ'))   # 'cafe'
 ```
 
-## 11.25. `struct`, `memoryview` — бинарные данные
+## 11.25. `struct`, `memoryview` — бинарные данные { #11.25 }
 
-### `struct` — упаковка/распаковка бинарных данных
+### `struct` — упаковка/распаковка бинарных данных { #11.25-struct }
 
 ```python
 import struct
@@ -1743,7 +1743,7 @@ print(s.unpack(data))
 - `!` — network byte order (как `>`)
 - без prefix — native
 
-### `memoryview` — zero-copy срезы bytes
+### `memoryview` — zero-copy срезы bytes { #11.25-memoryview }
 
 ```python
 data = b'0123456789' * 1000   # 10000 байт
@@ -1775,9 +1775,9 @@ print(arr)   # bytearray(b'XYZ3456789')
 
 Применение `memoryview` — чтение больших бинарных файлов без копирования срезов, парсинг протоколов, mmap.
 
-## 11.26. `hashlib`, `hmac`, `secrets` — криптография
+## 11.26. `hashlib`, `hmac`, `secrets` — криптография { #11.26 }
 
-### `hashlib` — хеши
+### `hashlib` — хеши { #11.26-hashlib }
 
 ```python
 import hashlib
@@ -1806,7 +1806,7 @@ print(digest.hexdigest())
 
 ⚠️ `md5` и `sha1` — **сломаны** для криптографии. Используйте `sha256`/`sha512`/`blake2b`. Для file deduplication — md5 ещё ок.
 
-### `hmac` — keyed-hash (для аутентификации сообщений)
+### `hmac` — keyed-hash (для аутентификации сообщений) { #11.26-hmac }
 
 ```python
 import hmac, hashlib
@@ -1824,7 +1824,7 @@ print(hmac.compare_digest(signature, expected))   # True — constant-time compa
 
 ⚠️ Используйте `hmac.compare_digest` (constant-time) для проверки подписей, не `==` — иначе timing-атаки.
 
-### `secrets` — криптостойкая случайность
+### `secrets` — криптостойкая случайность { #11.26-secrets }
 
 ```python
 import secrets
@@ -1846,9 +1846,9 @@ secrets.compare_digest('hello', 'hello')   # True
 
 ⚠️ **Никогда** не используйте `random` для криптографии — он не криптостойкий. Только `secrets`.
 
-## 11.27. `math` — матфункции и `statistics`
+## 11.27. `math` — матфункции и `statistics` { #11.27 }
 
-### `math` — основные
+### `math` — основные { #11.27-math }
 
 ```python
 import math
@@ -1887,7 +1887,7 @@ math.factorial(5)  # 120
 
 `math.prod`, `math.comb`, `math.perm`, `math.isqrt`, `math.lcm` — малоизвестные, но очень полезные функции, заменяющие кучи `reduce` и `factorial`-обёрток.
 
-### `statistics` — статистика
+### `statistics` — статистика { #11.27-statistics }
 
 ```python
 import statistics
@@ -1914,7 +1914,7 @@ print(statistics.linear_regression([1,2,3], [2,4,6]))   # LinearRegression(slope
 
 `statistics` — для быстрой аналитики без numpy. Не такая быстрая, но для 10000 значений достаточно.
 
-## 11.28. `random` — псевдослучайные числа
+## 11.28. `random` — псевдослучайные числа { #11.28 }
 
 ```python
 import random
@@ -1947,9 +1947,9 @@ print(sr.randint(1, 100))
 
 ⚠️ `random` — **не** криптостойкий. Для паролей, токенов, API-ключей — `secrets` (см. §11.26).
 
-## 11.29. `argparse`, `configparser`, `subprocess` — CLI, конфиги, процессы
+## 11.29. `argparse`, `configparser`, `subprocess` — CLI, конфиги, процессы { #11.29 }
 
-### `argparse` — парсер аргументов командной строки
+### `argparse` — парсер аргументов командной строки { #11.29-argparse }
 
 ```python
 import argparse
@@ -1975,7 +1975,7 @@ print(args.mode)    # 'slow'
 
 `--help` генерируется автоматически. `argparse` — стандарт для всех CLI-утилит.
 
-### `configparser` — INI-файлы
+### `configparser` — INI-файлы { #11.29-configparser }
 
 ```ini
 # config.ini
@@ -1999,7 +1999,7 @@ print(config.getint('database', 'port'))   # 5432 (как int)
 print(config.getboolean('features', 'debug'))   # True
 ```
 
-### `tomllib` — TOML (Python 3.11+)
+### `tomllib` — TOML (Python 3.11+) { #11.29-tomllib }
 
 ```toml
 # config.toml
@@ -2023,7 +2023,7 @@ print(config['database']['tags'])   # ['primary', 'fast']
 
 TOML — современная замена INI, поддерживает массивы, числа, bool, даты. `tomllib` только читает (не пишет). Для записи — `tomli-w`.
 
-### `subprocess` — запуск внешних процессов
+### `subprocess` — запуск внешних процессов { #11.29-subprocess }
 
 ```python
 import subprocess
@@ -2057,7 +2057,7 @@ proc.terminate()
 
 ⚠️ `shell=True` с пользовательским вводом — **command injection**. Всегда передавайте список аргументов, не строку.
 
-### `shell=True` — почему это опасно
+### `shell=True` — почему это опасно { #11.29-shelltrue }
 
 Когда передаёшь **строку** с `shell=True`, Python вызывает `/bin/sh -c "твоя строка"`. Shell парсит строку по своим правилам — метасимволы `;`, `|`, `&`, `` ` ``, `$()`, `>`, `<` интерпретируются. Если в строке есть данные от пользователя — он может «дописать» команду:
 
@@ -2100,7 +2100,7 @@ subprocess.run(f"cat {safe}", shell=True)
 # /bin/sh -c "cat 'x; echo hacked'"  ← cat попытается открыть файл 'x; echo hacked'
 ```
 
-### `subprocess.run` vs `Popen` — когда что
+### `subprocess.run` vs `Popen` — когда что { #11.29-subprocessrun }
 
 | API | Для чего |
 |---|---|
@@ -2111,7 +2111,7 @@ subprocess.run(f"cat {safe}", shell=True)
 | `os.system(cmd)` | ❌ устаревший. Не возвращает вывод, не безопасен, только returncode. |
 | `os.popen(cmd)` | ❌ устаревший. Используй `subprocess.Popen` с `PIPE`. |
 
-### `sys.argv` — простой доступ к аргументам
+### `sys.argv` — простой доступ к аргументам { #11.29-sysargv }
 
 ```python
 import sys
@@ -2123,11 +2123,11 @@ print(sys.argv)
 
 ⚠️ Для чего-то сложнее «взять первый аргумент» — используйте `argparse`.
 
-## 11.30. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop` — профилирование, отладка и REPL-движки
+## 11.30. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop` — профилирование, отладка и REPL-движки { #11.30 }
 
 Эти модули собраны вместе не случайно — все они **выполняют произвольный Python-код в управляемом окружении**. Понимание их устройства полезно и как инструментов разработки, и как элементов песочниц (или способов их обхода).
 
-### `timeit` — замер производительности
+### `timeit` — замер производительности { #11.30-timeit }
 
 Главное правило — **не использовать `time.time()`** для бенчмарков: он измеряет «wall clock», на который влияют другие процессы, GC, тепловое регулирование CPU. `timeit` берёт лучшее из N прогонов, отключает GC на время замера и даёт `timeit.repeat` для оценки дисперсии.
 
@@ -2159,7 +2159,7 @@ API:
 - `globals={'x': x}` позволяет передать локальные переменные в `stmt` (Python 3.5+). Без этого — stmt выполняется в изолированном namespace.
 - `timeit` **отключает GC** на время замера (`gc.disable()`/`gc.enable()`). Если твой код создаёт циклы — это искажает реальную картину. Для realism — включай обратно руками.
 
-### `bdb` — базовый класс для отладчиков
+### `bdb` — базовый класс для отладчиков { #11.30-bdb }
 
 `bdb` (базовый дебаггер) — это **фреймворк для написания своего отладчика**. На нём построены `pdb` (стандартный), `ipdb` (ipython-версия), `debugpy` (используется в VS Code). Не отладчик сам по себе — каркас с хуками `break()`, `user_line()`, `user_return()`, `user_exception()`, которые ты переопределяешь.
 
@@ -2185,7 +2185,7 @@ class MyTracer(bdb.Bdb):
 
 `bdb` важен и в контексте **песочниц**: если отладчик может поставить хук на любой строке, значит, код песочницы, разрешающий `breakpoint()` или `sys.settrace`, даёт злоумышленнику полный контроль над выполнением. Блокировка `bdb`/`pdb`/`settrace` — стандартная мера.
 
-### `profile` и `cProfile` — профилирование кода
+### `profile` и `cProfile` — профилирование кода { #11.30-profile }
 
 `profile` (чистый Python) и `cProfile` (C-расширение, быстрее в 10–20×) измеряют, **сколько времени ушло на каждую функцию**. В отличие от `timeit`, который сравнивает куски кода, профайлер показывает полную картину вызовов.
 
@@ -2228,7 +2228,7 @@ python -m cProfile -s cumulative script.py         # сразу вывести �
 
 `profile.Profile` можно инстанцировать программно и точечно — `enable()`/`disable()` вокруг критического участка. Так делают Django/Flask-профайлеры в middleware.
 
-### `code` и `codeop` — движок интерактивной консоли
+### `code` и `codeop` — движок интерактивной консоли { #11.30-code }
 
 `code` — модуль для создания **своих интерактивных REPL**. На нём построены `python -i`, `IPython`, `code.InteractiveConsole`, `python -m code`. Если ты делаешь песочницу или встраиваемую консоль — это твой фундамент.
 
@@ -2272,7 +2272,7 @@ code_obj = c("def f():\n", "<input>", "single")
 # Возвращает None — команда не завершена, жди следующую строку
 ```
 
-### Почему эти модули важны для песочниц
+### Почему эти модули важны для песочниц { #11.30-pochemu }
 
 Все четыре (`timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop`) — это **готовые движки выполнения Python-кода**. Если ты пишешь песочницу:
 
@@ -2295,11 +2295,11 @@ for m in ('bdb', 'pdb', 'profile', 'cProfile', 'code', 'codeop', 'timeit'):
 
 Реальная защита — это `ast`-фильтрация (Часть VII, 7.13) + изоляция процесса (seccomp, namespaces) + ограниченный `__builtins__`. Модульная блокировка — лишь первый уровень.
 
-## 11.31. `venv`, `pip`, `site` — виртуальные окружения, пакеты и site-packages
+## 11.31. `venv`, `pip`, `site` — виртуальные окружения, пакеты и site-packages { #11.31 }
 
 Эти три темы — фундамент **Python-окружения**. Без понимания `venv`/`pip`/`site-packages` невозможно вести разработку сколь-нибудь сложного проекта, но в большинстве учебников они упоминаются вскользь.
 
-### `venv` — виртуальные окружения
+### `venv` — виртуальные окружения { #11.31-venv }
 
 **Виртуальное окружение** — изолированная директория с собственным набором пакетов. Каждый проект — свой `venv`, пакеты не конфликтуют между проектами.
 
@@ -2365,7 +2365,7 @@ python3 -m venv .venv --copies                 # копии вместо сим�
 
 ⚠️ **venv и системные пакеты**: `--system-site-packages` — **не рекомендуется**. Если системный `requests` обновится, твой код сломается без предупреждения. Изолируй полностью.
 
-### `pip` — менеджер пакетов
+### `pip` — менеджер пакетов { #11.31-pip }
 
 ```bash
 # Базовые операции:
@@ -2463,7 +2463,7 @@ pip install --no-index --find-links ./wheels/ requests  # только лока�
 
 ⚠️ **`pip install` выполняет `setup.py`** — пакет может запустить arbitrary code при установке. Ставь только доверенные пакеты.
 
-### `site` модуль — что происходит при старте Python
+### `site` модуль — что происходит при старте Python { #11.31-site }
 
 При запуске `python3` (без `-S`) автоматически выполняется модуль `site`. Он:
 
@@ -2540,7 +2540,7 @@ sys.setrecursionlimit(5000)
 
 ⚠️ `usercustomize`/`sitecustomize` — **выполняются до вашего кода**. Если они падают с ошибкой — Python может не стартовать. Отладка через `python3 -v` (verbose import).
 
-### `python -m` — запуск модулей как скриптов
+### `python -m` — запуск модулей как скриптов { #11.31-python }
 
 `python -m <module>` — находит модуль в `sys.path` и выполняет его `__main__` (или `if __name__ == "__main__":` блок):
 
@@ -2564,7 +2564,7 @@ python3 -m compileall src/      # скомпилировать все .py в .py
 
 ⚠️ `python3 -m pip` предпочтительнее `pip` напрямую — гарантирует, что pip относится к **тому же** интерпретатору, которым запущен. `pip` может указывать на другой Python (если в `PATH` несколько версий).
 
-### Сводная таблица: флаги запуска Python
+### Сводная таблица: флаги запуска Python { #11.31-svodnaya }
 
 | Флаг | Что делает | Когда использовать |
 |---|---|---|
@@ -2581,7 +2581,7 @@ python3 -m compileall src/      # скомпилировать все .py в .py
 | `python3 -B` | не писать `.pyc` файлы | чистота директории, Docker |
 | `python3 -X utf8` | принудительный UTF-8 mode | кроссплатформенность |
 
-### Бенчмарки к Части XI
+### Бенчмарки к Части XI { #11.31-benchmarki }
 
 **1. `lru_cache` vs `cache` (Python 3.9+) vs ручной `dict`.**
 ```python
