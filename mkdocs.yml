@@ -1,0 +1,116 @@
+site_name: Python под капотом
+site_description: >-
+  От синтаксических трюков до internals CPython.
+  Книга о редко используемых, скрытых и продвинутых возможностях Python.
+site_author: "@n3xumc0r3"
+site_url: https://n3xumc0r3.github.io/py-underhood/
+
+repo_name: n3xumc0r3/py-underhood
+repo_url: https://github.com/n3xumc0r3/py-underhood
+edit_uri: edit/main/book/
+
+docs_dir: book
+site_dir: site
+
+theme:
+  name: material
+  language: ru
+  features:
+    - navigation.tracking        # URL обновляется при скролле по якорям
+    - navigation.tabs            # верхние табы: Части I-XII / Приложения
+    - navigation.sections        # группы в sidebar
+    - navigation.expand          # раскрытое sidebar по умолчанию
+    - navigation.indexes         # index.md как таб-страница
+    - toc.follow                 # правый TOC следует за скроллом
+    - search.suggest             # подсказки в поиске
+    - search.highlight           # подсветка в результатах
+    - content.code.copy          # кнопка "копировать" у блоков кода
+    - content.code.annotate      # аннотации # (1)
+    - content.tabs.link          # синхронизация табов
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Тёмная тема
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Светлая тема
+  font:
+    text: Noto Sans
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  logo: material/language-python
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets
+  - pymdownx.mark
+
+plugins:
+  - search:
+      lang:
+        - ru
+        - en
+  - tags
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/n3xumc0r3/py-underhood
+    - icon: fontawesome/brands/python
+      link: https://www.python.org/
+  generator: false
+
+nav:
+  - Главная: index.md
+  - Часть I. Базовые скрытые особенности: 01-basics.md
+  - Часть II. Контекстные менеджеры: 02-context-managers.md
+  - Часть III. Генераторы и итераторы: 03-generators.md
+  - Часть IV. Асинхронность: 04-async.md
+  - Часть V. Классы и интерфейсы: 05-classes.md
+  - Часть VI. Дескрипторы и property: 06-descriptors.md
+  - Часть VII. Метапрограммирование: 07-metaprogramming.md
+  - Часть VIII. Внутренности CPython: 08-cpython-internals.md
+  - Часть IX. Кодировки и кодеки: 09-encodings.md
+  - Часть X. Интроспекция окружения: 10-introspection.md
+  - Часть XI. Полезные модули stdlib: 11-stdlib.md
+  - Часть XII. Линтеры и директивы: 12-linters.md
+  - Приложения:
+      - A. Системы обнаружения плагиата: appendix-a-plagiarism.md
+      - B. Взаимодействие с системами проверки кода: appendix-b-code-checkers.md
+      - C. Code golf: appendix-c-code-golf.md
+      - D. Где почитать: appendix-d-references.md
