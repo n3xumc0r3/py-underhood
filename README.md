@@ -8,8 +8,6 @@
 [![Code: MIT](https://img.shields.io/badge/code-MIT-green.svg)](CODE_LICENSE)
 [![MkDocs Material](https://img.shields.io/badge/docs-mkdocs--material-526CFE.svg)](https://squidfunk.github.io/mkdocs-material/)
 
-![Preview](.github/img/preview-home.png)
-
 ## Где читать
 
 | Источник | URL | Что это |
@@ -59,6 +57,8 @@ py-underhood/
 │   ├── appendix-b-code-checkers.md
 │   ├── appendix-c-code-golf.md
 │   ├── appendix-d-references.md
+│   ├── yandex_4b729843aad89a3d.html  # Yandex Webmaster verification
+│   ├── google6c18515b3f63e728.html   # Google Search Console verification
 │   ├── stylesheets/
 │   │   └── extra.css           # Кастомный CSS: monochrome + electric green, IBM Plex
 │   └── javascripts/
@@ -71,8 +71,6 @@ py-underhood/
 │   ├── join_list_continuations.py  # Склейка continuation-строк в list items
 │   └── tighten_lists.py        # Tight lists (без <p> обёртки)
 ├── .github/
-│   ├── img/
-│   │   └── preview-home.png    # Превью для этого README
 │   ├── ISSUE_TEMPLATE/         # Шаблоны: bug_report, feature_proposal
 │   ├── workflows/
 │   │   └── deploy-mkdocs.yml   # GitHub Actions: авто-деплой на Pages
