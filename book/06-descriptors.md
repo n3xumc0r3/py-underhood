@@ -279,6 +279,7 @@ obj.x = 2   # AttributeError
 ⚠️ Та же проблема с рекурсией — внутри `__setattr__` нельзя `self.X = ...`, нужно `super().__setattr__(name, value)` или `self.__dict__[name] = value`.
 
 **Когда что:**
+
 - `__getattr__` — для динамических атрибутов (lazy properties, прокси к словарям, ORM).
 - `__getattribute__` — для перехвата любого доступа (логирование, аудит). Редко нужен.
 - `__setattr__` — для валидации или immutability.

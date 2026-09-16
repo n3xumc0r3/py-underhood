@@ -181,6 +181,7 @@ merged = reduce(lambda d1, d2: {**d1, ****d2}, [{'a':1}, {'b':2}, {'c':3}])
 ```
 
 `reduce(func, iterable, initializer)`:
+
 1. `acc = initializer` (если нет — `acc = iterable[0]`).
 2. Для каждого `x` в `iterable`: `acc = func(acc, x)`.
 3. Возвращает `acc`.
@@ -403,6 +404,7 @@ pickle.loads(payload)   # напечатает "HACKED" — команда вы�
 ⚠️ **Никогда не `pickle.loads` пользовательские данные** — это **RCE** (Remote Code Execution).
 
 **Альтернативы:**
+
 - `json` — безопасный, но только для простых типов (`dict`, `list`, `str`, `int`, `float`, `bool`, `None`).
 - `dataclasses` + `dataclasses.asdict()` + `json` — для дата-классов.
 - `protobuf`, `msgpack` — для продакшена.
@@ -970,6 +972,7 @@ print("Program running...")
 ```
 
 ⚠️ `atexit` НЕ вызывается при:
+
 - `os._exit()` (hard exit)
 - `SIGKILL` (kill -9)
 - Segfault
@@ -1026,6 +1029,7 @@ print("Завершение работы")
 ```
 
 ⚠️ **Что НЕ делает `signal.signal`**:
+
 - Не работает в потоках, кроме главного (raise `ValueError`).
 - В asyncio-приложениях — обработчик вызывается между корутинами, не прерывает текущую. Для асинхронной обработки — `loop.add_signal_handler` (Unix-only).
 - Не перехватывает `SIGKILL` и `SIGSTOP` — их невозможно перехватить в принципе.
@@ -1131,6 +1135,7 @@ print(heapq.nlargest(2, [3, 1, 4, 1, 5, 9]))    # [9, 5]
 ```
 
 **Применения:**
+
 - Очередь с приоритетом на минимуме (быстрее `PriorityQueue`).
 - Top-N: например, 10 самых больших чисел из потока — `heapq.nlargest(10, stream)`.
 - Слияние K отсортированных списков: `heapq.merge(*sorted_lists)`.
@@ -1393,11 +1398,13 @@ if __name__ == '__main__':
 ```
 
 Преимущества над pipes/queues:
+
 - **Без сериализации** — данные в «сыром» виде, без pickle.
 - **Произвольный доступ** — процессы могут читать/писать любое смещение, не только поток.
 - **Мгновенная видимость** — изменения видны всем процессам без явной отправки.
 
 Минусы:
+
 - **Синхронизация на тебе** — `multiprocessing.Lock` или `mmap`+атомики. Без этого — race conditions.
 - **Размер фиксирован** при создании; для динамических данных — `multiprocessing.Array` или `queue.Queue`.
 
@@ -1684,12 +1691,14 @@ print(unicodedata.normalize('NFKC', 'ﬁ'))   # 'fi' (ligature)
 ```
 
 **Четыре формы:**
+
 - **NFC** — composed, canonically equivalent. Дефолт для хранения/обмена.
 - **NFD** — decomposed. Полезно для сортировки и поиска с учётом accent-insensitive.
 - **NFKC** — compatibility composed. Заменяет «одинаковые по виду» символы (① → 1, ﬁ → fi). Теряет смысл.
 - **NFKD** — compatibility decomposed.
 
 **Применения:**
+
 - Сравнение строк (нормализовать оба, потом сравнить).
 - Хеширование как идентификатор (избежать разных хешей для одной строки).
 - Поиск в базах данных с accent-insensitive.
@@ -1733,12 +1742,14 @@ print(s.unpack(data))
 ```
 
 **Коды форматов:**
+
 - `x` — pad byte, `c` — char (1 байт), `b`/`B` — signed/unsigned char
 - `?` — bool, `h`/`H` — short, `i`/`I` — int, `l`/`L` — long
 - `q`/`Q` — long long (8 байт), `f` — float, `d` — double
 - `s` — char[], `p` — Pascal string
 
 **Prefix:**
+
 - `<` — little-endian, `>` — big-endian
 - `!` — network byte order (как `>`)
 - без prefix — native
@@ -2085,6 +2096,7 @@ subprocess.run(["cat", filename])
 | `subprocess.run(shlex.join(["ls", user_input]), shell=True)` | `True` | строка с экранированием | ✅ безопасно (но избыточно) |
 
 **Когда `shell=True` реально нужен**:
+
 - **Пайпы и редиректы**: `ls | grep py > files.txt`. Без shell — нужно вручную создавать пайпы через `subprocess.Popen` и `stdout=proc1.stdin`.
 - **Глоббинг**: `cat *.txt`. Без shell — `glob.glob("*.txt")` + list arg.
 - **shell-встроенные**: `cd /tmp && ls` (хотя обычно лучше сделать `os.chdir` в Python).
@@ -2149,12 +2161,14 @@ results = timeit.repeat('"-".join(map(str, range(100)))', number=10000, repeat=5
 ```
 
 API:
+
 - `timeit.timeit(stmt='...', setup='...', number=N, globals=...)` — выполнить `stmt` N раз, вернуть суммарное время.
 - `timeit.repeat(stmt, setup, number=N, repeat=R)` — R независимых прогонов, каждый по N итераций. Берём `min(results)` — это лучшее, на что способен код.
 - `timeit.Timer(stmt, setup)` — объект с методами `.timeit()`, `.repeat()`, `.autorange()` (сам подбирает `number` для замера ≥0.2 с).
 - CLI: `python -m timeit -s "import json" "json.loads('[1,2,3]')"`.
 
 ⚠️ **Тонкости**:
+
 - `setup` выполняется один раз, не входит в замер. Используй для импортов и подготовки данных.
 - `globals={'x': x}` позволяет передать локальные переменные в `stmt` (Python 3.5+). Без этого — stmt выполняется в изолированном namespace.
 - `timeit` **отключает GC** на время замера (`gc.disable()`/`gc.enable()`). Если твой код создаёт циклы — это искажает реальную картину. Для realism — включай обратно руками.
@@ -2251,6 +2265,7 @@ console.interact(banner="My REPL — type 'exit()' to quit")
 ```
 
 `code.InteractiveConsole` корректно обрабатывает:
+
 - Многострочные конструкции (`for ... :`, `def ... :`, классы) — накапливает ввод, пока блок не завершён.
 - `SyntaxError` и другие исключения — показывает traceback и продолжает работу.
 - `__future__`-импорты и `from __future__ import annotations`.

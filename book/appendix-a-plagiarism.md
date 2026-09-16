@@ -64,6 +64,7 @@
 Подтверждено в статье про Dolos (Maertens et al., 2022): «Token renaming and syntax tree linearisation increase effectiveness at a cost of efficiency». И JPlag: «JPlag's tokenization step, as for most token-based detectors, is a form of lexical normalization» (Sağlam et al., 2024).
 
 **Что это значит для атак:**
+
 - Просто переименовать переменные — **не работает**.
 - Заменить `for` на `while` — **работает**, потому что меняется тип узла.
 - Атаки с переносом логики в рантайм (через `compile`/`globals`/`__annotations__`) — **работают**: AST-анализатор видит только вызов `compile()`, но не видит, что внутри.
@@ -73,6 +74,7 @@
 Классическая стилометрия (отдельная от плагиата задача «кто автор этого кода») в чистом виде применяется редко. Вместо этого «стиль» — маркер **«этот код сгенерирован AI»**.
 
 **Codequiry** анализирует:
+
 - **Code entropy** — насколько «однообразно» написано.
 - **Comment patterns** — шаблоны комментариев.
 - **Error handling consistency** — единообразие обработки ошибок.
@@ -100,6 +102,7 @@
 ## A.8. Constant folding, propagation, dead code elimination
 
 Современные аналоги MOSS перед проверкой запускают оптимизации:
+
 - **Constant folding** — `1+1+1` и `0x3` превращаются в `3` ещё до анализа. Чистый классический MOSS этого не делает.
 - **Constant propagation** — если `PI = 3.14` и ниже идёт `x = PI * 2`, то `x` заменяется на `6.28`.
 - **Dead code elimination** — недостижимые ветки и неиспользуемые переменные вырезаются до сравнения.

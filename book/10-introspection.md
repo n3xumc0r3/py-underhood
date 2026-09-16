@@ -57,6 +57,7 @@ print(sys._xoptions)
 ```
 
 Известные `-X` опции (CPython 3.12+):
+
 - `-X dev` — Development Mode
 - `-X faulthandler` — включить `faulthandler` сразу при старте
 - `-X importtime` — логировать время каждого импорта в stderr
@@ -97,6 +98,7 @@ print(interesting)
 ```
 
 Полный список (по [Python docs → Command line and environment](https://docs.python.org/3/using/cmdline.html#environment-variables)):
+
 - `PYTHONHOME` — альтернативный каталог установки Python.
 - `PYTHONPATH` — дополнительные пути для `sys.path`.
 - `PYTHONSTARTUP` — файл, исполняемый перед REPL.

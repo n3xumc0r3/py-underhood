@@ -17,6 +17,7 @@ with X as y:
 ```
 
 `__exit__` принимает три аргумента описывающих исключение:
+
 - `exc_type` — класс исключения (`ValueError`, `KeyError`, ...).
 - `exc_val` — сам объект исключения.
 - `exc_tb` — traceback (объект `types.TracebackType`).
