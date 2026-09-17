@@ -15,7 +15,7 @@
 
 ## Лицензия
 
-Текст — [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), код в примерах — [MIT](https://github.com/n3xumc0r3/py-underhood/blob/main/CODE_LICENSE). Бесплатно для чтения и некоммерческого использования. Внести правку можно через PR — на каждой странице есть иконка карандаша вверху справа.
+Текст — [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), код в примерах — [MIT](https://github.com/n3xumc0r3/py-underhood/blob/main/CODE_LICENSE). Бесплатно для чтения и некоммерческого использования. Внести правку можно через PR — [создайте его прямо на GitHub](https://github.com/n3xumc0r3/py-underhood/pulls), открыв любой файл в `book/` и нажав «Edit».
 
 ## Структура по сложности
 
