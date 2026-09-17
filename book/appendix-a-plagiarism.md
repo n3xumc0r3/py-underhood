@@ -15,6 +15,49 @@
 
 Итог: 80–90% хешей отбрасывается, но оставшиеся «отпечатки» гарантированно покрывают весь документ. Защита от мелких правок (замена союза не разрушает околостоящие k-граммы). Миллисекундная проверка по миллионам документов.
 
+Реализация всех четырёх шагов на чистом Python (~30 строк):
+
+```python
+import hashlib
+
+def _kgram_hashes(text: str, k: int = 5):
+    """Шаги 1–3: нормализация → k-граммы → хеши."""
+    norm = ''.join(c.lower() for c in text if c.isalnum())      # шаг 1
+    for i in range(len(norm) - k + 1):                          # шаг 2
+        h = int(hashlib.md5(norm[i:i + k].encode()).hexdigest()[:8], 16)  # шаг 3
+        yield i, h                                              # (позиция, хеш)
+
+def winnow(text: str, k: int = 5, w: int = 4) -> list:
+    """Шаг 4: окно ширины w, из каждого — минимальный хеш."""
+    fingerprints, prev_pos, window = [], -1, []
+    for pos, h in _kgram_hashes(text, k):
+        window.append((h, pos))
+        if len(window) == w:
+            m = min(window)           # min по (хеш, позиция): при равенстве — левый
+            if m[1] != prev_pos:      # тот же отпечаток дважды не сохраняем
+                fingerprints.append(m)
+                prev_pos = m[1]
+            window.pop(0)
+    return fingerprints
+
+def similarity(a: str, b: str, k: int = 5, w: int = 4) -> float:
+    """Коэффициент Жаккара по множествам отпечатков."""
+    fa = {h for h, _ in winnow(a, k, w)}
+    fb = {h for h, _ in winnow(b, k, w)}
+    return len(fa & fb) / len(fa | fb) if fa | fb else 1.0
+```
+
+Проверка на трёх парах показывает и силу, и границу буквенного уровня:
+
+```python
+similarity(src, src)                      # 1.0   — идентичный текст
+similarity(src, src.replace('total += item', 'total = total + item'))
+                                          # 0.92  — локальная правка почти не видна
+similarity(src, renamed_everywhere(src))  # 0.03  — переименование уничтожает отпечаток
+```
+
+⚠️ Последняя строка — ключ к пониманию: на **буквах** переименование переменных разрушает k-граммы. Поэтому реальные системы (MOSS, Dolos — см. A.2) провеивают не буквы, а **токены**: `IDENTIFIER` — и переименование уже ничего не меняет. Реализация выше остаётся честной демонстрацией механики окна и минимальных хешей.
+
 Оригинальная статья: **Saul Schleimer, Daniel S. Wilkerson, Alex Aiken.** *Winnowing: Local Algorithms for Document Fingerprinting.* ACM SIGMOD 2003. PDF: https://theory.stanford.edu/~aiken/publications/papers/sigmod03.pdf
 
 ## A.2. MOSS, JPlag, Dolos, Codequiry
@@ -43,6 +86,55 @@
 
 Если просто переименовать переменные — `η₁` и `η₂` останутся теми же. Система увидит идентичный «паспорт» и поднимет тревогу.
 
+Реализация через `ast` (~25 строк) — операторы и операнды классифицируются по типам узлов:
+
+```python
+import ast, math
+
+_BIN = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/", ast.FloorDiv: "//",
+        ast.Mod: "%", ast.Pow: "**", ast.LShift: "<<", ast.RShift: ">>",
+        ast.BitOr: "|", ast.BitAnd: "&", ast.BitXor: "^"}
+_UNARY = {ast.USub: "-", ast.UAdd: "+", ast.Not: "not", ast.Invert: "~"}
+_CMP = {ast.Eq: "==", ast.NotEq: "!=", ast.Lt: "<", ast.LtE: "<=", ast.Gt: ">",
+        ast.GtE: ">=", ast.In: "in", ast.NotIn: "not in", ast.Is: "is", ast.IsNot: "is not"}
+
+def halstead(src: str) -> dict:
+    operators, operands = [], []
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.BinOp):    operators.append(_BIN[type(node.op)])
+        elif isinstance(node, ast.UnaryOp): operators.append(_UNARY[type(node.op)])
+        elif isinstance(node, ast.Compare):
+            operators.extend(_CMP[type(op)] for op in node.ops)
+        elif isinstance(node, ast.Assign):    operators.append("=")
+        elif isinstance(node, ast.AugAssign): operators.append("+=")
+        elif isinstance(node, ast.Call):      operators.append("()")
+        elif isinstance(node, ast.Name):      operands.append(node.id)
+        elif isinstance(node, ast.Constant):  operands.append(repr(node.value))
+    n1, n2 = len(set(operators)), len(set(operands))   # уникальные
+    N1, N2 = len(operators), len(operands)             # суммарные
+    V = (N1 + N2) * math.log2(n1 + n2) if n1 + n2 else 0.0
+    D = (n1 / 2) * (N2 / n2) if n2 else 0.0
+    return {"V": round(V, 1), "D": round(D, 1), "E": round(V * D, 1)}
+```
+
+Демонстрация «паспорта» на двух переименованных версиях одного кода:
+
+```python
+src = '''
+def process(data):
+    total = 0
+    for item in data:
+        if item > 0:
+            total += item
+    return total
+'''
+renamed = src.replace("process", "handle").replace("data", "rows") \
+             .replace("total", "sum_").replace("item", "row")
+
+halstead(src)      # {'V': 33.7, 'D': 3.4, 'E': 113.7}
+halstead(renamed)  # {'V': 33.7, 'D': 3.4, 'E': 113.7} — идентично
+```
+
 Оригинальная книга: **Maurice H. Halstead.** *Elements of Software Science.* North-Holland, 1977.
 
 ## A.4. Цикломатическая сложность (McCabe)
@@ -50,6 +142,30 @@
 Считается количество независимых путей выполнения через граф потока управления. Базовая формула McCabe: `M = E − N + 2P`, где `E` — рёбра, `N` — узлы, `P` — компоненты связности. Часто упрощают до `M = количество if + количество for/while + количество case + 1`.
 
 Совпадение до третьего знака после запятой у двух работ — маркер искусственного изменения.
+
+Подсчёт через `ast` (~15 строк) — каждый узел-ветвление добавляет независимый путь:
+
+```python
+import ast
+
+_BRANCHES = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp,
+             ast.ExceptHandler, ast.With, ast.AsyncWith, ast.Assert)
+
+def cyclomatic(src: str) -> int:
+    m = 1                                            # базовый путь
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, _BRANCHES):
+            m += 1
+        elif isinstance(node, ast.BoolOp):           # a and b and c → +2 пути
+            m += len(node.values) - 1
+        elif isinstance(node, ast.Match):            # каждый case — ветка
+            m += len(node.cases)
+        elif isinstance(node, ast.comprehension):    # каждый for внутри [...]
+            m += 1 + len(node.ifs)
+    return m
+```
+
+Тернарник, comprehension с `if`, `except` — всё считает честно, потому что в AST это полноценные узлы. Замена `for` на list comprehension сложность **не меняет** (пути те же) — в отличие от AST-сравнения (A.5), где это разные узлы.
 
 Оригинальная статья: **Thomas J. McCabe.** *A Complexity Measure.* IEEE Transactions on Software Engineering, 1976.
 
@@ -60,6 +176,58 @@
 1. **Переименование идентификаторов** — все `Name`-узлы заменяются на каноническую форму (`var_1`, `var_2`, `var_3` в порядке первого появления). Поэтому `x = 10` и `my_super_variable = 10` после нормализации **идентичны**.
 2. **Линеаризация дерева** — AST превращается в строку токенов (через pre-order обход), дальше применяется Winnowing или Greedy String Tiling.
 3. **Удаление комментариев и пробелов** — всегда на этапе предобработки.
+
+Нормализация идентификаторов в ~20 строк — сердце метода:
+
+```python
+import ast
+
+def normalize(src: str) -> str:
+    """Переименование идентификаторов в порядке первого появления."""
+    names: dict[str, str] = {}
+
+    class Norm(ast.NodeTransformer):
+        def _canon(self, key: str) -> str:
+            return names.setdefault(key, f"v{len(names) + 1}")
+
+        def visit_FunctionDef(self, node):
+            node.name = self._canon(node.name)   # имя функции — тоже идентификатор
+            self.generic_visit(node)
+            return node
+
+        def visit_Name(self, node):
+            return ast.copy_location(ast.Name(id=self._canon(node.id), ctx=node.ctx), node)
+
+        def visit_arg(self, node):
+            return ast.arg(arg=self._canon(node.arg), annotation=None)  # аннотации выкидываем
+
+    return ast.dump(Norm().visit(ast.parse(src)), include_attributes=False)
+```
+
+Результат — два «разных» исходника дают одинаковый дамп:
+
+```python
+src = '''
+def process(data):
+    total = 0
+    for item in data:
+        if item > 0:
+            total += item
+    return total
+'''
+renamed = '''
+def handle(rows):
+    sum_ = 0
+    for row in rows:
+        if row > 0:
+            sum_ += row
+    return sum_
+'''
+
+normalize(src) == normalize(renamed)   # True — только структура имеет значение
+```
+
+Упрощения против промышленных реализаций: переименование глобальное (не по областям видимости — два локальных `x` в разных функциях получат один канонический номер), имена функций здесь канонизируются наравне с переменными, а аннотации типов отбрасываются. Настоящие системы делают переименование по областям видимости и линейизуют дерево в строку токенов для Winnowing/GST.
 
 Подтверждено в статье про Dolos (Maertens et al., 2022): «Token renaming and syntax tree linearisation increase effectiveness at a cost of efficiency». И JPlag: «JPlag's tokenization step, as for most token-based detectors, is a form of lexical normalization» (Sağlam et al., 2024).
 
@@ -82,6 +250,40 @@
 - **Style Incongruence Detection** — флаги, когда стиль кусков кода внутри одной работы не совпадает.
 
 Эти маркеры нацелены на AI-код (который часто «ровнее», чем человек) и на копипасту с разных источников (где стилистика скачет от блока к блоку).
+
+Часть сигналов воспроизводится вручную (~30 строк): код превращается в вектор признаков, близость текстов — косинус между векторами:
+
+```python
+import math, re
+
+def style_vector(src: str) -> list[float]:
+    lines = [l for l in src.splitlines() if l.strip()]
+    n = max(len(lines), 1)
+    indents = [len(l) - len(l.lstrip()) for l in lines]
+    kw = ["for", "if", "while", "def", "lambda", "try", "except", "with", "import", "return"]
+    counts = [len(re.findall(rf"\b{w}\b", src)) / n for w in kw]
+    features = [
+        sum(len(l.strip()) for l in lines) / n,      # средняя длина строки
+        max(indents, default=0),                     # максимальная вложенность
+        (src.count("\n") - len(lines)) / n,          # плотность пустых строк
+        src.count("#") / n,                          # плотность комментариев
+        *counts,                                     # частоты ключевых слов
+    ]
+    norm = math.sqrt(sum(f * f for f in features)) or 1.0
+    return [f / norm for f in features]              # на единичную сферу
+
+def cosine(a: list[float], b: list[float]) -> float:
+    return sum(x * y for x, y in zip(a, b))
+```
+
+Проверка на трёх парах:
+
+```python
+cosine(style_vector(compact), style_vector(same_style))       # 1.0  — стиль совпадает
+cosine(style_vector(compact), style_vector(verbose_loops))    # 0.81 — стили разъехались
+```
+
+⚠️ На сниппетах в 10–20 строк ручная стилометрия даёт лишь грубый сигнал: реальные детекторы смотрят на файлы в сотни строк и сравнивают распределения по десяткам признаков (идиомы, выбор между comprehension и циклом, привычность сочетаний токенов — вплоть до n-грамм). Механизм тот же: текст → числовой вектор → метрика близости.
 
 **Dolos** сам по себе стилометрию не делает — это token-based + Winnowing система. Стиль как отдельный сигнал — это скорее надстройка.
 
