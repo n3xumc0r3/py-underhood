@@ -11,7 +11,7 @@
 
 ## Объём
 
-~18 000 строк, ~870 КБ исходника. 12 глав и 4 приложения, 161 раздел с собственным якорем `#N.M`. Все примеры проверены на CPython 3.12+. Книга в активной доработке — возможны опечатки и неточности, если нашли — открывайте issue или PR. Сайт подключён к IndexNow для мгновенной индексации изменений в Bing и Yandex.
+~19 200 строк, ~1.0 МБ исходника. 12 глав и 4 приложения, 171 раздел с собственным якорем `#N.M`. Все примеры проверены на CPython 3.12+. Книга в активной доработке — возможны опечатки и неточности, если нашли — открывайте issue или PR. Сайт подключён к IndexNow для мгновенной индексации изменений в Bing и Yandex.
 
 ## Лицензия
 
@@ -111,6 +111,7 @@
 - [3.7. Экономия памяти через ленивые вычисления](03-generators.md#3.7)
 - [3.8. `pairwise`, `batched` (Python 3.10+/3.12+)](03-generators.md#3.8)
 - [3.9. `collections` — Counter, defaultdict, deque, ChainMap, OrderedDict, namedtuple](03-generators.md#3.9)
+- [3.10. Мост в асинхронность: async-генераторы глазами Части III](03-generators.md#3.10)
 
 ### Часть IV. Асинхронность
 
@@ -164,6 +165,11 @@
 - [6.3. `__set_name__`](06-descriptors.md#6.3)
 - [6.4. `@property` — что под капотом](06-descriptors.md#6.4)
 - [6.5. `__getattr__` vs `__getattribute__` vs `__setattr__`](06-descriptors.md#6.5)
+- [6.6. `functools.cached_property` vs `@property` + кэш в `__dict__`](06-descriptors.md#6.6)
+- [6.7. `__set_name__` на практике: поле ORM](06-descriptors.md#6.7)
+- [6.8. `__init_subclass__` + дескрипторы: декларативная регистрация](06-descriptors.md#6.8)
+- [6.9. Функции — тоже дескрипторы](06-descriptors.md#6.9)
+- [6.10. Дескрипторы и `__slots__`](06-descriptors.md#6.10)
 
 ### Часть VII. Метапрограммирование
 
@@ -275,6 +281,10 @@
 - [12.4. `# doctest: +ELLIPSIS`](12-linters.md#12.4)
 - [12.5. Коды flake8/pylint](12-linters.md#12.5)
 - [12.6. `pyproject.toml`](12-linters.md#12.6)
+- [12.7. `ruff` — замена стека flake8 + isort + pyupgrade](12-linters.md#12.7)
+- [12.8. Гранулярные подавления: `# noqa: E501` vs `# noqa` vs `# ruff: noqa: E501`](12-linters.md#12.8)
+- [12.9. Типовые игноры: `# type: ignore` vs `# type: ignore[code]` vs `# pyright: ignore`](12-linters.md#12.9)
+- [12.10. pre-commit: ruff + mypy в одном конвейере](12-linters.md#12.10)
 
 ### Приложения
 

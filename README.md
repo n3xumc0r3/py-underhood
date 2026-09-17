@@ -19,7 +19,7 @@
 
 ## Что внутри
 
-~18 000 строк, 12 глав и 4 приложения, 161 раздел с собственным коротким якорем `#N.M`. Все примеры проверены на CPython 3.12+.
+~19 200 строк, 12 глав и 4 приложения, 171 раздел с собственным коротким якорем `#N.M`. Все примеры проверены на CPython 3.12+.
 
 ### Краткое оглавление
 
@@ -27,22 +27,22 @@
 |---|--------|-----------|
 | I | [Базовые скрытые особенности](book/01-basics.md) | числовые/строковые литералы, f-строки, `match/case`, моржовый оператор, `try/except/else/finally`, exception chaining, truthiness |
 | II | [Контекстные менеджеры](book/02-context-managers.md) | `with`, `@contextmanager`, `ExitStack`, `suppress`, `redirect_stdout` |
-| III | [Генераторы и итераторы](book/03-generators.md) | `yield`, `yield from`, `send()`/`throw()`/`close()`, `itertools`, `collections` |
+| III | [Генераторы и итераторы](book/03-generators.md) | `yield`, `yield from`, `send()`/`throw()`/`close()`, `itertools`, `collections`, мост в async-генераторы |
 | IV | [Асинхронность](book/04-async.md) | event loop, `asyncio.gather`, `TaskGroup`, async generators, async context managers |
 | V | [Классы и интерфейсы](book/05-classes.md) | `dataclasses`, `Protocol`, MRO/C3, `__init_subclass__`, `super()`, `__slots__`, `enum`, `typing` |
-| VI | [Дескрипторы и property](book/06-descriptors.md) | `__get__`/`__set__`/`__delete__`, `@property`, data/non-data descriptors |
+| VI | [Дескрипторы и property](book/06-descriptors.md) | `__get__`/`__set__`/`__delete__`, `@property`, data/non-data, `cached_property`, `__set_name__` на практике (ORM-поля), функции как дескрипторы |
 | VII | [Метапрограммирование](book/07-metaprogramming.md) | `type()`, метаклассы, `ast`, `inspect`, `compile`/`exec`/`eval`, аннотации как данные |
 | VIII | [Внутренности CPython](book/08-cpython-internals.md) | байт-код, фреймы, интернация строк, кэш малых чисел, GIL, цикл сборки мусора |
 | IX | [Кодировки и кодеки](book/09-encodings.md) | UTF-8/16, `codecs`, BOM, свой кодек через `codecs.register()` |
 | X | [Интроспекция окружения](book/10-introspection.md) | `sys.flags`, `os.environ`, `PYTHON*` переменные, audit hooks, faulthandler |
 | XI | [Полезные модули stdlib](book/11-stdlib.md) | `itertools`, `functools`, `collections`, `pathlib`, `subprocess`, `concurrent.futures`, ещё 25+ модулей |
-| XII | [Линтеры и директивы](book/12-linters.md) | `# noqa`, `# type: ignore`, `# pylint: disable`, `pyproject.toml` |
+| XII | [Линтеры и директивы](book/12-linters.md) | `# noqa` (включая `# ruff: noqa` и RUF100), `# type: ignore[code]` vs `# pyright: ignore`, ruff, `pyproject.toml`, pre-commit |
 | A | [Прил. A. Системы обнаружения плагиата](book/appendix-a-plagiarism.md) | Winnowing, MOSS, JPlag, Dolos, метрики Хальстеда, McCabe |
 | B | [Прил. B. Взаимодействие с системами проверки кода](book/appendix-b-code-checkers.md) | косметические и архитектурные приёмы, песочницы, обход через `__subclasses__()` |
 | C | [Прил. C. Code golf](book/appendix-c-code-golf.md) | Python на минималках — сжатие, алиасы, канонические задачи, разбор онелинеров |
 | D | [Прил. D. Где почитать](book/appendix-d-references.md) | библиография: PEP-ы, книги по CPython internals, статьи |
 
-Полное кликабельное оглавление по всем 161 разделу — на сайте: **<https://n3xumc0r3.github.io/>**
+Полное кликабельное оглавление по всем 171 разделу — на сайте: **<https://n3xumc0r3.github.io/>**
 
 ## Как читать
 
@@ -155,4 +155,4 @@ py-underhood/
 
 ## Статус проекта
 
-Книга задеплоена и читается на **<https://n3xumc0r3.github.io/>**. Контент (~17 800 строк) вычитан и структурирован, но возможны неточности, устаревшие ссылки и опечатки. Если нашли — открывайте issue или PR.
+Книга задеплоена и читается на **<https://n3xumc0r3.github.io/>**. Контент (~19 200 строк) вычитан и структурирован, но возможны неточности, устаревшие ссылки и опечатки. Если нашли — открывайте issue или PR.
