@@ -97,15 +97,24 @@ plugins:
       # Без этого в индексе слова хранятся с прилипшей пунктуацией
       # ('операторы,' != 'операторы') и поиск по русскому не работает.
       separator: '[^\wа-яёА-ЯЁ]+'
+      # Включаем стеммер — иначе 'контекстный' != 'контекстные',
+      # 'генератор' != 'генераторы', и поиск не находит формы слов.
+      # Для русского стеммера нужно подключить lunr-languages через extra_javascript.
+      pipeline:
+        - stemmer
+        - stopWordFilter
   - tags
 
 # Custom CSS — rounded corners, stretched content, Obsidian-style links
 extra_css:
   - stylesheets/extra.css
 
-# Custom JS — ⚠️ warning highlighter
+# Custom JS — ⚠️ warning highlighter + русский стеммер для поиска
 extra_javascript:
   - javascripts/extra.js
+  - javascripts/lunr/lunr.stemmer.support.js
+  - javascripts/lunr/tinyseg.js
+  - javascripts/lunr/lunr.ru.js
 
 extra:
   social:
