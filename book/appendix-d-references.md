@@ -34,6 +34,9 @@
     - `Python/ceval.c` — главный цикл интерпретатора
     - `Objects/unicodeobject.c` — интернация строк
     - `Objects/longobject.c` — кэш малых чисел
+    - `Objects/object.c` — реализация `__eq__`/`__hash__`/`__repr__` для `object` — база для понимания дескрипторов и `__class__` lookup (Часть VI)
+    - `Objects/descrobject.c` — реализация дескрипторов (`property`, `classmethod`, `staticmethod`)
+    - `Objects/funcobject.c` — `function.__get__`: почему методы привязываются (6.9)
     - `Python/bltinmodule.c` — `globals`, `locals`, `__import__`
     - `Python/frame.c` — реализация `PyFrame_LocalsToFast`
 25. **PEP 448** — *Additional Unpacking Generalizations* (`[*a, *b]`, `{**d1, **d2}`). https://peps.python.org/pep-0448/
@@ -89,8 +92,35 @@
 69. **Документация Pylint**: https://pylint.readthedocs.io/
 70. **Документация mypy**: https://mypy.readthedocs.io/
 71. **OWASP — Command Injection** (про `shell=True` в subprocess): https://owasp.org/www-community/attacks/Command_Injection
+72. **Документация pre-commit**: https://pre-commit.com/ — конфиг и хуки из 12.10.
 
-## D.5. Что закрывает каждую тему
+## D.5. По асинхронности и структурированной конкурентности
+
+73. **Nathaniel Smith.** *Notes on structured concurrency, or: go statement considered harmful* (2018) — статья-первоисточник концепции nursery: https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/
+74. **trio** — фреймворк, где nursery придуман и доведён до предела: https://github.com/python-trio/trio
+75. **curio** — предшественник trio, первый фреймворк со строгими правилами отмены: https://github.com/dabeaz/curio
+76. **anyio** — единый API поверх asyncio и trio; на нём стоят Starlette и FastAPI: https://github.com/agronholm/anyio
+
+## D.6. Code golf: платформы и диалекты
+
+77. **code.golf** — активный сайт с таблицей лидеров и разборами решений на Python 3: https://code.golf/
+78. **Tips for golfing in Python** — коллективный тред-шпаргалка на codegolf.SE (аналог C.19, но живой и с обсуждением): https://codegolf.stackexchange.com/questions/54/tips-for-golfing-in-python
+79. **Pyth** — отдельный язык, компилируемый в Python, специально для гольфа: https://github.com/isaacg1/pyth
+
+## D.7. Pyjails и демо песочниц
+
+80. **Ned Batchelder.** *Tarpit* (PyCon 2012) — каноническая демонстрация того, что «песочница» на CPython невозможна в принципе; 10 минут, делающие Приложение B этически осмысленным: http://nedbatchelder.com/blog/201211/tarpit_at_pycon_2012.html
+81. **Сборник pyjails** — репозитории с разборами побегов из python-песочниц (активное CTF-направление; по запросу «pyjail» на GitHub — десятки таких): https://github.com/saladandonionfries/pyjails
+
+## D.8. Блоги для регулярного чтения
+
+82. **realpython.com** — крупные туториалы с реальной глубиной, часто с бенчмарками.
+83. **snarky.ca** — Brett Cannon, бывший core-dev CPython: разборы PEP и internals по первоисточникам.
+84. **treyhunner.com** — Trey Hunner: итераторы, генераторы, comprehensions — идеальный фон к Части III.
+85. **hynek.me** — Hynek Schlawack: async, attrs, структурная обработка данных, production-практики.
+86. **bitecode.dev** — серия «Python tricks you didn't know about» — ближе всего по формату к Части I этого конспекта.
+
+## D.9. Что закрывает каждую тему
 
 | Тема | Что почитать |
 |------|--------------|
@@ -163,7 +193,7 @@
 | `python -m`, флаги запуска (`-S`, `-s`, `-E`, `-B`, `-u`) | docs Python → Command line (№50) |
 | Интроспекция окружения тестирующих систем | нет единого источника; разрозненные статьи на Habr, medium |
 
-## D.6. Если выбирать одну книгу
+## D.10. Если выбирать одну книгу
 
 - **Anthony Shaw, *CPython Internals*** (№9) — лучшее по internals: интернация, кэш чисел, фреймы, байт-код, `compile`, AST, объектная модель. Обфускацию и системы плагиата не покрывает.
 - **Effective Python** Бретта Слаткина (№21) — практический взгляд «грабли + антипаттерны». Многие «грабли», которые превращены в оружие, у него разобраны как «что не надо делать».
