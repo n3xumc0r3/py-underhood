@@ -639,6 +639,97 @@ print(Person('Alice', 30))   # Person(name='Alice', age=30, email='')
 
 ⚠️ `namedtuple` неизменяемый и хешируемый — можно использовать как ключ в словаре. Если нужна мутабельность — берите `typing.NamedTuple` (с аннотациями типов) или `dataclass`.
 
+## 3.10. Мост в асинхронность: async-генераторы глазами Части III { #3.10 }
+
+Механика из 3.1–3.4 (протокол, `send`/`throw`/`close`, `GeneratorExit`) не делится на «синхронную» и «асинхронную» — она одна. Async-генератор (PEP 525) — это тот же генератор, у которого каждый шаг итерации может содержать `await`. Здесь — взгляд со стороны Части III; интеграция с event loop (producer/consumer, план очистки при отмене) — в 4.8.
+
+`async def` с `yield` создаёт **async generator function** — вызов возвращает объект, у которого нет `__next__`, зато есть `__anext__`, `asend`, `athrow`, `aclose`:
+
+```python
+import asyncio
+
+async def counter(n):
+    for i in range(n):
+        await asyncio.sleep(0.01)    # между yield можно await — весь смысл PEP 525
+        yield i
+
+async def main():
+    gen = counter(3)
+    print(type(gen))                 # <class 'async_generator'> — не generator из 3.1!
+    # next(gen)                      # TypeError: 'async_generator' object is not an iterator
+
+    print(await gen.__anext__())     # 0 — «next» через await
+    print(await gen.asend(None))     # 1 — тройка send/throw/close из 3.4 в async-мире
+    async for x in gen:              # хвост доедает async for
+        print(x)                     # 2
+
+    # await gen.__anext__()          # StopAsyncIteration — асинхронный аналог StopIteration
+
+asyncio.run(main())
+```
+
+`async for` — сахар ровно по той же схеме, что `for` в 3.1: вызвать `__aiter__()`, затем `await obj.__anext__()` до `StopAsyncIteration`. Полная таблица соответствия:
+
+| Синхронный (Часть III) | Асинхронный (здесь и 4.8) | Что общего |
+|---|---|---|
+| `next(g)` | `await g.__anext__()` | шаг итерации |
+| `g.send(v)` | `await g.asend(v)` | передача значения внутрь |
+| `g.throw(E)` | `await g.athrow(E)` | вброс исключения |
+| `g.close()` | `await g.aclose()` | `GeneratorExit` → `finally` |
+| `StopIteration` | `StopAsyncIteration` | сигнал конца |
+| `for x in g` | `async for x in g` | сахар над протоколом |
+
+Тройка `asend`/`athrow`/`aclose` работает как зеркальный близнец из 3.4 — включая глотание исключения, вброшенного внутрь `try`:
+
+```python
+async def stubborn():
+    try:
+        while True:
+            try:
+                await asyncio.sleep(0.01)
+                yield "тик"
+            except ValueError:
+                yield "проглотил ValueError"   # как в 3.4: athrow ловится генератором
+    finally:
+        print("cleanup")
+
+async def main():
+    g = stubborn()
+    print(await g.asend(None))          # тик
+    print(await g.athrow(ValueError))   # проглотил ValueError
+    await g.aclose()                    # cleanup — аналог close() из 3.4
+
+asyncio.run(main())
+```
+
+**⚠️ StopIteration в async-коде запрещён жёстче, чем в синхронном.** Из 3.1: `StopIteration`, вылетевшая из генератора, превращается в `RuntimeError` (PEP 479). Для корутин и async-генераторов то же правило действует с первого дня (PEP 525) — но ошибка выглядит неочевиднее, потому что `StopAsyncIteration` можно перепутать с `StopIteration`:
+
+```python
+async def bad():
+    raise StopIteration            # внутри async-функции
+
+# await bad() → RuntimeError: coroutine raised StopIteration
+```
+
+Классическая ловушка: `next()` на **обычном** итераторе внутри async-функции. `next(d)` на исчерпанном dict-итераторе бросает `StopIteration` — и он, всплывая через `await`, станет `RuntimeError` без исходного стека. В async-коде исчерпание проверяют через `for`/защитные конструкции, а не ловят `StopIteration`.
+
+**Async comprehensions** — генераторные выражения из 3.2 с одним отличием в синтаксисе (`async for`, опционально `await` внутри):
+
+```python
+async def main():
+    results = [x * 2 async for x in counter(3)]        # async-комprehension
+    filtered = [x async for x in counter(10) if x % 2 == 0]
+    mapped = [await transform(x) async for x in counter(3)]   # await на каждом элементе
+```
+
+Проверки «это корутина или футура?» (`asyncio.iscoroutine`/`isfuture`) — в 4.16; отдельного предиката для async-генераторов в asyncio нет — используют `inspect.isasyncgen`.
+
+Почему генераторы и async-генераторы живут в разных частях: здесь — протокол (он полностью выводится из 3.1–3.4), в Части IV — поведение под event loop: кто и когда дергает `__anext__`, что происходит с async-генератором при отмене задачи и закрытии loop, `aclosing` для гарантированной очистки.
+
+→ **см. также:** 3.1 — протокол итерации; 3.4 — `send`/`throw`/`close`; 4.8 — async-генераторы под event loop; 4.16 — `iscoroutine`/`isfuture`; 5.17 — `__aiter__`/`__anext__` среди dunder-методов.
+
+---
+
 ### Бенчмарки к Части III { #3.9-benchmarki }
 
 **1. List comprehension vs generator expression — память.**
