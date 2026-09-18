@@ -134,8 +134,6 @@ py-underhood/
 1. **`n3xumc0r3/py-underhood`** (этот репо) — источник контента. При пуше в `main` запускается workflow `trigger-user-pages.yml`, который триггерит `repository_dispatch` на втором репо.
 2. **`n3xumc0r3/n3xumc0r3.github.io`** (user-pages репо) — там хостится собранный сайт. Workflow `sync-from-py-underhood.yml` клонирует py-underhood, собирает `mkdocs build --strict`, копирует `site/` в корень и коммитит в `main`. GitHub Pages автоматически публикует изменения.
 
-Если в py-underhood не настроен `CROSS_REPO_PAT` secret, sync всё равно работает — по cron каждые 30 минут.
-
 ## Фичи сайта
 
 - **Книжная навигация** — внизу каждой страницы «← предыдущая / следующая →», без бесконечного sidebar.
