@@ -81,7 +81,7 @@ def sample():
 
 ## 12.5. Коды flake8/pylint { #12.5 }
 
-В больших проектах линтеры настраиваются в `pyproject.toml` или `.flake8` через `ignore = ["E501", "F401"]`. Если в учебной системе такого файла нет — точечное `# noqa: [код]` в строке.
+В больших проектах линтеры настраиваются в `pyproject.toml` или `.flake8` через `ignore = ["E501", "F401"]`. Если конфига нет — точечное `# noqa: [код]` в строке.
 
 ### Группа F (Pyflakes) — логические аномалии { #12.5-gruppa }
 
@@ -112,6 +112,13 @@ def sample():
 - **`pylint: disable=eval-used` (W0122)** — использование `eval`.
 - **`pylint: disable=too-few-public-methods` (R0903)** — слишком мало публичных методов.
 - **`pylint: disable=import-outside-toplevel` (C0415)** — импорт вне верхнего уровня.
+
+Выше — только ходовые коды, а не реестры. Полные списки: у flake8 — сводные таблицы кодов Pyflakes и pycodestyle, у pylint — сотни сообщений с поиском по группам, у ruff (см. 12.7) — все коды плагинов плюс собственные. Где искать:
+
+- [коды flake8/Pyflakes/pycodestyle](https://flake8.pycqa.org/en/latest/user/error-codes.html)
+- [коды pycodestyle (E/W)](https://pycodestyle.readthedocs.io/en/latest/intro.html)
+- [все сообщения pylint](https://pylint.readthedocs.io/en/stable/user_guide/messages/messages_overview.html)
+- [все правила ruff](https://docs.astral.sh/ruff/rules/)
 
 ## 12.6. `pyproject.toml` { #12.6 }
 
