@@ -134,6 +134,8 @@ nav:
   - 'Часть X. Интроспекция окружения': 10-introspection.md
   - 'Часть XI. Полезные модули stdlib': 11-stdlib.md
   - 'Часть XII. Линтеры и директивы': 12-linters.md
+  - 'Часть XIII. От .py к байт-коду: компиляция и виртуальная машина': 13-bytecode-vm.md
+  - 'Часть XIV. Не только CPython: кто ещё исполняет Python': 14-implementations.md
   - 'Приложения':
       - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
       - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md

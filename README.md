@@ -19,7 +19,7 @@
 
 ## Что внутри
 
-~19 200 строк, 12 глав и 4 приложения, 171 раздел с собственным коротким якорем `#N.M`. Все примеры проверены на CPython 3.12+.
+~19 800 строк, 14 глав и 4 приложения, 180 разделов с собственным коротким якорем `#N.M`. Все примеры проверены на CPython 3.12+.
 
 ### Краткое оглавление
 
@@ -37,12 +37,14 @@
 | X | [Интроспекция окружения](book/10-introspection.md) | `sys.flags`, `os.environ`, `PYTHON*` переменные, audit hooks, faulthandler |
 | XI | [Полезные модули stdlib](book/11-stdlib.md) | `itertools`, `functools`, `collections`, `pathlib`, `subprocess`, `concurrent.futures`, ещё 25+ модулей |
 | XII | [Линтеры и директивы](book/12-linters.md) | `# noqa` (включая `# ruff: noqa` и RUF100), `# type: ignore[code]` vs `# pyright: ignore`, ruff, `pyproject.toml`, pre-commit |
+| XIII | [От .py к байт-коду: компиляция и VM](book/13-bytecode-vm.md) | компиляция vs интерпретация, формат `.pyc` (PEP 552), PEG→AST→байт-код, стековая машина, специализирующий интерпретатор (PEP 659), GIL, JIT |
+| XIV | [Не только CPython](book/14-implementations.md) | язык против реализации, PyPy/GraalPy/MicroPython/RustPython, Jython/IronPython/Stackless/Pyston, Numba/Cython, IPython и Jupyter |
 | A | [Прил. A. Системы обнаружения плагиата](book/appendix-a-plagiarism.md) | Winnowing, MOSS, JPlag, Dolos, метрики Хальстеда, McCabe |
 | B | [Прил. B. Взаимодействие с системами проверки кода](book/appendix-b-code-checkers.md) | косметические и архитектурные приёмы, песочницы, обход через `__subclasses__()` |
 | C | [Прил. C. Code golf](book/appendix-c-code-golf.md) | Python на минималках — сжатие, алиасы, канонические задачи, разбор онелинеров |
 | D | [Прил. D. Где почитать](book/appendix-d-references.md) | библиография: PEP-ы, книги по CPython internals, статьи |
 
-Полное кликабельное оглавление по всем 171 разделу — на сайте: **<https://n3xumc0r3.github.io/>**
+Полное кликабельное оглавление по всем 180 разделам — на сайте: **<https://n3xumc0r3.github.io/>**
 
 ## Как читать
 

@@ -43,6 +43,10 @@
 
 [Часть XII](12-linters.md) — линтеры, директивы
 
+[Часть XIII](13-bytecode-vm.md) — от .py к байт-коду: компиляция и виртуальная машина
+
+[Часть XIV](14-implementations.md) — не только CPython: реализации и REPL-ы
+
 [Приложение A](appendix-a-plagiarism.md) — системы обнаружения плагиата
 
 [Приложение B](appendix-b-code-checkers.md) — взаимодействие с системами проверки кода
@@ -285,6 +289,25 @@
 - [12.8. Гранулярные подавления: `# noqa: E501` vs `# noqa` vs `# ruff: noqa: E501`](12-linters.md#12.8)
 - [12.9. Типовые игноры: `# type: ignore` vs `# type: ignore[code]` vs `# pyright: ignore`](12-linters.md#12.9)
 - [12.10. pre-commit: ruff + mypy в одном конвейере](12-linters.md#12.10)
+
+### Часть XIII. От .py к байт-коду: компиляция и виртуальная машина
+
+[Открыть часть →](13-bytecode-vm.md)
+
+- [13.1. Почему Python и компилируется, и интерпретируется](13-bytecode-vm.md#13.1)
+- [13.2. Импорт и .pyc: формат, кэширование, инвалидация](13-bytecode-vm.md#13.2)
+- [13.3. Пайплайн компилятора: токены → PEG → AST → байт-код](13-bytecode-vm.md#13.3)
+- [13.4. Стековая машина: как читается байт-код](13-bytecode-vm.md#13.4)
+- [13.5. Виртуальная машина: eval loop, специализация, GIL, JIT](13-bytecode-vm.md#13.5)
+
+### Часть XIV. Не только CPython: кто ещё исполняет Python
+
+[Открыть часть →](14-implementations.md)
+
+- [14.1. Язык против реализации: контракт Python](14-implementations.md#14.1)
+- [14.2. Альтернативные реализации: кто, на чём, зачем](14-implementations.md#14.2)
+- [14.3. Не реализации: Numba, Cython и граница «тот же язык»](14-implementations.md#14.3)
+- [14.4. REPL поверх REPL: IPython, Jupyter и соседи](14-implementations.md#14.4)
 
 ### Приложения
 
