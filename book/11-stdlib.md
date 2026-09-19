@@ -2,7 +2,7 @@
 
 ## 11.1. `functools.lru_cache`, `functools.cache` { #11.1 }
 
-> **→ см. также:** Часть VII (7.4) — `functools.wraps` и общее устройство декораторов; Часть VIII (8.5) — `OrderedDict`-based LRU как альтернатива C-реализации `lru_cache`.
+> **→ см. также:** Часть VII (7.4) — `functools.wraps` и общее устройство декораторов; Часть VIII (8.15, бенчмарки) — `OrderedDict`-based LRU как альтернатива C-реализации `lru_cache`.
 
 Мемоизация — кэширование результатов функции по аргументам:
 
@@ -18,7 +18,7 @@ def fib(n):
 print(fib(100))   # мгновенно — без кэша это была бы экспонента
 ```
 
-`lru_cache` (LRU = Least Recently Used) хранит последние `maxsize` вызовов. Когда кэш заполняется — вытесняет самые старые.
+`lru_cache` (LRU = Least Recently Used) хранит последние `maxsize` вызовов. Когда кэш заполняется — вытесняет **наименее недавно использованную** запись (порядок по обращениям, не по времени добавления).
 
 ⚠️ **`@lru_cache` без скобок** (Python 3.8+) — `@lru_cache` эквивалентно `@lru_cache(maxsize=128)`.
 
@@ -157,7 +157,7 @@ sub = partial(lambda a, b: a - b, 10)  # 10 зафиксирован как пе
 sub(3)            # 7 (10-3), позиционный аргумент нельзя переопределить
 ```
 
-⚠️ **У `partial` нет `__name__` и `__doc__`** — при передаче во фреймворки (Celery, Flask) используйте `functools.update_wrapper(p, p.func)`.
+⚠️ **У `partial` нет `__name__`** (`__doc__` есть, но общий, не от оборачиваемой функции) — при передаче во фреймворки (Celery, Flask) используйте `functools.update_wrapper(p, p.func)`, он скопирует оба.
 
 ## 11.3. `functools.reduce` { #11.3 }
 
@@ -176,7 +176,7 @@ product = reduce(lambda a, b: a * b, [1, 2, 3, 4])   # 24
 total = reduce(lambda a, b: a + b, [1, 2, 3, 4], 100)   # 110
 
 # Сцепление словарей
-merged = reduce(lambda d1, d2: {**d1, ****d2}, [{'a':1}, {'b':2}, {'c':3}])
+merged = reduce(lambda d1, d2: {**d1, **d2}, [{'a':1}, {'b':2}, {'c':3}])
 # {'a': 1, 'b': 2, 'c': 3}
 ```
 
@@ -252,12 +252,16 @@ def set_meta(obj, key, value):
 **`finalize` — колбэк при удалении объекта:**
 
 ```python
-def cleanup(file_handle):
-    file_handle.close()
+def cleanup(name):
+    print(f"закрываем {name}")
 
 obj = open('x.txt')
-weakref.finalize(obj, cleanup, obj)
-del obj   # вызовет cleanup(obj)
+weakref.finalize(obj, cleanup, obj.name)
+del obj   # вызовет cleanup('x.txt')
+
+# ⚠️ Ловушка: finalize держит args СИЛЬНО. Передача самого obj аргументом
+# (weakref.finalize(obj, cleanup, obj)) удерживает объект — при del obj
+# cleanup НЕ вызовется. Передавайте вместо объекта его данные (obj.name, путь).
 ```
 
 ## 11.5. `copy`/`deepcopy` { #11.5 }
@@ -390,7 +394,7 @@ import pickle, os
 
 class Malicious:
     def __reduce__(self):
-        # pickle.loads этого объекта вызовет os.system('echo hacked')
+        # pickle.loads этого объекта вызовет os.system('echo HACKED')
         return (os.system, ('echo "HACKED"',))
 
 # Злонамеренная "строка"
@@ -426,7 +430,7 @@ top_stats = snapshot.statistics('lineno')
 
 for stat in top_stats[:10]:
     print(stat)
-#  ваш_файл.py:42: size=10 MB, count=1000, average=10 kB
+#  ваш_файл.py:42: size=10 MiB, count=1000, average=10 KiB
 #  ...
 ```
 
@@ -446,7 +450,7 @@ snap2 = tracemalloc.take_snapshot()
 # Разница
 for stat in snap2.compare_to(snap1, 'lineno')[:10]:
     print(stat)
-# ваш_файл.py:55: size=5.2 MB (+5.2 MB), count=520 (+520)
+# ваш_файл.py:55: size=5.2 MiB (+5.2 MiB), count=520 (+520)
 ```
 
 **По конкретному объекту:**
@@ -456,8 +460,9 @@ tracemalloc.start()
 # ... код ...
 snapshot = tracemalloc.take_snapshot()
 
-# Найти все выделения, где в трейсбеке есть строка "leaking_function"
-filters = [tracemalloc.Filter(True, "leaking_function")]
+# Найти выделения, чей файл подходит под маску (fnmatch) —
+# Filter фильтрует по ИМЕНИ ФАЙЛА, не по функции:
+filters = [tracemalloc.Filter(True, "*/leaky_module.py")]
 filtered = snapshot.filter_traces(filters)
 for stat in filtered.statistics('traceback'):
     print(stat.traceback)
@@ -668,11 +673,11 @@ print(sq.get())   # 1
 q = Queue(maxsize=2)
 q.put(1)
 q.put(2)
-q.put(3, block=False)   # QueueFull — не ждать
-q.put(3, timeout=1)     # ждать 1 секунду, потом QueueFull
+q.put(3, block=False)   # queue.Full — не ждать
+q.put(3, timeout=1)     # ждать 1 секунду, потом queue.Full
 
-q.get(block=False)     # если пусто — QueueEmpty
-q.get(timeout=1)       # ждать 1 секунду, потом QueueEmpty
+q.get(block=False)     # если пусто — queue.Empty
+q.get(timeout=1)       # ждать 1 секунду, потом queue.Empty
 
 # Неблокирующий с default:
 val = q.get_nowait()   # = get(block=False)
@@ -723,11 +728,11 @@ print(repr(big))
 # [0, 1, 2, ..., 999] (полностью)
 
 print(reprlib.repr(big))
-# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...]  — обрезано
+# [0, 1, 2, 3, 4, 5, ...]  — обрезано (максимум 6 элементов по умолчанию)
 
 # Длинная строка
 print(reprlib.repr("a" * 1000))
-# 'aaaaaaaaaaaa...' (60 chars)
+# 'aaaaaaaaaaaa...aaaaaaaaaaaaa' (30 chars)
 
 # Свои настройки
 r = reprlib.Repr()
@@ -737,9 +742,9 @@ r.maxlevel = 3      # глубина рекурсии
 print(r.repr({'a': [1, 2, 3, 4, 5, 6, 7], 'b': {'c': 'd'}}))
 ```
 
-Полезно для отладки — большие структуры не засоряют вывод. Используется внутри `dataclasses`, `pprint`, и т.д.
+Полезно для отладки — большие структуры не засоряют вывод. Используется внутри `functools` (recursive_repr), `collections`, `asyncio` (format_helpers), `pydoc`, `pdb`; `pprint` и `dataclasses` имеют собственную логику обрезки.
 
-## 11.14. `os.scandir`, `os.fwalk` — продвинутое обход файловой системы { #11.14 }
+## 11.14. `os.scandir`, `os.fwalk` — продвинутый обход файловой системы { #11.14 }
 
 ### `os.scandir` — быстрее `os.listdir` { #11.14-osscandir }
 
@@ -763,7 +768,7 @@ with os.scandir('/tmp') as entries:
             print(f"FILE: {entry.name} ({entry.stat().st_size} bytes)")
 ```
 
-`scandir` возвращает `DirEntry` объекты, которые кэшируют `stat()` — `is_dir()`, `is_file()`, `stat()` работают без дополнительного syscall (на Windows) или с одним syscall (на Linux, но кэшированным).
+`scandir` возвращает `DirEntry` объекты, которые кэшируют данные каталога: `is_dir()`/`is_file()` обычно обходятся без syscall (тип берётся из readdir, кроме редкого DT_UNKNOWN), а `stat()` делает syscall один раз и кэширует результат.
 
 ### `os.walk` — стандартный обход дерева { #11.14-oswalk }
 
@@ -797,7 +802,7 @@ for root, dirs, files in os.walk('.'):
 for root, dirs, files, root_fd in os.fwalk('/home/user'):
     print(root, dirs, files)
     # root_fd — файловый дескриптор каталога
-    # Можно использовать с os.openat для избежания TOCTOU
+    # Можно использовать с os.open(..., dir_fd=root_fd) для избежания TOCTOU
 ```
 
 `fwalk` использует `*at` системные вызовы (`openat`, `readdir`) — более безопасно (нет race conditions типа symlink attacks). Используется реже, но в security-чувствительном коде — обязательно.
@@ -845,7 +850,7 @@ api_log = logging.getLogger('app.api')
 api_log.setLevel(logging.DEBUG)
 
 v1_log = logging.getLogger('app.api.v1')
-v1_log.info("from v1")   # унаследует handler от app.api
+v1_log.info("from v1")   # хендлеры НЕ копируются вниз: запись propagируется вверх (обработают root-хендлеры, если настроены)
 ```
 
 **Handlers — куда писать:**
@@ -951,7 +956,7 @@ finally:
     signal.alarm(0)   # отменить
 ```
 
-⚠️ `signal` работает только в главном потоке. В потоках и async — исключение `ValueError: signal only works in main thread`.
+⚠️ `signal` работает только в главном потоке: в другом потоке — `ValueError: signal only works in main thread`. В asyncio используйте `loop.add_signal_handler` (см. ниже).
 
 ### `atexit` — финализаторы при выходе { #11.16-atexit }
 
@@ -1221,6 +1226,8 @@ json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False, default=str)
 # default=str — fallback для неизвестных типов (например, datetime)
 
 # Свой сериализатор/десериализатор
+import datetime  # для примера ниже
+
 class MyEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime.datetime):
@@ -1233,7 +1240,7 @@ json.dumps({'ts': datetime.datetime.now()}, cls=MyEncoder)
 # $ echo '{"x":1}' | python -m json.tool
 ```
 
-⚠️ `json.loads` падает на `NaN`/`Infinity` (стандартно). `parse_constant=lambda x: None` — отключить.
+⚠️ `json.loads` по умолчанию **принимает** `NaN`/`Infinity`/`-Infinity` (это расширение сверх стандарта: `json.loads('NaN')` → `nan`). Для строгого JSON передайте `parse_constant`, поднимающий `ValueError`; `json.dumps` тоже пишет `NaN` по умолчанию (`allow_nan=True`).
 
 ### `urllib.parse` — работа с URL { #11.19-urllibparse }
 
@@ -1263,7 +1270,7 @@ full = urljoin('https://example.com/api/v1/', '../v2/users')
 
 ## 11.20. `mmap` — memory-mapped files { #11.20 }
 
-`mmap` — отображение файла в память. Большие файлы читаются как память (через swap), не загружаясь целиком в RAM.
+`mmap` — отображение файла в память. Большие файлы читаются как память (через страничный кэш ОС, страницы подгружаются по требованию), не загружаясь целиком в RAM.
 
 ```python
 import mmap
@@ -1287,7 +1294,7 @@ with open('huge.bin', 'r+b') as f:
 
 ### `find()` / `rfind()` — поиск без загрузки в RAM { #11.20-find }
 
-Главное преимущество `mmap` для больших файлов — поиск подстроки **без чтения файла в Python**. Поиск идёт в C-уровневом `memmem`/`find` ОС, который работает постранично и не аллоцирует Python-объекты:
+Главное преимущество `mmap` для больших файлов — поиск подстроки **без чтения файла в Python**. Поиск идёт на C-уровне внутри CPython (`mmapmodule.c`) и не аллоцирует промежуточных Python-объектов:
 
 ```python
 with open('huge.log', 'rb') as f:
@@ -1319,7 +1326,7 @@ with open('huge.log', 'rb') as f:
 
 ### Случайный доступ через `seek()` и срезы { #11.20-sluchaynyy }
 
-`mmap` поддерживает оба способа — `seek` (как у file) и индексацию (как у bytes). Срезы на mmap **не копируют** данные в новую память до момента фактического использования:
+`mmap` поддерживает оба способа — `seek` (как у file) и индексацию (как у bytes). ⚠️ Срезы на mmap **копируют** данные: каждый срез — новый объект `bytes` (`mm[0:4] is mm[0:4]` → `False`). Zero-copy — только `memoryview` (способ 3 ниже):
 
 ```python
 mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
@@ -1376,7 +1383,7 @@ def worker(shm_name):
     shm = SharedMemory(shm_name)
     try:
         # Прочитать данные, записанные родителем
-        data = bytes(shm.buf[:100])
+        data = bytes(shm.buf[:5])   # buf[:100] дал бы b'HELLO' + 95 нулевых байт
         print(f"Child получил: {data!r}")
         # Ответить
         shm.buf[100:104] = b'DONE'
@@ -1428,7 +1435,7 @@ mm[0:4] = b'TEST'   # изменяет только память, не файл
 |---|---|
 | **Linux** | `MAP_SHARED` / `MAP_PRIVATE` работают как в POSIX; `/dev/shm` — tmpfs для in-memory shared (без файла на диске). `mmap.ANONYMOUS` поддерживается. |
 | **macOS** | То же, что Linux, но `/dev/shm` нет — используй `tempfile` или `multiprocessing.shared_memory`. |
-| **Windows** | `MAP_SHARED` эмулируется через `CreateFileMapping`; `mmap.MAP_ANONYMOUS` **недоступен** (нужен фиктивный файл). `mmap.mmap()` на Windows требует `tagname` для разделения между процессами. `ACCESS_COPY` ведёт себя иначе. |
+| **Windows** | `MAP_SHARED` эмулируется через `CreateFileMapping`; анонимная память — `mmap.mmap(-1, length)` (fileno=-1), фиктивный файл не нужен. `tagname` — необязательное имя сегмента для межпроцессного шаринга. `ACCESS_COPY` ведёт себя иначе. |
 
 Универсальный совет: если нужен IPC между процессами — используй `multiprocessing.shared_memory` (Python 3.8+), он скрывает платформенные различия. Чистый `mmap` — для работы с большими файлами в одном процессе.
 
@@ -1469,7 +1476,7 @@ shutil.unpack_archive('backup.zip', 'unpacked/')
 ```python
 import tempfile
 
-# Временный файл (auto-delete)
+# Временный файл (delete=False — останется после close, удалять вручную)
 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
     f.write('hello')
     path = f.name   # что-то вроде /tmp/tmpXXXXXX.txt
@@ -1645,7 +1652,7 @@ re.findall(r'(?<!\$)\d+', '$5 and 10€')                     # ['10']
 # Если есть открывающая кавычка — должна быть закрывающая; если нет — оба отсутствуют
 pattern = r'(?P<q>[\"\']?)\w+(?(q)(?P=q))'
 re.findall(pattern, '"hello" \'world\' test')
-# ['"', "'']  — нашло 'hello' с ", 'world' с ', test без кавычек
+# ['"', "'", '']  — группы: '"' у hello, "'" у world, '' у test (без кавычек)
 # (?(q)(?P=q)) — если группа q совпала (есть кавычка), требует ту же кавычку в конце
 ```
 
@@ -1729,7 +1736,7 @@ print(struct.unpack('>I', data))   # (42,)
 
 # Несколько значений
 data = struct.pack('>HHf', 100, 200, 3.14)
-# > — big-endian, H — unsigned short (2), H — short, f — float (4)
+# > — big-endian, H — unsigned short (2), H — unsigned short (2), f — float (4)
 print(struct.unpack('>HHf', data))   # (100, 200, 3.140000104904175)
 
 # calcsize — размер формата
@@ -1795,8 +1802,8 @@ import hashlib
 
 data = b'hello, world'
 print(hashlib.sha256(data).hexdigest())
-# b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
-# (64 hex-символа = 256 бит)
+# 09ca7e4eaa6e8ae9c7d261167129184883644d07dfba7cbfbc4c8a2e08360d5b
+# (64 hex-символа = 256 бит; b94d27b9… — это хеш другой строки, b'hello world')
 
 # Алгоритмы
 print(hashlib.algorithms_available)   # все доступные (включая OpenSSL)
@@ -1877,8 +1884,8 @@ print(math.pi, math.e, math.inf, math.nan, math.tau)   # tau = 2*pi
 
 # Логарифмы, степени
 math.log(8, 2)    # 3.0
-math.log2(8)      # 3
-math.log10(1000)  # 3
+math.log2(8)      # 3.0
+math.log10(1000)  # 3.0
 math.exp(1)       # e
 math.pow(2, 10)   # 1024.0
 math.sqrt(16)     # 4.0
@@ -1907,7 +1914,7 @@ data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100]
 
 print(statistics.mean(data))     # 14.5 — среднее
 print(statistics.median(data))  # 5.5 — медиана (immune to outliers)
-print(statistics.mode(data))    # 1 (любое самое частое)
+print(statistics.mode(data))    # 1 (первое из самых частых; с 3.8 детерминированно)
 print(statistics.multimode([1,1,2,2,3]))   # [1, 2] — все моды (Python 3.8+)
 
 # Стандартное отклонение
@@ -2092,7 +2099,7 @@ subprocess.run(["cat", filename])
 | `subprocess.run(["ls", "-l"])` | `False` (по умолч.) | список | ✅ безопасно |
 | `subprocess.run(["ls", user_input])` | `False` | список | ✅ безопасно (user_input — один argv) |
 | `subprocess.run(f"ls {user_input}", shell=True)` | `True` | строка | ❌ injection |
-| `subprocess.run(["ls", user_input], shell=True)` | `True` | список + shell | ⚠️ **опасная комбинация**: shell берёт только `args[0]` как команду, а остальные элементы (`"ls"`, `user_input`) становятся `$0`, `$1`... — то есть позиционными параметрами shell-скрипта. В итоге выполняется не `"ls"`, а первый аргумент, а остальные теряются или становятся argv для shell. Поведение зависит от платформы и версии — почти всегда это баг. |
+| `subprocess.run(["ls", user_input], shell=True)` | `True` | список + shell | ⚠️ **почти всегда баг**: на POSIX выполняется `["/bin/sh", "-c", args[0], args[1], ...]` — командой становится ровно `args[0]` (`"ls"`), а `user_input` уходит в позиционный параметр `$0` и до команды не доходит (потерян). Injection тут нет, но и желаемого вызова не получится — соберите строку через `shlex.join` или уберите `shell`. |
 | `subprocess.run(shlex.join(["ls", user_input]), shell=True)` | `True` | строка с экранированием | ✅ безопасно (но избыточно) |
 
 **Когда `shell=True` реально нужен**:
@@ -2137,23 +2144,23 @@ print(sys.argv)
 
 ## 11.30. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop` — профилирование, отладка и REPL-движки { #11.30 }
 
-Эти модули собраны вместе не случайно — все они **выполняют произвольный Python-код в управляемом окружении**. Понимание их устройства полезно и как инструментов разработки, и как элементов песочниц (или способов их обхода).
+Эти модули собраны вместе не случайно — все они **выполняют произвольный Python-код в управляемом окружении**. Понимание их устройства полезно и для инструментов разработки, и для песочниц (или способов их обхода).
 
 ### `timeit` — замер производительности { #11.30-timeit }
 
-Главное правило — **не использовать `time.time()`** для бенчмарков: он измеряет «wall clock», на который влияют другие процессы, GC, тепловое регулирование CPU. `timeit` берёт лучшее из N прогонов, отключает GC на время замера и даёт `timeit.repeat` для оценки дисперсии.
+Главное правило — **не использовать `time.time()`** для бенчмарков: он измеряет «wall clock», на который влияют другие процессы, GC, тепловое регулирование CPU. `timeit` выполняет stmt N раз и возвращает **суммарное** время (для best-of — `timeit.repeat` и `min()`), отключает GC на время замера.
 
 ```python
 import timeit
 
 # Быстрый замер одной конструкции
 t = timeit.timeit('"-".join(str(n) for n in range(100))', number=10000)
-# ≈ 0.18 с
+# ≈ 0.08 с (зависит от CPU)
 
 # Сравнение альтернатив
-print(timeit.timeit('"-".join(str(n) for n in range(100))', number=10000))  # 0.18 с
-print(timeit.timeit('"-".join([str(n) for n in range(100)])', number=10000))# 0.13 с — list comp быстрее
-print(timeit.timeit('"-".join(map(str, range(100)))',       number=10000))  # 0.10 с — map ещё быстрее
+print(timeit.timeit('"-".join(str(n) for n in range(100))', number=10000))  # 0.082 с — genexp медленнее всех
+print(timeit.timeit('"-".join([str(n) for n in range(100)])', number=10000))# 0.069 с — listcomp быстрее (PEP 709 инлайнит)
+print(timeit.timeit('"-".join(map(str, range(100)))',       number=10000))  # 0.077 с — map чуть медленнее listcomp на 3.12+
 
 # repeat для оценки стабильности
 results = timeit.repeat('"-".join(map(str, range(100)))', number=10000, repeat=5)
@@ -2171,18 +2178,19 @@ API:
 
 - `setup` выполняется один раз, не входит в замер. Используй для импортов и подготовки данных.
 - `globals={'x': x}` позволяет передать локальные переменные в `stmt` (Python 3.5+). Без этого — stmt выполняется в изолированном namespace.
-- `timeit` **отключает GC** на время замера (`gc.disable()`/`gc.enable()`). Если твой код создаёт циклы — это искажает реальную картину. Для realism — включай обратно руками.
+- `timeit` **отключает GC** на время замера (`gc.disable()`/`gc.enable()`). Если твой код создаёт циклы — это искажает реальную картину. Для реалистичной картины — включай обратно руками.
 
 ### `bdb` — базовый класс для отладчиков { #11.30-bdb }
 
-`bdb` (базовый дебаггер) — это **фреймворк для написания своего отладчика**. На нём построены `pdb` (стандартный), `ipdb` (ipython-версия), `debugpy` (используется в VS Code). Не отладчик сам по себе — каркас с хуками `break()`, `user_line()`, `user_return()`, `user_exception()`, которые ты переопределяешь.
+`bdb` (базовый дебаггер) — это **фреймворк для написания своего отладчика**. На нём построены `pdb` (стандартный) и `ipdb` (ipython-версия); `debugpy` (VS Code) построен на pydevd — свой механизм трейсинга, но идея та же. Не отладчик сам по себе — каркас с хуками `break()`, `user_line()`, `user_return()`, `user_exception()`, которые ты переопределяешь.
 
 ```python
 import bdb
 
 class MyTracer(bdb.Bdb):
     def user_line(self, frame):
-        # Вызывается на каждой строке, где стоит breakpoint
+        # Вызывается на КАЖДОЙ выполняемой строке (пошаговый режим),
+        # не только на breakpoint'ах
         print(f"  → {frame.f_code.co_filename}:{frame.f_lineno}")
         # Можно прочитать локальные переменные:
         print(f"    locals: {list(frame.f_locals.keys())}")
@@ -2218,6 +2226,7 @@ cProfile.run('slow_function()', sort='cumulative')
 #          4 function calls in 0.082 seconds
 #    Ordered by: cumulative time
 #    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+#         1    0.000    0.000    0.082    0.082 {built-in method builtins.exec}
 #         1    0.082    0.082    0.082    0.082 <string>:1(<module>)
 #         1    0.000    0.000    0.082    0.082 script.py:3(slow_function)
 #         1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
@@ -2244,7 +2253,7 @@ python -m cProfile -s cumulative script.py         # сразу вывести �
 
 ### `code` и `codeop` — движок интерактивной консоли { #11.30-code }
 
-`code` — модуль для создания **своих интерактивных REPL**. На нём построены `python -i`, `IPython`, `code.InteractiveConsole`, `python -m code`. Если ты делаешь песочницу или встраиваемую консоль — это твой фундамент.
+`code` — модуль для создания **своих интерактивных REPL**. На нём построены `code.interact`/`InteractiveConsole`, `python -m code` и многие встраиваемые консоли; сам `python -i` (C-уровневый REPL) и `IPython` (prompt_toolkit) — не на нём. Если ты делаешь песочницу или встраиваемую консоль — это твой фундамент.
 
 ```python
 import code
@@ -2270,7 +2279,7 @@ console.interact(banner="My REPL — type 'exit()' to quit")
 - `SyntaxError` и другие исключения — показывает traceback и продолжает работу.
 - `__future__`-импорты и `from __future__ import annotations`.
 
-`codeop` — более низкоуровневый модуль: компилятор для **однострочных** команд REPL. Главный кейс — определить, **нужна ли ещё одна строка** для завершения блока (например, после `def f():` пользователь нажал Enter — REPL ждёт тело):
+`codeop` — более низкоуровневый модуль: компилятор команд REPL, определяющий, **завершена ли команда** (в том числе многострочная). Главный кейс — определить, **нужна ли ещё одна строка** (например, после `def f():` пользователь нажал Enter — REPL ждёт тело):
 
 ```python
 import codeop
@@ -2361,7 +2370,7 @@ rm -r .venv
 home = /usr/bin
 include-system-site-packages = false
 version = 3.12.14
-prompt = .venv              # что показывать в PS1 после активации (3.12+)
+prompt = .venv              # что показывать в PS1 после активации (3.6+)
 ```
 
 Python при старте читает `pyvenv.cfg` и понимает: **я в venv**, `site-packages` — `lib/python3.12/site-packages/`, системные пакеты **не** подключать (если `include-system-site-packages = false`).
@@ -2371,7 +2380,8 @@ Python при старте читает `pyvenv.cfg` и понимает: **я �
 ```bash
 python3 -m venv .venv --system-site-packages   # разрешить доступ к системным пакетам
 python3 -m venv .venv --prompt myproject       # кастомный PS1: (myproject) $
-python3 -m venv .venv --upgrade                # обновить pip в существующем venv
+python3 -m venv .venv --upgrade                # перевести venv на новую версию Python
+python3 -m venv .venv --upgrade-deps           # обновить pip до последнего с PyPI (3.9+)
 python3 -m venv .venv --without-pip            # без pip (для минимальных образов)
 python3 -m venv .venv --copies                 # копии вместо симлинков (для portability)
 ```
@@ -2452,7 +2462,7 @@ docs = ["sphinx"]
 
 [build-system]
 requires = ["setuptools>=61"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 ```
 
 ```bash
@@ -2476,7 +2486,7 @@ pip install --no-index --find-links ./wheels/ requests  # только лока�
 
 ⚠️ **Никогда не запускай `pip` с `sudo`** — это сломает системный Python. Всегда в `venv`.
 
-⚠️ **`pip install` выполняет `setup.py`** — пакет может запустить arbitrary code при установке. Ставь только доверенные пакеты.
+⚠️ **`pip install` выполняет код build-backend** (а при наличии `setup.py` — и его) — пакет может запустить arbitrary code при установке. Ставь только доверенные пакеты.
 
 ### `site` модуль — что происходит при старте Python { #11.31-site }
 
@@ -2496,7 +2506,7 @@ site.getusersitepackages()   # '/home/user/.local/lib/python3.12/site-packages'
 
 # Включён ли site:
 import sys
-sys.flags.no_site            # 0 = site загружен, 1 = загружен с -S
+sys.flags.no_site            # 0 = site загружен, 1 = запущен с -S (site НЕ загружался)
 ```
 
 **`.pth` файлы** — «path extension». Любой `.pth` файл в `site-packages` обрабатывается при старте Python: каждая строка — путь, добавляемый в `sys.path`:
@@ -2510,10 +2520,10 @@ sys.flags.no_site            # 0 = site загружен, 1 = загружен �
 ```python
 # После старта Python:
 import sys
-sys.path   # ['/usr/local/my/custom/path', '/another/path/to/packages', ...]
+sys.path   # [..., '/usr/local/my/custom/path', '/another/path/to/packages']  — пути добавляются в КОНЕЦ
 ```
 
-⚠️ **`.pth` файлы могут выполнять arbitrary code**: если строка начинается с `import`, Python выполнит её. Это известный вектор атак (см. Приложение B.5).
+⚠️ **`.pth` файлы могут выполнять arbitrary code**: если строка начинается с `import`, Python выполнит её. Это известный вектор атак (см. Приложение B — обход проверяющих систем).
 
 ```
 # malicious.pth:
@@ -2553,7 +2563,7 @@ sys.setrecursionlimit(5000)
 
 Эти модули — **hooks при старте интерпретатора**. `sitecustomize` — системный (обычно пустой или от дистрибутива), `usercustomize` — пользовательский.
 
-⚠️ `usercustomize`/`sitecustomize` — **выполняются до вашего кода**. Если они падают с ошибкой — Python может не стартовать. Отладка через `python3 -v` (verbose import).
+⚠️ `usercustomize`/`sitecustomize` — **выполняются до вашего кода**. Если они падают с ошибкой — старт не рушится: сообщение уйдёт в stderr («Error in sitecustomize; set PYTHONVERBOSE for traceback»), и Python продолжит работу; полный трейсбек — `python3 -v`.
 
 ### `python -m` — запуск модулей как скриптов { #11.31-python }
 
@@ -2619,9 +2629,9 @@ def fib_dict(n):
 # 1M вызовов fib(20) (кеш тёплый)
 print(timeit.timeit("fib_lru(20)",    globals=globals(), number=1_000_000))   # ≈ 0.07 с
 print(timeit.timeit("fib_cache(20)",  globals=globals(), number=1_000_000))   # ≈ 0.07 с
-print(timeit.timeit("fib_dict(20)",   globals=globals(), number=1_000_000))   # ≈ 0.09 с
+print(timeit.timeit("fib_dict(20)",   globals=globals(), number=1_000_000))   # ≈ 0.18 с
 ```
-На CPython 3.12+ `lru_cache` и `cache` **идентичны по скорости** (~0.07 с) и **обгоняют ручной dict** (~0.09 с) на ~25%. До 3.11 было наоборот. `cache` чуть проще (нет eviction), `lru_cache` — для случаев с лимитом размера. Ручной `dict` теперь имеет смысл только при очень специфических требованиях (напр., eviction по памяти, а не по количеству).
+На CPython 3.12+ `lru_cache` и `cache` **идентичны по скорости** (~0.07 с) и **обгоняют ручной dict** (~0.18 с) в ~2.5 раза. До 3.11 соотношение было другим. `cache` чуть проще (нет eviction), `lru_cache` — для случаев с лимитом размера. Ручной `dict` теперь имеет смысл только при очень специфических требованиях (напр., eviction по памяти, а не по количеству).
 
 **2. `functools.partial` vs `lambda` — замыкание аргументов.**
 ```python
@@ -2630,8 +2640,8 @@ import timeit
 def f(a, b, c): return a + b + c
 p = partial(f, 1, 2)
 l = lambda c: f(1, 2, c)
-print(timeit.timeit("p(3)", globals={"p": p}, number=2_000_000))   # ≈ 0.45 с
-print(timeit.timeit("l(3)", globals={"l": l}, number=2_000_000))   # ≈ 0.55 с
+print(timeit.timeit("p(3)", globals={"p": p}, number=2_000_000))   # ≈ 0.14 с (зависит от CPU)
+print(timeit.timeit("l(3)", globals={"l": l}, number=2_000_000))   # ≈ 0.17 с
 ```
 `partial` **на ~20% быстрее** `lambda` — это C-уровневая обёртка, без
 Python-фрейма. На горячих путях (колбеки в event loop'ах, map/pool) — заметно.
@@ -2657,10 +2667,10 @@ def process_if(x):
     raise TypeError
 
 # 1M вызовов process(42)
-print(timeit.timeit(lambda: process(42),    number=1_000_000))   # ≈ 0.45 с
-print(timeit.timeit(lambda: process_if(42), number=1_000_000))   # ≈ 0.20 с
+print(timeit.timeit(lambda: process(42),    number=1_000_000))   # ≈ 0.38 с (зависит от CPU)
+print(timeit.timeit(lambda: process_if(42), number=1_000_000))   # ≈ 0.09 с
 ```
-`singledispatch` **в ~2× медленнее** — lookup по типу в `dict` + вызов обёртки.
+`singledispatch` **в ~4× медленнее** — lookup по типу в `dict` + вызов обёртки.
 Берите его для **расширяемости** (сторонние модули могут зарегистрировать
 свой обработчик), не для скорости.
 
@@ -2669,18 +2679,19 @@ print(timeit.timeit(lambda: process_if(42), number=1_000_000))   # ≈ 0.20 с
 import heapq, random, timeit
 data = [random.random() for _ in range(1_000_000)]
 # N = 10
-print(timeit.timeit(lambda: heapq.nlargest(10, data),  number=10))   # ≈ 0.15 с
-print(timeit.timeit(lambda: sorted(data)[:10],         number=10))   # ≈ 1.20 с
-# N = 100_000
-print(timeit.timeit(lambda: heapq.nlargest(100_000, data),  number=10))  # ≈ 0.95 с
-print(timeit.timeit(lambda: sorted(data)[:100_000],         number=10))  # ≈ 1.20 с
+print(timeit.timeit(lambda: heapq.nlargest(10, data),  number=10))   # ≈ 0.3 с
+print(timeit.timeit(lambda: sorted(data)[:10],         number=10))   # ≈ 2.2 с
+# N = 100_000 (len/10)
+print(timeit.timeit(lambda: heapq.nlargest(100_000, data),  number=10))  # ≈ 2.0 с
+print(timeit.timeit(lambda: sorted(data)[:100_000],         number=10))  # ≈ 1.1 с — sorted уже быстрее
 # N = 500_000 (половина)
-print(timeit.timeit(lambda: heapq.nlargest(500_000, data),  number=10))  # ≈ 1.80 с
-print(timeit.timeit(lambda: sorted(data)[:500_000],         number=10))  # ≈ 1.20 с
+print(timeit.timeit(lambda: heapq.nlargest(500_000, data),  number=10))  # ≈ 6.4 с
+print(timeit.timeit(lambda: sorted(data)[:500_000],         number=10))  # ≈ 1.1 с
 ```
-`heapq.nlargest` **выигрывает на маленьком N** (10× для N=10) — сложность
-`O(N log k)`. При `N ≈ len/2` — `sorted` выигрывает (один проход vs k-heap
-с перестройками). Правило: `nlargest` если `N < len/10`.
+`heapq.nlargest` **выигрывает на маленьком N** (в ~7× для N=10) — сложность
+`O(N log k)`. Кроссовер — между `len/100` и `len/10`: уже при `N = len/10`
+`sorted` выигрывает (один проход vs k-heap с перестройками).
+Правило: `nlargest` если `N ≲ len/100`.
 
 **5. `ProcessPoolExecutor` vs `ThreadPoolExecutor` на CPU-bound.**
 ```python
@@ -2694,14 +2705,14 @@ chunks = [N] * 4   # 4 задачи по 5M итераций
 t0 = time.perf_counter()
 with ThreadPoolExecutor(4) as ex:
     list(ex.map(cpu_burn, chunks))
-print(f"Threads: {time.perf_counter() - t0:.2f}s")   # ≈ 6.0 с (GIL блокирует)
+print(f"Threads: {time.perf_counter() - t0:.2f}s")   # ≈ 4× время одной задачи (GIL: почти последовательно)
 # Processes
 t0 = time.perf_counter()
 with ProcessPoolExecutor(4) as ex:
     list(ex.map(cpu_burn, chunks))
-print(f"Processes: {time.perf_counter() - t0:.2f}s")  # ≈ 1.7 с (4× ускорение)
+print(f"Processes: {time.perf_counter() - t0:.2f}s")  # ≈ время одной задачи (~3.5× к threads на 4 ядрах)
 ```
-Для CPU-bound задач **threads не дают ускорения** в CPython из-за GIL.
+Для CPU-bound задач **threads не дают ускорения** в CPython из-за GIL — четыре задачи идут почти последовательно.
 `ProcessPoolExecutor` даёт ~3.5× на 4 ядрах (меньше 4× из-за IPC + fork).
 Для I/O — берите asyncio или ThreadPool.
 
