@@ -14,7 +14,7 @@
 
 ## 12.2. `# type: int` (PEP 484) { #12.2 }
 
-Type comments — до того как в Python появились полноценные аннотации через двоеточие (`x: int = 5`), типы писали в комментариях. CPython до сих пор парсит их в специальный флаг AST `type_ignores`:
+Type comments — до того как в Python появились полноценные аннотации через двоеточие (`x: int = 5`), типы писали в комментариях. CPython до сих пор умеет их парсить — в поле AST `type_ignores` (заполняется только при `ast.parse(..., type_comments=True)` / флаге `PyCF_TYPE_COMMENTS`):
 
 ```python
 x = 10  # type: int
@@ -77,7 +77,7 @@ def sample():
 - `+NORMALIZE_WHITESPACE` — пробелы в выводе игнорируются.
 - `+SKIP` — пропустить тест.
 - `+IGNORE_EXCEPTION_DETAIL` — не проверять детали исключения (только тип).
-- `+NUMBER` — численные сравнения с допуском.
+- `DONT_ACCEPT_BLANKLINE` — пустые строки в выводе не матчатся (`#` — заглушка пустой строки).
 
 ## 12.5. Коды flake8/pylint { #12.5 }
 
@@ -90,25 +90,25 @@ def sample():
 - **F811 — Redefinition of unused name** — повторное определение, которое перекрывает предыдущее.
 - **F541 — f-string without placeholders** — `f"hello"` без `{}`.
 - **F821 — Undefined name** — использование неопределённой переменной.
-- **F811 — Redefinition of unused name**.
+- **F632 — use of `is` to compare str/bytes/int literals** — `s is "hello"` вместо `==`.
 
-### Группа E и W (pycodestyle / PEP 8) { #12.5-gruppa }
+### Группа E и W (pycodestyle / PEP 8) { #12.5-gruppa-ew }
 
 - **E501 — Line too long (>79 characters)** — самое знаменитое правило PEP 8.
 - **E203 — Whitespace before `:`**: ```python a[x : y]   # вместо a[x:y] ```
 - **E302, E303, E305** — правила пустых строк:
   - E302: между импортами и функцией должно быть 2 пустые строки.
-  - E303: внутри функции не больше 1 пустой строки подряд.
+  - E303: срабатывает на 3+ пустых строках подряд (допустимо максимум 2).
   - E305: между концом функции и `if __name__` — 2 пустые строки.
 - **E711, E712** — сравнение с `None` через `==` (надо `is None`), с `True`/`False` через `==` (надо `if x:`).
 - **E722** — голый `except:` без указания типа исключения.
 - **W291, W293** — trailing whitespace и whitespace на пустых строках.
 
-### Группа PL (Pylint) — архитектурные грехи { #12.5-gruppa }
+### Группа PL (Pylint) — архитектурные грехи { #12.5-gruppa-pl }
 
 - **`pylint: disable=broad-except` (W0703)** — перехват всех ошибок через `except Exception:`.
 - **`pylint: disable=too-many-arguments` (R0913)** — слишком много аргументов (>5).
-- **`pylint: disable=missing-docstring` (C0111)** — нет docstring.
+- **`pylint: disable=missing-module-docstring`/`-class-docstring`/`-function-docstring` (C0114/C0115/C0116)** — нет docstring (старый код C0111 устарел с pylint 2.0).
 - **`pylint: disable=eval-used` (W0122)** — использование `eval`.
 - **`pylint: disable=too-few-public-methods` (R0903)** — слишком мало публичных методов.
 - **`pylint: disable=import-outside-toplevel` (C0415)** — импорт вне верхнего уровня.
@@ -142,7 +142,7 @@ quote-style = "double"
 indent-style = "space"
 ```
 
-Аналогично для flake8 (через `[tool.flake8]` или отдельный `.flake8`):
+Аналогично для flake8 (нативно `pyproject.toml` он НЕ читает — нужен плагин `flake8-pyproject` или отдельный `.flake8`/`setup.cfg`):
 
 ```ini
 [flake8]
@@ -380,7 +380,7 @@ pre-commit run --all-files    # прогнать всё вручную (перв
 - run: pip install pre-commit && pre-commit run --all-files
 ```
 
-Альтернатива без своего CI-шага — [pre-commit.ci](https://pre-commit.ci): сервис сам гоняет хуки на PR и сам обновляет `rev` хуков автопокерами.
+Альтернатива без своего CI-шага — [pre-commit.ci](https://pre-commit.ci): сервис сам гоняет хуки на PR и сам обновляет `rev` хуков автоматически.
 
 Что остаётся за кадром: pre-commit защищает **коммиты**, но не историю — хук можно обойти `git commit --no-verify`. Для гарантий CI-прогон обязателен: хуки ускоряют обратную связь, CI — единственный источник истины.
 
@@ -398,7 +398,7 @@ pre-commit run --all-files    # прогнать всё вручную (перв
 # ruff:      ≈ 0.06 с  (140× быстрее flake8, 750× быстрее pylint)
 # ruff --fix:≈ 0.12 с (с применением автофиксов)
 ```
-`ruff` написан на Rust, парсит через `rustpython-parser`, без Python-импортов.
+`ruff` написан на Rust, парсит собственным парсером (`ruff_python_parser`; `rustpython-parser` использовался только в ранних версиях), без Python-импортов.
 На CI для проекта среднего размера экономит **минуты на каждом пуше**.
 Pylint медленнее, но ловит больше семантических проблем (напр. неиспользуемые
 импорты в условных ветках, недостижимый код).

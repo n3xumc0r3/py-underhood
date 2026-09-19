@@ -195,12 +195,14 @@ data_utf8    = "Привет, мир! " * 50_000   # ~0.9 MB UTF-8
 data_utf16   = data_utf8.encode("utf-16-le")
 data_utf8_b  = data_utf8.encode("utf-8")
 data_cp1251  = data_utf8.encode("cp1251")
-print(timeit.timeit(lambda: data_utf8_b.decode("utf-8"),   number=100))    # ≈ 0.12 с
-print(timeit.timeit(lambda: data_cp1251.decode("cp1251"), number=100))    # ≈ 0.18 с
-print(timeit.timeit(lambda: data_utf16.decode("utf-16-le"), number=100))  # ≈ 0.15 с
+print(timeit.timeit(lambda: data_utf8_b.decode("utf-8"),   number=100))    # ≈ 0.13 с (зависит от CPU)
+print(timeit.timeit(lambda: data_cp1251.decode("cp1251"), number=100))    # ≈ 0.04 с
+print(timeit.timeit(lambda: data_utf16.decode("utf-16-le"), number=100))  # ≈ 0.01 с
 ```
-UTF-8 — **самый быстрый** декодер в CPython (тщательно оптимизирован на C).
-Однобайтовые кодировки (cp1251) на ~50% медленнее из-за таблиц трансляции.
+На кириллице всё наоборот: cp1251 **в ~3× быстрее** utf-8 (однобайтовая таблица
+трансляции против многобайтового декодера), utf-16-le ещё быстрее — фиксированные
+2 байта на символ. UTF-8 выигрывает на ASCII-тексте и остаётся универсальным
+выбором, но «самый быстрый декодер» — это не про кириллицу.
 
 **2. `errors="replace"` vs `errors="strict"` — цена устойчивости.**
 ```python
@@ -208,7 +210,8 @@ import timeit
 data = ("Привет, мир! " * 50_000).encode("utf-8")
 # Добавим немного мусора
 data_corrupted = data + b"ÿþý"
-print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="strict"),  number=100))   # падает
+# decode(..., errors="strict") здесь УПАДЁТ с UnicodeDecodeError прямо внутри timeit — поэтому закомментировано:
+# print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="strict"),  number=100))
 print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="replace"), number=100))   # ≈ 0.13 с
 print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="ignore"),  number=100))   # ≈ 0.12 с
 print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="surrogateescape"), number=100))  # ≈ 0.14 с
@@ -222,27 +225,32 @@ print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="surrogateesca
 import codecs, timeit
 def reverse_codec(name):
     if name != "reverse": return None
-    def encode(input, errors="strict"):
+    def _encode(input, errors="strict"):
         return (input[::-1].encode("utf-8"), len(input))
-    def decode(input, errors="strict"):
+    def _decode(input, errors="strict"):
         return (input.decode("utf-8")[::-1], len(input))
     class Codec(codecs.Codec):
-        encode = encode
-        decode = decode
+        # ⚠️ просто `encode = encode` в теле класса — NameError: имя, присваиваемое
+        # в теле класса, ищется через LOAD_NAME и НЕ видит замыкание;
+        # отдельное имя _encode видит (LOAD_CLASSDEREF)
+        encode = staticmethod(_encode)
+        decode = staticmethod(_decode)
     class StreamWriter(Codec, codecs.StreamWriter): pass
     class StreamReader(Codec, codecs.StreamReader): pass
-    return codecs.CodecInfo("reverse", Codec(), StreamReader, StreamWriter)
+    # CodecInfo позиционно: (name, encode, decode, instance, ...) — передаём keywords:
+    return codecs.CodecInfo(name="reverse", encode=_encode, decode=_decode,
+                            streamreader=StreamReader, streamwriter=StreamWriter)
 codecs.register(reverse_codec)
 
 data = "hello world" * 100_000
-print(timeit.timeit(lambda: data.encode("reverse"), number=10))   # ≈ 0.45 с
+print(timeit.timeit(lambda: data.encode("reverse"), number=10))   # ≈ 0.012 с (зависит от CPU)
 # Тот же объём через обычный encode + slice:
-print(timeit.timeit(lambda: data[::-1].encode("utf-8"), number=10))  # ≈ 0.10 с
+print(timeit.timeit(lambda: data[::-1].encode("utf-8"), number=10))  # ≈ 0.012 с
 ```
-Кастомный кодек через `register` **в 4–5× медленнее** эквивалентной операции
-напрямую — каждый вызов проходит через Python-уровневую функцию поиска
-кодека и Python-уровневые encode/decode callbacks. Для производительности —
-используйте встроенные кодировки или Cython-расширения.
+После фикса пример показывает **~1.05–1.1× разницы** — накладные расходы на поиск
+кодека и Python-уровневые callbacks минимальны, вся цена в самих операциях.
+Заметный оверхед у register-кодека бывает только при тяжёлой логике в encode/decode.
+Для производительности используйте встроенные кодировки, а Cython-расширения — для тяжёлых преобразований.
 
 **4. `# -*- coding: ... -*-` — влияние на startup.**
 ```python
