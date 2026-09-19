@@ -416,7 +416,7 @@ async def main():
 
 - До **10 параллельных задач** I/O — разница между threads и asyncio незаметна, берите что проще.
 - **10–1000** — asyncio начинает выигрывать (~10× меньше памяти).
-- **1000+** — только asyncio, потоки упираются в лимиты OS (на Linux ~32000 потоков на процесс по умолчанию, на macOS ~2560).
+- **1000+** — только asyncio, потоки упираются в лимиты OS (RLIMIT_NPROC / kernel.threads-max: от сотен в контейнерах до десятков тысяч на десктопе; на macOS — порядка тысяч).
 - **CPU-bound** — threads **никогда** не дают ускорения в CPython (GIL), только multiprocessing или C-расширения.
 
 ## 4.12. `asyncio.as_completed` — по мере завершения { #4.12 }
@@ -441,7 +441,7 @@ async def main():
     # Результаты в порядке завершения, не в порядке создания
     for coro in asyncio.as_completed(tasks):
         result = await coro
-        print(f"{time.time():.2f}: {result}")
+        print(f"{time.time() - t0:.2f}: {result}")   # t0 = time.time() до запуска задач (иначе напечатается epoch ~1.7e9)
 
 asyncio.run(main())
 # 0.50: Done fast after 0.5s
@@ -534,8 +534,8 @@ async def main():
 | Блок, владеющий задачами | `async with trio.open_nursery() as nursery:` | `async with asyncio.TaskGroup() as tg:` |
 | Рождение задачи | `nursery.start_soon(fn)` | `tg.create_task(fn)` |
 | Ошибка одной → отмена всех | поведение nursery | поведение TaskGroup (см. выше) |
-| Сбор исключений | `trio.MultiError` | `ExceptionGroup` + `except*` (5.16) |
-| Задачи-«владельцы» результата | `nursery.start()` | `tg.create_task()` + явный `await` |
+| Сбор исключений | `ExceptionGroup` (до trio 0.22 — `MultiError`) | `ExceptionGroup` + `except*` (5.16) |
+| Запуск с подтверждением готовности | `nursery.start()` | в TaskGroup прямого аналога нет (`create_task` + `await` — не то же самое) |
 
 **anyio** стоит упомянуть отдельно: до выхода 3.11 он был единственным способом писать структурированный код, работающий и на asyncio, и на trio. На anyio построены Starlette и FastAPI — их `anyio.create_task_group()` выглядит как TaskGroup, но живёт в обоих мирах. Если код должен портировать между рантаймами — писать на anyio с самого начала.
 
@@ -581,7 +581,7 @@ except asyncio.TimeoutError:   # в 3.11+ это просто TimeoutError
 
 **Когда реально нужен**:
 
-- **Critical cleanup** — запись в БД, отправка финального метрике, закрытие сетевого соединения. Если сервер отменяет запрос, вы всё равно хотите завершить транзакцию, а не оставить её в подвешенном состоянии.
+- **Critical cleanup** — запись в БД, отправка финальной метрики, закрытие сетевого соединения. Если сервер отменяет запрос, вы всё равно хотите завершить транзакцию, а не оставить её в подвешенном состоянии.
 - **Гарантия атомарности** — операция, которая должна либо завершиться, либо не начаться; отмена посередине оставит систему в неконсистентном состоянии.
 - **Фоновые задачи, запущенные через `create_task` из обработчика** — если HTTP-запрос отменён, фоновая обработка должна продолжаться.
 
@@ -593,8 +593,10 @@ async def critical_save():
 
 async def handler():
     task = asyncio.create_task(critical_save())
-    # Если handler отменят — task умрёт, потому что GC соберёт task.
-    # shield + явный await гарантируют, что critical_save завершится.
+    # Без shield отмена handler каскадом дошла бы до critical_save
+    # (отмена распространяется через ожидаемый future).
+    # shield разрывает связь: CancelledError получает только handler,
+    # task продолжает работать.
     try:
         await asyncio.shield(task)
     except asyncio.CancelledError:
@@ -619,7 +621,7 @@ async def main():
 
 - **Не защищает от прямой отмены самой `critical_save`**. Если вызвать `.cancel()` на task, в котором выполняется `critical_save` (а не на родителе), `CancelledError` поднимется внутри `critical_save`, и `shield` ничего с этим не сделает. `shield` защищает только от отмены, распространяющейся **через `await` родителя** — т.е. от cascade-отмены при падении/отмене выше по стеку.
 - **Не делает корутину «бессмертной»** — она всё равно умирает при прямой отмене внутреннего task.
-- **Сам `await asyncio.shield(coro)` отменяем** — если отменили родителя, `CancelledError` поднимется в нём, но `coro` продолжит работать в фоне. **Важный нюанс**: чтобы `coro` реально продолжила работу, кто-то должен держать ссылку на её task — иначе GC соберёт task вместе с корутиной сразу после того, как родитель отвалился. Поэтому в примере выше `task = asyncio.create_task(critical_save())` держит ссылку в `handler`, но если сам `handler` отменили и его фрейм умер — `task` тоже может быть собран. Чтобы гарантировать завершение — сохраняйте task в более долгоживущем контейнере (атрибут модуля, `asyncio.create_task` + явная ссылка в долгоживущем объекте).
+- **Сам `await asyncio.shield(coro)` отменяем** — если отменили родителя, `CancelledError` поднимется в нём, но `coro` продолжит работать в фоне. **Важный нюанс**: чтобы `coro` реально продолжила работу, кто-то должен держать ссылку на её task — иначе GC может собрать task вместе с корутиной, когда на них не останется сильных ссылок (пока у задачи есть запланированные колбэки, loop держит её). Поэтому в примере выше `task = asyncio.create_task(critical_save())` держит ссылку в `handler`, но если сам `handler` отменили и его фрейм умер — `task` тоже может быть собран. Чтобы гарантировать завершение — сохраняйте task в более долгоживущем контейнере (атрибут модуля, `asyncio.create_task` + явная ссылка в долгоживущем объекте).
 
 В Python 3.11+ **`TaskGroup`** во многих случаях делает `shield` избыточным — структурированная конкурентность даёт более чистые гарантии. Но для **точечной** защиты одной операции `shield` всё ещё полезен.
 
@@ -675,7 +677,7 @@ async def worker_correct():
         ...
 ```
 
-**Отмена через `asyncio.timeout` и `TaskGroup`** — автоматически отменяет внутренние задачи, поднимая `CancelledError`. Cleanup нужно держать в `finally` (не в `except CancelledError`, иначе при обычном исключении cleanup не выполнится):
+**Отмена через `asyncio.timeout` и `TaskGroup`** — `timeout` отменяет текущую задачу (`CancelledError` поднимается в коде внутри блока и на выходе конвертируется в `TimeoutError`), `TaskGroup` отменяет дочерние задачи. Cleanup нужно держать в `finally` (не в `except CancelledError`, иначе при обычном исключении cleanup не выполнится):
 
 ```python
 async def with_cleanup():
@@ -758,10 +760,9 @@ async def main():
     # Все активные задачи (включая main)
     for task in asyncio.all_tasks():
         print(task.get_name(), task.get_coro())
-    # Task-1 <coroutine object slow at 0x...>
-    # Task-2 ...
-    # Task-3 ...
-    # Task-4 <coroutine object main at 0x...>
+    # Task-1 <coroutine object main at 0x...>   ← main тоже в списке
+    # Task-2/3/4 <coroutine object slow at 0x...>
+    # (порядок выдачи не гарантирован — all_tasks возвращает множество)
     
     await asyncio.gather(t1, t2, t3)
 
@@ -812,7 +813,7 @@ async def coro():
 
 print(asyncio.iscoroutine(coro()))            # True — объект корутины
 print(asyncio.iscoroutinefunction(coro))      # True — функция, возвращающая корутину
-print(asyncio.isfuture(asyncio.Future()))     # True — Future
+print(asyncio.isfuture(asyncio.Future()))     # True — Future (вне работающего loop — DeprecationWarning; создавайте внутри корутины)
 
 # Применение — инспекция перед await
 async def maybe_await(obj):
@@ -905,7 +906,7 @@ async def concurrent():
 # concurrent:  ≈ 0.10 с (20× ускорение)
 ```
 Если все задачи I/O-связаны — `gather` даёт **почти линейное** ускорение по числу задач
-(до насыщения event loop'а, обычно ~1000 параллельных корутин).
+(event loop спокойно держит десятки тысяч параллельных корутин — сами по себе они стоят сотни байт).
 
 **2. `gather` vs `TaskGroup` (Python 3.11+) — цена structured concurrency.**
 ```python
@@ -950,14 +951,21 @@ def cpu_threads():
                           [range(N//4*i, N//4*(i+1)) for i in range(4)]))  # ≈ 1.6 с
 # ProcessPool (4 процесса)
 from concurrent.futures import ProcessPoolExecutor
+
+def _chunk_sum(rng):          # функция уровня модуля — lambda НЕ пиклится!
+    return sum(i*i for i in rng)
+
 def cpu_procs():
     with ProcessPoolExecutor(4) as ex:
-        return sum(ex.map(lambda chunk: sum(i*i for i in chunk),
-                          [range(N//4*i, N//4*(i+1)) for i in range(4)]))  # ≈ 0.45 с
+        return sum(ex.map(_chunk_sum,
+                          [range(N//4*i, N//4*(i+1)) for i in range(4)]))
+# ⚠️ Вариант с lambda упадёт: PicklingError: Can't pickle <function <lambda>...> —
+# ProcessPool требует пиклинга функции (ThreadPool — нет, поэтому cpu_threads выше работает)
 ```
 **Threads не ускоряют CPU-код в CPython** из-за GIL — `cpu_threads` даже чуть
 медленнее из-за накладных расходов. `ProcessPoolExecutor` даёт реальное
-~3.3× ускорение на 4 ядрах (меньше 4× из-за IPC и fork'а).
+ускорение на нескольких ядрах (замер на 2-ядерной машине: 0.73 → 0.50 с; на 4+ ядрах — больше).
+Важно: функция для ProcessPool должна быть импортируемой уровня модуля — lambda не пиклится.
 
 **5. I/O-bound задача: threads vs asyncio.**
 ```python

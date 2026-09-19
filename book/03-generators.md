@@ -76,7 +76,7 @@ print(next(g), next(g), next(g))   # 0 1 2
 squares_list = [x**2 for x in range(1_000_000)]   # ~8 MB в памяти
 
 # Generator expression — ленивый
-squares_gen = (x**2 for x in range(1_000_000))    # ~120 байт (только состояние)
+squares_gen = (x**2 for x in range(1_000_000))    # ~200 байт (только состояние, sys.getsizeof на 3.12)
 ```
 
 Генераторное выражение не вычисляет значения до обращения — каждый `next` даёт следующее. Можно передать напрямую в `sum`, `max`, `min`, `any`, `all`, `sorted`:
@@ -253,7 +253,7 @@ for i, x in zip(count(), ['a', 'b', 'c']):
 # cycle() — повторяет итератор бесконечно
 for x in cycle([1, 2, 3]):
     print(x, end=' ')
-    if x == 3: break   # 1 2 3 1 2 3 1 2 3 ...
+    if x == 3: break   # напечатает ровно "1 2 3" и прервётся после первого круга
 
 # repeat() — повторяет одно значение
 list(repeat('A', 3))   # ['A', 'A', 'A']
@@ -270,6 +270,7 @@ list(starmap(pow, [(2, 3), (3, 2), (10, 3)]))   # [8, 9, 1000]
 # accumulate() — кумулятивные значения
 list(accumulate([1, 2, 3, 4]))           # [1, 3, 6, 10] — суммы
 list(accumulate([1, 2, 3, 4], max))      # [1, 2, 3, 4] — кумулятивный max
+from operator import mul                    # если ещё не импортирован (ниже используется itemgetter)
 list(accumulate([1, 2, 3, 4], mul))      # [1, 2, 6, 24] — факториалы
 
 # groupby() — группирует подряд идущие одинаковые элементы
@@ -318,7 +319,8 @@ with open('huge.log') as f:
 `f` после `open()` — это итератор, который читает строки по одной. `sum(... for line in f)` не материализует список — генераторное выражение отдаёт строки по одной.
 
 ```python
-# Чтение файла кусками через iter(callable, sentinel):
+# Чтение файла кусками через генератор-функцию
+# (однострочник через идиому iter(callable, sentinel): chunks = iter(lambda: f.read(8192), b"")):
 def read_chunks(f, size=8192):
     while True:
         chunk = f.read(size)
@@ -376,12 +378,12 @@ def paginate(items, page_size):
         print(f"Page {i+1}: {batch}")
 
 paginate(range(10), 4)
-# Page 0: (0, 1, 2, 3)
-# Page 1: (4, 5, 6, 7)
-# Page 2: (8, 9)
+# Page 1: (0, 1, 2, 3)
+# Page 2: (4, 5, 6, 7)
+# Page 3: (8, 9)
 ```
 
-`batched` возвращает кортежи (не списки) — ленивый, как весь `itertools`.
+`batched` возвращает кортежи (не списки) — ленивый, как весь `itertools`. В 3.13 добавлен строгий режим `strict=True` — `ValueError`, если последний чанк короче `n`.
 
 ⚠️ Если последний чанк короткий — он остаётся короче остальных (не дополняется). Если нужна равная длина — дополните вручную:
 
@@ -485,7 +487,7 @@ s.copy()          # shallow copy
 
 ⚠️ **`remove` vs `discard`**: `s.remove(x)` падает с `KeyError`, если `x` нет. `s.discard(x)` — тихо пропускает. Используйте `discard`, когда не уверены в наличии.
 
-⚠️ **`pop()` удаляет случайный элемент** — set неупорядочен, нельзя выбрать конкретный. Для упорядоченного удаления — используйте `sorted(s)` и удаляйте через `s.remove(min(s))`.
+⚠️ **`pop()` удаляет случайный элемент** — set неупорядочен, нельзя выбрать конкретный. Для упорядоченного удаления — используйте `s.remove(min(s))` (`sorted(s)` нужен только если нужен полный порядок обхода).
 
 **frozenset** — immutable-версия set. Не поддерживает `add`/`remove`/`update` и т.д., но поддерживает все read-only операции (`|`, `&`, `-`, `^`, `in`, `issubset`, ...). Главное применение — как **ключ dict** или элемент другого set:
 
@@ -523,7 +525,7 @@ nested['users']['admins'].append('alice')
 ```python
 from collections import deque
 
-# O(1) операции с обоих концов (у list appendleft/popleft — O(n))
+# O(1) операции с обоих концов (у list вставка в начало insert(0, x) и pop(0) — O(n))
 d = deque([1, 2, 3])
 d.appendleft(0)
 d.append(4)
@@ -637,7 +639,7 @@ Person = namedtuple('Person', ['name', 'age', 'email'], defaults=[''])
 print(Person('Alice', 30))   # Person(name='Alice', age=30, email='')
 ```
 
-⚠️ `namedtuple` неизменяемый и хешируемый — можно использовать как ключ в словаре. Если нужна мутабельность — берите `typing.NamedTuple` (с аннотациями типов) или `dataclass`.
+⚠️ `namedtuple` неизменяемый и хешируемый — можно использовать как ключ в словаре. `typing.NamedTuple` — тот же namedtuple с аннотациями, он тоже НЕизменяемый. Если нужна мутабельность — берите `@dataclass`.
 
 ## 3.10. Мост в асинхронность: async-генераторы глазами Части III { #3.10 }
 
@@ -702,7 +704,7 @@ async def main():
 asyncio.run(main())
 ```
 
-**⚠️ StopIteration в async-коде запрещён жёстче, чем в синхронном.** Из 3.1: `StopIteration`, вылетевшая из генератора, превращается в `RuntimeError` (PEP 479). Для корутин и async-генераторов то же правило действует с первого дня (PEP 525) — но ошибка выглядит неочевиднее, потому что `StopAsyncIteration` можно перепутать с `StopIteration`:
+**⚠️ StopIteration в async-коде запрещён жёстче, чем в синхронном.** Из 3.1: `StopIteration`, вылетевшая из генератора, превращается в `RuntimeError` (PEP 479). Для корутин — с первого дня по PEP 492, для async-генераторов — PEP 525 — но ошибка выглядит неочевиднее, потому что `StopAsyncIteration` можно перепутать с `StopIteration`:
 
 ```python
 async def bad():
@@ -726,11 +728,11 @@ async def main():
 
 Почему генераторы и async-генераторы живут в разных частях: здесь — протокол (он полностью выводится из 3.1–3.4), в Части IV — поведение под event loop: кто и когда дергает `__anext__`, что происходит с async-генератором при отмене задачи и закрытии loop, `aclosing` для гарантированной очистки.
 
-→ **см. также:** 3.1 — протокол итерации; 3.4 — `send`/`throw`/`close`; 4.8 — async-генераторы под event loop; 4.16 — `iscoroutine`/`isfuture`; 5.17 — `__aiter__`/`__anext__` среди dunder-методов.
+→ **см. также:** 3.1 — протокол итерации; 3.4 — `send`/`throw`/`close`; 4.8 — async-генераторы под event loop; 4.16 — `iscoroutine`/`isfuture`; async-dunder'ы (`__aiter__`/`__anext__`/`__aenter__`/`__aexit__`) — в 4.8–4.9.
 
 ---
 
-### Бенчмарки к Части III { #3.9-benchmarki }
+### Бенчмарки к Части III { #3.10-benchmarki }
 
 **1. List comprehension vs generator expression — память.**
 ```python
@@ -738,10 +740,10 @@ import sys
 N = 1_000_000
 lst = [x**2 for x in range(N)]
 gen = (x**2 for x in range(N))
-print(sys.getsizeof(lst))   # ~8 000 056 байт (≈8 MB)
+print(sys.getsizeof(lst))   # 8 448 728 байт (≈8.4 MB)
 print(sys.getsizeof(gen))   # ~200 байт (только состояние генератора)
 ```
-Разница в **40 000×** по памяти. Но `sum(lst)` и `sum(gen)` дают **одинаковый**
+Разница в **~42 000×** по памяти. Но `sum(lst)` и `sum(gen)` дают **одинаковый**
 результат за **сравнимое время** — генератор не быстрее, он просто не требует
 одновременного существования всех элементов.
 
@@ -751,7 +753,7 @@ import timeit
 print(timeit.timeit("sum(x**2 for x in range(1_000_000))",     number=10))  # ≈ 0.68 с — генератор
 print(timeit.timeit("sum([x**2 for x in range(1_000_000)])",   number=10))  # ≈ 0.80 с — listcomp
 ```
-На CPython 3.12+ генератор **на ~15% быстрее** listcomp в `sum()` — это переворачивает старую рекомендацию (раньше listcomp был быстрее). Причина: в 3.11+ оптимизировали вызовы генераторов (PEP 657, specialized adaptive interpreter), и накладные расходы генератора упали. Генератор также **экономит память** — не аллоцирует список.
+На CPython 3.12+ генератор **на ~5–17% быстрее** listcomp в `sum()` (разброс между прогонами) — это переворачивает старую рекомендацию (раньше listcomp был быстрее). Причина: специализирующий адаптивный интерпретатор (PEP 659; PEP 657 — это трейсбеки) снизил накладные расходы генератора. Генератор также **экономит память** — не аллоцирует список.
 
 **3. `itertools.batched` (3.12+) vs ручной `iter`+`tuple`.**
 ```python
@@ -763,10 +765,10 @@ def via_batched():
 def via_manual():
     args = [iter(data)] * 64
     return list(zip(*args, strict=True))
-print(timeit.timeit(via_batched, number=20))   # ≈ 0.55 с
-print(timeit.timeit(via_manual,  number=20))   # ≈ 0.65 с
+print(timeit.timeit(via_batched, number=20))   # ≈ 0.17 с (зависит от CPU)
+print(timeit.timeit(via_manual,  number=20))   # ≈ 0.22 с
 ```
-`batched` быстрее на ~15% и не теряет «хвост» длиной ≠ N (в отличие от трюка с `zip`).
+`batched` быстрее в ~1.3× (замер: 0.166 vs 0.222 с на 20 прогонов, зависит от CPU) и не теряет «хвост» длиной ≠ N: zip-трюк выше использует strict=True и на некратных данных падает с `ValueError: zip() argument is shorter`, а zip БЕЗ strict молча теряет хвост.
 
 **4. `itertools.pairwise` vs ручной сдвиг.**
 ```python
@@ -777,10 +779,10 @@ def via_pairwise():
     return [b - a for a, b in pairwise(data)]
 def via_index():
     return [data[i+1] - data[i] for i in range(len(data) - 1)]
-print(timeit.timeit(via_pairwise, number=50))  # ≈ 0.42 с
-print(timeit.timeit(via_index,    number=50))  # ≈ 0.55 с
+print(timeit.timeit(via_pairwise, number=50))  # ≈ 0.45 с (зависит от CPU)
+print(timeit.timeit(via_index,    number=50))  # ≈ 0.45 с — разница в пределах шума
 ```
-`pairwise` на ~25% быстрее — нет индексных проверок на каждой итерации.
+На 3.12 разрыв почти исчез (listcomp-версия ускорена специализациями PEP 659: разница 1–3% между прогонами) — выбирайте `pairwise` за ленивость и работу с итераторами без `len()`.
 
 **5. Ленивые вычисления — реальная экономия на раннем выходе.**
 ```python

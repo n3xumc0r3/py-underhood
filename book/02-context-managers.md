@@ -288,6 +288,8 @@ async def main():
             print(x)
             if x == 2:
                 break   # выходим из with — gen.aclose() вызовется
+
+asyncio.run(main())   # запуск примера (определён выше, но не вызван)
 # Выведет: 1, 2, cleanup
 ```
 
@@ -354,13 +356,13 @@ def use_suppress():
 
 for f in (use_class, use_dec, use_suppress):
     print(f.__name__, timeit.timeit(f, number=2_000_000))
-# use_class   ≈ 0.55 с  ← быстрее всего: прямые вызовы методов
-# use_dec     ≈ 1.10 с  ← накладные расходы на генератор
-# use_suppress≈ 0.95 с
+# use_class   ≈ 0.06 с  ← быстрее всего: прямые вызовы методов (зависит от CPU)
+# use_dec     ≈ 0.21 с  ← накладные расходы на генератор
+# use_suppress≈ 0.06 с  ← suppress без исключений почти равен классу
 ```
-Класс-менеджер **в ~2 раза быстрее** `@contextmanager`, потому что декоратор
-строит генератор + прокси-обёртку `_GeneratorContextManager` на каждый вызов.
-На горячих путях (открытие файлов в цикле) — заметно.
+Декоратор `@contextmanager` **в ~3.5–4 раза медленнее** класса-менеджера, потому что
+строит генератор + прокси-обёртку `_GeneratorContextManager` на каждый вызов;
+`suppress` без исключений почти равен классу. На горячих путях (открытие файлов в цикле) — заметно.
 
 **2. Несколько менеджеров в одном `with` vs вложенные.**
 ```python
@@ -373,7 +375,7 @@ with open(a) as fa:
 with open(a) as fa, open(b) as fb, open(c) as fc:
     pass
 ```
-Байт-код **идентичен** — `SETUP_WITH` + `WITH_CLEANUP` повторяются трижды.
+Байт-код **идентичен** (тезис верен — сравните инструкции без CACHE/RESUME). Реальных опкодов SETUP_WITH/WITH_CLEANUP в 3.11+ нет: вход — `BEFORE_WITH`, выход — вызов `__exit__` (`CALL 2`) + `WITH_EXCEPT_START` в обработчике; они повторяются трижды.
 Разница только в читаемости: одна строка короче, но при длинных именах
 вложенность лучше переносится в IDE.
 
@@ -395,10 +397,10 @@ def plain():   print("x", end="")
 def captured():
     with redirect_stdout(io.StringIO()):
         print("x", end="")
-print(timeit.timeit(plain,    number=100_000))   # ≈ 0.13 с
-print(timeit.timeit(captured, number=100_000))   # ≈ 0.30 с
+print(timeit.timeit(plain,    number=100_000))   # ≈ 0.012 с (зависит от CPU)
+print(timeit.timeit(captured, number=100_000))   # ≈ 0.049 с
 ```
-Перехват удваивает стоимость `print`. На горячих путях логирования
+Перехват увеличивает стоимость `print` примерно в 4 раза. На горячих путях логирования
 лучше использовать `logging` с фильтром, чем `redirect_stdout`.
 
 **5. Подавление исключений: `suppress` vs `try/except: pass`.**
@@ -408,9 +410,9 @@ def try_except():
     except ZeroDivisionError: pass
 def use_suppress():
     with suppress(ZeroDivisionError): 1 / 0
-# try_except  ≈ 0.18 с / 1M вызовов
-# use_suppress≈ 0.32 с / 1M вызовов
+# try_except  ≈ 0.046 с / 1M вызовов (зависит от CPU)
+# use_suppress≈ 0.116 с / 1M вызовов
 ```
-`suppress` почти вдвое медленнее из-за накладных расходов на контекстный менеджер.
+`suppress` в ~2–2.5 раза медленнее из-за накладных расходов на контекстный менеджер.
 Берите его для **читаемости**, а не для скорости.
 
