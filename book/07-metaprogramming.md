@@ -16,11 +16,15 @@ print(Config.__annotations__['x'])  # 10
 
 ```python
 def calculate_something():
-    result: 42       # аннотация без присваивания
+    result: 42       # аннотация без присваивания — и она НЕ СОХРАНЯЕТСЯ (PEP 526)
     my_number = calculate_something.__annotations__['result']
     return my_number
 
-print(calculate_something())   # 42
+print(calculate_something())   # KeyError: 'result' — а не 42!
+
+# Локальные аннотации интерпретатор только проверяет синтаксически и выбрасывает:
+# __annotations__ у функции пуст ({}), в нём живут только аннотации параметров
+# и return. Сохраняются лишь аннотации уровня модуля/класса (как в примере выше).
 ```
 
 Что видит интерпретатор:
@@ -30,7 +34,7 @@ print(calculate_something())   # 42
 
 `.__annotations__['result']` → `[IDENTIFIER, DOT, IDENTIFIER, LBRACKET, STRING, RBRACKET]` — выглядит как обычное чтение словаря.
 
-⚠️ **Получение аннотаций в Python 3.10+**: `typing.get_type_hints(func)` делает правильный резолв строковых аннотаций (PEP 563, `from __future__ import annotations`), но для `result: 42` вернёт литеральное значение `42`, не тип.
+⚠️ **Получение аннотаций в Python 3.10+**: `typing.get_type_hints(func)` делает правильный резолв строковых аннотаций (PEP 563, `from __future__ import annotations`), но для функции из примера выше вернёт `{}` — локальная аннотация `result: 42` не сохраняется вообще (PEP 526).
 
 ## 7.2. `setattr`/`getattr`/`delattr` { #7.2 }
 
@@ -75,7 +79,7 @@ def add(x, y):
 add(2, 3)   # напечатает "Вызов add((2, 3), {})" и вернёт 5
 ```
 
-`@log_calls add` эквивалентно `add = log_calls(add)`.
+`@log_calls add` — декоратор над `add`, эквивалентен `add = log_calls(add)`.
 
 **Параметризованный декоратор** — вложенность на один уровень больше:
 
@@ -146,7 +150,7 @@ print(inspect.signature(add))   # (*args, **kwargs) — потеряли сиг�
 from functools import wraps
 
 def log(func):
-    @wraps(func)   # копирует __name__, __doc__, __wrapped__, __dict__, signature
+    @wraps(func)   # копирует __module__, __name__, __qualname__, __doc__, __dict__ и ставит __wrapped__
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
     return wrapper
@@ -225,16 +229,30 @@ names = ()
 # ⚠️ Сигнатура types.CodeType различается по версиям Python:
 #   Python 3.6-3.7:  15 параметров (нет posonlyargcount; есть lnotab)
 #   Python 3.8-3.10: 16 параметров (добавлен posonlyargcount; есть lnotab)
-#   Python 3.11:    17 параметров (добавлен qualname; lnotab → linetable + exceptiontable)
-#   Python 3.12+:   18 параметров (linetable/exceptiontable; см. PEP 626 и PEP 657)
+#   Python 3.11+:    18 параметров (добавлены qualname и exceptiontable; lnotab → linetable)
 #
-# Код ниже — для Python 3.8-3.10 (14 обязательных позиционных аргументов).
-# На 3.11+ сигнатура несовместима — нужно добавить qualname и заменить
-# lnotab на linetable + exceptiontable. На 3.12 порядок ещё немного изменён.
+# Рабочий вызов на 3.12 (16 позиционных аргументов — проверено, возвращает 42):
 # На практике ручная сборка CodeType почти никогда не нужна — см. ниже
 # шаблон с `__code__ = template.__code__`.
 my_runtime_func = types.FunctionType(
-    types.CodeType(0, 0, 0, 0, 0, 0, code_bytes, consts, names, (), '', '', 0, b''),
+    types.CodeType(
+        0,            # argcount
+        0,            # posonlyargcount
+        0,            # kwonlyargcount
+        0,            # nlocals
+        1,            # stacksize
+        64,           # flags (NOFREE)
+        code_bytes,   # b'd\x01S\x00' — LOAD_CONST 1; RETURN_VALUE
+        consts,       # (None, 42)
+        names,        # ()
+        (),           # varnames
+        '<s>',        # filename
+        't',          # name
+        't',          # qualname
+        1,            # firstlineno
+        b'',          # linetable
+        b'',          # exceptiontable
+    ),
     globals()
 )
 
@@ -367,7 +385,7 @@ print(safe_eval_math("__import__('os')"))   # ❌ ValueError
 - `exec` очевидно опасен — он «исполняет операторы», все понимают, что `exec("os.system(...)")` выполнит команду.
 - `eval` **выглядит безобиднее** — «вычисляет выражение». Но в Python **вызов функции** — это выражение. `os.system('...')` — валидное выражение. Так что `eval` **так же опасен**, как `exec`, просто об этом чаще забывают.
 
-Правило: `eval(untrusted_input)` == `exec(untrusted_input)` по уровню угрозы. Если бы не принимаете `exec`, не принимайте и `eval`.
+Правило: `eval(untrusted_input)` == `exec(untrusted_input)` по уровню угрозы. Если вы не принимаете `exec`, не принимайте и `eval`.
 
 ## 7.8. `locals()` и `globals()` { #7.8 }
 
@@ -523,7 +541,7 @@ print(sig)              # (x: int, y: str = 'default', *args, **kwargs) -> bool
 for name, param in sig.parameters.items():
     print(f"{name}: {param.annotation}, default={param.default}, kind={param.kind}")
 # x: <class 'int'>, default=<class 'inspect._empty'>, kind=POSITIONAL_OR_KEYWORD
-# y: <class 'str'>, default='default', kind=POSITIONAL_OR_KEYWORD
+# y: <class 'str'>, default=default, kind=POSITIONAL_OR_KEYWORD
 # args: <class 'inspect._empty'>, default=<class 'inspect._empty'>, kind=VAR_POSITIONAL
 # kwargs: <class 'inspect._empty'>, default=<class 'inspect._empty'>, kind=VAR_KEYWORD
 ```
@@ -557,6 +575,8 @@ class C:
     def static():
         pass
 
+c = C()   # экземпляр (без него — NameError)
+
 # Только публичные bound methods (передаём ЭКЗЕМПЛЯР c, не класс C):
 for name, member in inspect.getmembers(c, predicate=inspect.ismethod):
     print(name, member)
@@ -564,11 +584,12 @@ for name, member in inspect.getmembers(c, predicate=inspect.ismethod):
 
 # ⚠️ Если передать класс C (а не экземпляр c) с ismethod — вернётся пустой список,
 # потому что на уровне класса методы — это обычные function (не bound method).
-# Для класса использай inspect.isfunction:
+# Для класса используйте inspect.isfunction:
 
 for name, fn in inspect.getmembers(C, predicate=inspect.isfunction):
     print(name, fn)
 # method <function C.method at 0x...>
+# static <function C.static at 0x...>   ← staticmethod на уровне класса тоже function
 
 # Только функции
 for name, fn in inspect.getmembers(C, predicate=inspect.isfunction):
@@ -662,6 +683,7 @@ def f(x, y=10):
 print(inspect.getcallargs(f, 1))           # {'x': 1, 'y': 10}
 print(inspect.getcallargs(f, 1, 2))         # {'x': 1, 'y': 2}
 print(inspect.getcallargs(f, x=5))          # {'x': 5, 'y': 10}
+# (Формально deprecated с 3.5 — современная альтернатива: Signature.bind, см. выше.)
 ```
 
 Используется в тестах и в mock-фреймворках (например, `unittest.mock`).
@@ -676,7 +698,10 @@ async def coro(): return 1
 
 print(inspect.isgenerator(gen()))       # True
 print(inspect.iscoroutinefunction(coro))  # True
-print(inspect.isasyncgenfunction(lambda: (yield)))   # проверяет async generator
+print(inspect.isasyncgenfunction(lambda: (yield)))   # False — это СИНХРОННЫЙ генератор!
+async def agen():
+    yield 1
+print(inspect.isasyncgenfunction(agen))   # True
 ```
 
 ## 7.12. `importlib` — программный импорт { #7.12 }
@@ -718,7 +743,7 @@ importlib.reload(my_module)
 ```python
 import importlib
 
-# Если в sys.path появились новые файлы, importlib их не увидит, пока не сбросить кэш
+# Если в sys.path появились новые файлы, importlib их не увидит, пока вы не сбросите кэш
 importlib.invalidate_caches()
 # Теперь новый import найдёт свежесозданный модуль
 ```
@@ -791,9 +816,29 @@ def f(x):
 
 tree = ast.parse(code)
 print(ast.dump(tree, indent=2))
-# Module(body=[FunctionDef(name='f', args=arguments(args=[arg(arg='x')]), 
-#   body=[Return(value=BinOp(left=BinOp(left=Name('x'), op=Mult(), right=Constant(2)), 
-#   op=Add(), right=Constant(1))]))])
+# Module(
+#   body=[
+#     FunctionDef(
+#       name='f',
+#       args=arguments(
+#         posonlyargs=[],
+#         args=[
+#           arg(arg='x')],
+#         kwonlyargs=[],
+#         kw_defaults=[],
+#         defaults=[]),
+#       body=[
+#         Return(
+#           value=BinOp(
+#             left=BinOp(
+#               left=Name(id='x', ctx=Load()),
+#               op=Mult(),
+#               right=Constant(value=2)),
+#             op=Add(),
+#             right=Constant(value=1)))],
+#       decorator_list=[],
+#       type_params=[])],
+#   type_ignores=[])
 ```
 
 ### `ast.unparse` — AST обратно в код (Python 3.9+) { #7.13-astunparse }
@@ -866,20 +911,22 @@ for node in ast.walk(tree):
     print(type(node).__name__)
 # Module
 # Assign
-# Name
-# Store
-# Constant
 # Assign
 # Name
-# Store
-# BinOp
-# Add
-# Name
-# Load
 # Constant
+# Name
+# BinOp
+# Store
+# Store
+# Name
+# Add
+# Constant
+# Load
+# ⚠️ ast.walk — обход в ШИРИНУ (BFS через deque): сначала оба Assign,
+# потом их дети. Для DFS пишите рекурсивный visitor.
 ```
 
-### Полный пример: оптимизация `x + 0` → `x` (constant folding) { #7.13-polnyy }
+### Полный пример: оптимизация `x + 0` → `x` (constant folding) { #7.13-polnyy-folding }
 
 Реалистичная трансформация — найти все `BinOp` вида `something + 0` и заменить на `something`. Это базовая оптимизация, которую делают компиляторы; на Python её можно реализовать через `NodeTransformer`:
 
@@ -913,7 +960,7 @@ print(ast.unparse(tree))
 #     return x + y + z
 ```
 
-### Полный пример: подмена имён переменных (обфускация) { #7.13-polnyy }
+### Полный пример: подмена имён переменных (обфускация) { #7.13-polnyy-renamer }
 
 Превращаем осмысленные имена в `_0`, `_1`, `_2`... — типичный шаг обфускации:
 
@@ -954,7 +1001,7 @@ print(ast.unparse(tree))
 
 ⚠️ Этот приём **не отменяет** плагиат-детекторы (см. Приложение A) — они тоже работают через AST-нормализацию, сливают `_0`, `_1` обратно в `IDENTIFIER`. Но он скрывает смысл от **человека**, читающего код.
 
-### Полный пример: instrumentation — подсчёт вызовов функций { #7.13-polnyy }
+### Полный пример: instrumentation — подсчёт вызовов функций { #7.13-polnyy-instrumentation }
 
 Вставляем `__count_X += 1` в начало каждой функции — типичная основа профайлеров и coverage-инструментов:
 
@@ -1005,7 +1052,7 @@ print(ast.unparse(tree))
 ```python
 >>> import datetime
 >>> dir(datetime)
-['MAXYEAR', 'MINYEAR', '__builtins__', '__cached__', '__doc__', ...,
+['MAXYEAR', 'MINYEAR', 'UTC', '__all__', '__builtins__', '__cached__', '__doc__', ...,
  'date', 'datetime', 'datetime_CAPI', 'time', 'timedelta', 'timezone', 'tzinfo']
 
 >>> s = "hello"
@@ -1091,8 +1138,8 @@ MappingProxyType({...})   # у модулей __dict__ — read-only mappingprox
 ```python
 # 1. Найти все методы объекта по префиксу/суффиксу
 >>> [m for m in dir(str) if m.startswith('is')]
-['isalpha', 'isascii', 'isdecimal', 'isdigit', 'isidentifier', 'islower',
- 'isnumeric', 'isprintable', 'isspace', 'istitle', 'isupper']
+['isalnum', 'isalpha', 'isascii', 'isdecimal', 'isdigit', 'isidentifier',
+ 'islower', 'isnumeric', 'isprintable', 'isspace', 'istitle', 'isupper']
 
 # 2. Отфильтровать dunder-методы (часто мешают)
 >>> [m for m in dir(str) if not m.startswith('_')]
@@ -1112,12 +1159,13 @@ isdecimal: False
 
 # 5. Сравнить API двух классов
 >>> set(dir(list)) - set(dir(tuple))   # что есть у list, но нет у tuple
-{'append', 'clear', 'copy', 'extend', 'insert', 'pop', 'remove', 'reverse', 'sort'}
+{'append', 'clear', 'copy', 'extend', 'insert', 'pop', 'remove', 'reverse', 'sort',
+ '__delitem__', '__iadd__', '__imul__', '__reversed__', '__setitem__'}
 >>> set(dir(tuple)) - set(dir(list))   # что есть у tuple, но нет у list
-{'count'}   # у tuple свой count, но и у list он есть — пересечение
+{'__getnewargs__'}   # count есть у обоих — это пересечение, а не разница
 ```
 
-### `dir()` без аргументов — для текущей области видимости { #7.14-dir }
+### `dir()` без аргументов — для текущей области видимости { #7.14-bez-argumentov }
 
 ```python
 >>> x = 1
@@ -1183,7 +1231,7 @@ def fib_manual(n):
 print(timeit.timeit("fib_lru(20)",    globals=globals(), number=1_000_000))   # ≈ 0.07 с
 print(timeit.timeit("fib_manual(20)", globals=globals(), number=1_000_000))   # ≈ 0.09 с
 ```
-На CPython 3.12+ `lru_cache` **на ~25% быстрее** ручного `dict`-кеша (0.07 с vs 0.09 с). До 3.11 было наоборот — manual dict выигрывал. Причина: в 3.11+ `lru_cache` переписали на C (specialized adaptive interpreter), и он стал быстрее чистого Python-кода. Плюс `lru_cache` даёт `cache_info()`, `cache_clear()`, потокобезопасность и лимит размера — теперь **нет причин** писать свой кеш, кроме случаев с очень специфическими требованиями.
+На CPython 3.12+ `lru_cache` **в ~2.5 раза быстрее** ручного `dict`-кеша (≈0.07 с vs ≈0.18 с, зависит от CPU). C-реализация `_lru_cache_wrapper` существует с 3.8 и используется до сих пор (`functools.py` импортирует её из `_functools`); на фоне специализаций PEP 659 чистый Python-вариант тоже ускорился, но C-версия всё равно впереди. Плюс `lru_cache` даёт `cache_info()`, `cache_clear()`, потокобезопасность и лимит размера — теперь **нет причин** писать свой кеш, кроме случаев с очень специфическими требованиями.
 
 **3. `type()` динамическое создание класса vs `class`.**
 ```python
@@ -1195,10 +1243,10 @@ def via_class():
 def via_type():
     return type("A", (), {"m": lambda self: 1})
 # Создание 10 000 классов
-print(timeit.timeit(via_class, number=10_000))   # ≈ 0.10 с
-print(timeit.timeit(via_type,  number=10_000))   # ≈ 0.05 с
+print(timeit.timeit(via_class, number=10_000))   # ≈ 0.44 с (зависит от CPU)
+print(timeit.timeit(via_type,  number=10_000))   # ≈ 0.36 с
 ```
-`type()` **в ~2× быстрее** при массовом создании классов — нет парсинга тела класса
+`type()` **в ~1.2–1.3× быстрее** при массовом создании классов — нет парсинга тела класса
 и построения AST. Но для статического кода разница незаметна. Главный плюс `type()` —
 динамичность (метапрограммирование, генерация DTO из схемы).
 
@@ -1207,26 +1255,26 @@ print(timeit.timeit(via_type,  number=10_000))   # ≈ 0.05 с
 import timeit
 code = "1 + 2 * 3"
 # eval — каждый раз парсит + компилирует
-print(timeit.timeit("eval('1 + 2 * 3')", globals=globals(), number=100_000))   # ≈ 0.30 с
+print(timeit.timeit("eval('1 + 2 * 3')", globals=globals(), number=100_000))   # ≈ 0.43 с (зависит от CPU)
 # compile один раз, потом eval по code-объекту
 compiled = compile(code, "<s>", "eval")
-print(timeit.timeit("eval(compiled)", globals={"compiled": compiled}, number=100_000))  # ≈ 0.05 с
+print(timeit.timeit("eval(compiled)", globals={"compiled": compiled}, number=100_000))  # ≈ 0.027 с
 # Прямая lambda
 f = lambda: 1 + 2 * 3
-print(timeit.timeit(f, number=100_000))   # ≈ 0.012 с
+print(timeit.timeit(f, number=100_000))   # ≈ 0.003 с
 ```
-`eval` строки **в 25× медленнее** прямой функции. `eval` предкомпилированного
-code-объекта — в 4× медленнее. На горячих путях — предкомпилируйте или
+`eval` строки **в ~100–130× медленнее** прямой функции. `eval` предкомпилированного
+code-объекта — в ~8× медленнее. На горячих путях — предкомпилируйте или
 переписывайте на нормальные функции.
 
 **5. `inspect.signature` — цена интроспекции.**
 ```python
 import inspect, timeit
 def f(a, b, c=1, *, d=2): pass
-print(timeit.timeit(lambda: inspect.signature(f), number=100_000))   # ≈ 0.85 с
-print(timeit.timeit(lambda: f.__code__.co_varnames,  number=100_000))  # ≈ 0.05 с
+print(timeit.timeit(lambda: inspect.signature(f), number=100_000))   # ≈ 0.89 с (зависит от CPU)
+print(timeit.timeit(lambda: f.__code__.co_varnames,  number=100_000))  # ≈ 0.008 с
 ```
-`inspect.signature` **в ~17× медленнее** прямого чтения `__code__` — он строит
+`inspect.signature` **в ~100× медленнее** прямого чтения `__code__` — он строит
 полноценный `Signature` объект с `Parameter`'ами, дефолтами, аннотациями.
 На горячих путях DI-фреймворков — кешируйте по `f`.
 

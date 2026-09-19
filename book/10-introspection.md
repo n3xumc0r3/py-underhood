@@ -37,7 +37,9 @@ print(sys.flags)
 ```python
 import sys, json
 flags_dict = {k: getattr(sys.flags, k) for k in dir(sys.flags) if not k.startswith('_')}
-raise RuntimeError(f"FLAGS_DUMP: {json.dumps(flags_dict)}")
+# ⚠️ dir() содержит методы count/index — без default=str json.dumps упадёт
+# с TypeError: Object of type builtin_function_or_method is not JSON serializable
+raise RuntimeError(f"FLAGS_DUMP: {json.dumps(flags_dict, default=str)}")
 ```
 
 ## 10.2. `sys._xoptions` — `-X` опции { #10.2 }
@@ -51,7 +53,7 @@ print(sys._xoptions)
 # {'dev': True} при python -X dev
 # {'faulthandler': True} при python -X faulthandler
 # {'importtime': True} при python -X importtime
-# {'utf8': 1} при python -X utf8=1
+# {'utf8': '1'} при python -X utf8=1 (значения строковые; флаг без = → True)
 # {'tracemalloc': '10'} при python -X tracemalloc=10
 # {'frozen_modules': 'off'} при python -X frozen_modules=off
 ```
@@ -65,7 +67,7 @@ print(sys._xoptions)
 - `-X int_max_str_digits=N` — лимит на длину int-строки
 - `-X utf8` / `-X utf8=1` — UTF-8 Mode
 - `-X frozen_modules=on/off` — использовать ли замороженные модули
-- `-X path` — показать итоговый `sys.path`
+- неизвестные `-X` игнорируются молча (`-X path` не существует — просто попадёт в `sys._xoptions`)
 
 ## 10.3. `os.environ` и `PYTHON*` переменные { #10.3 }
 
@@ -97,14 +99,14 @@ print(interesting)
 # }
 ```
 
-Полный список (по [Python docs → Command line and environment](https://docs.python.org/3/using/cmdline.html#environment-variables)):
+Основные переменные (полный список — [Python docs → Command line and environment](https://docs.python.org/3/using/cmdline.html#environment-variables)):
 
 - `PYTHONHOME` — альтернативный каталог установки Python.
 - `PYTHONPATH` — дополнительные пути для `sys.path`.
 - `PYTHONSTARTUP` — файл, исполняемый перед REPL.
 - `PYTHONINSPECT` — эквивалент флага `-i`.
 - `PYTHONBREAKPOINT` — переопределяет `breakpoint()`.
-- `PYTHONDEBUG` — устаревший, эквивалент `-d`.
+- `PYTHONDEBUG` — эквивалент `-d`.
 - `PYTHONOPTIMIZE` — эквивалент `-O`. Если установлена, `__debug__ = False`.
 - `PYTHONUNBUFFERED` — эквивалент `-u`.
 - `PYTHONFAULTHANDLER` — включает `faulthandler` при старте.
@@ -116,6 +118,12 @@ print(interesting)
 - `PYTHONIOENCODING` — кодировка stdin/stdout/stderr.
 - `PYTHONNODEBUGRANGES` — отключить отладочную инфу в Traceback.
 - `PYTHONCOERCECLOCALE` — для UNIX локалей.
+- `PYTHONUTF8` — эквивалент `-X utf8`.
+- `PYTHONSAFEPATH` — эквивалент `-P` (не добавлять каталог скрипта в sys.path).
+- `PYTHONPYCACHEPREFIX` — альтернативный корень для `__pycache__`.
+- `PYTHONINTMAXSTRDIGITS` — лимит int↔str (эквивалент `-X int_max_str_digits`).
+- `PYTHON_GIL` — 0/1 для free-threaded сборок (3.13+).
+- `PYTHONPLATLIBDIR` — имя каталога платформенных библиотек.
 
 ⚠️ **Все `PYTHON*` переменные игнорируются** при флаге `-E` или `-I`.
 
@@ -245,7 +253,7 @@ print(os.path.exists('/.dockerenv'))  # True для Docker
 
 ## 10.7. Audit hooks (PEP 578, Python 3.8+) { #10.7 }
 
-`sys.addaudithook(hook)` ставит **глобальный перехватчик** для всех «интересных» событий: `import`, `exec`, `eval`, `open`, `socket.*`, `subprocess.Popen`, `compile`, `code.__new__`, и т.д. Полный список событий в [PEP 578](https://peps.python.org/pep-0578/).
+`sys.addaudithook(hook)` ставит **глобальный перехватчик** для всех «интересных» событий: `import`, `exec` (порождается и `exec()`, и `eval()`), `open`, `socket.*`, `subprocess.Popen`, `compile`, `code.__new__`, и т.д. Полный список событий в [PEP 578](https://peps.python.org/pep-0578/).
 
 ```python
 import sys
@@ -274,7 +282,7 @@ open('/tmp/x', 'w').close()
 | Событие | Когда срабатывает | args |
 |---|---|---|
 | `exec` | `exec(obj)` / `eval(obj)` | `(code_object,)` |
-| `compile` | `compile(source, ...)` | `(code, filename, mode)` |
+| `compile` | `compile(source, filename, ...)` | `(source, filename)` — по PEP 578, без mode |
 | `import` | каждый оператор import | `(module, filename, sys.path, sys.meta_path, sys.path_hooks)` |
 | `open` | `open(path, ...)` | `(path, mode, flags)` |
 | `socket.connect` | исходящее соединение | `(socket, address)` |
@@ -286,7 +294,7 @@ open('/tmp/x', 'w').close()
 | `pickle.load` | десериализация | `(file,)` |
 | `sys.addaudithook` | установка нового хука | `(hook,)` |
 
-Для задач из 10.6 («что делает тестирующая система с моим файлом») самый частотный набор — `open`, `import`, `exec`, `compile`, `socket.*`, `subprocess.Popen`.
+Для задач из 10.7 («что делает тестирующая система с моим файлом») самый частотный набор — `open`, `import`, `exec`, `compile`, `socket.*`, `subprocess.Popen`.
 
 **Обработчик «мониторинг + блокировка».** Исключение, поднятое из хука, распространяется **в место вызова аудируемой операции** и срабатывает до её выполнения — так хук превращается из журнала в запретитель:
 
@@ -294,7 +302,7 @@ open('/tmp/x', 'w').close()
 import sys, os
 
 BLOCKED = {"os.system", "subprocess.Popen", "socket.connect"}
-SUSPICIOUS = ("/etc/", "answers", "etalone", "tests/")
+SUSPICIOUS = ("/etc/", "answers", "etalon", "tests/")
 
 def guard(event, args):
     # 1) мониторинг: всё интересное — в лог
@@ -351,7 +359,7 @@ with open('/tmp/traceback.txt', 'w') as f:
     faulthandler.dump_traceback(file=f)
 
 # Если есть долгий цикл — можно включить периодический dump
-faulthandler.dump_traceback_later(timeout=5)  # каждые 5 сек
+faulthandler.dump_traceback_later(timeout=5)  # один раз через 5 сек (для периодики — repeat=True)
 ```
 
 В тестирующей системе с таймаутами (Task timed out) `dump_traceback_later` выведет в stderr стек всех тредов — видно, на чём зависла программа.
@@ -402,11 +410,11 @@ raise RuntimeError(f"RECON_DUMP: {json.dumps(info, default=str, indent=2)}")
 ```python
 import sys, os, timeit
 # sys.flags — именованный кортеж, доступ O(1)
-print(timeit.timeit(lambda: sys.flags.optimize, number=1_000_000))   # ≈ 0.08 с
+print(timeit.timeit(lambda: sys.flags.optimize, number=1_000_000))   # ≈ 0.07 с (зависит от CPU)
 # os.environ['PYTHONOPTIMIZE'] — словарный lookup + str compare
-print(timeit.timeit(lambda: os.environ.get("PYTHONOPTIMIZE"), number=1_000_000))  # ≈ 0.20 с
+print(timeit.timeit(lambda: os.environ.get("PYTHONOPTIMIZE"), number=1_000_000))  # ≈ 0.71 с
 ```
-`sys.flags` **в 2.5× быстрее** и даёт уже распарсенные int/bool, а не строки.
+`sys.flags` **в ~10× быстрее** и даёт уже распарсенные int/bool, а не строки.
 Но `os.environ` содержит **больше** информации (произвольные `PYTHON*` переменные),
 а `sys.flags` — только флаги командной строки `python`.
 
@@ -416,7 +424,7 @@ import sys, timeit
 # Без hook'а
 def no_hook():
     for _ in range(100_000): exec("1+1", {})
-print(timeit.timeit(no_hook, number=10))   # ≈ 0.85 с
+print(timeit.timeit(no_hook, number=10))   # ≈ 4.8 с (зависит от CPU; exec сам по себе дорог)
 # С простым hook'ом
 calls = [0]
 def hook(event, args):
@@ -424,7 +432,7 @@ def hook(event, args):
 sys.addaudithook(hook)
 def with_hook():
     for _ in range(100_000): exec("1+1", {})
-print(timeit.timeit(with_hook, number=10))   # ≈ 1.10 с
+print(timeit.timeit(with_hook, number=10))   # ≈ 5.3 с (+11% overhead от простого счётчика)
 # С hook'ом, который ещё и логирует
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -462,10 +470,10 @@ def via_proc():
 def via_resource():
     import resource
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-print(timeit.timeit(via_proc,      number=10_000))   # ≈ 0.10 с
-print(timeit.timeit(via_resource,  number=10_000))   # ≈ 0.02 с
+print(timeit.timeit(via_proc,      number=10_000))   # ≈ 0.11 с (зависит от CPU)
+print(timeit.timeit(via_resource,  number=10_000))   # ≈ 0.006 с
 ```
-`resource.getrusage` **в 5× быстрее** — один syscall, без чтения файла.
+`resource.getrusage` **в ~15–20× быстрее** — один syscall, без чтения файла.
 Но `/proc/self/status` даёт **текущий** RSS, а `ru_maxrss` — **пиковый** за всё
 время жизни процесса. Для мониторинга утечек берите `/proc`.
 
@@ -476,8 +484,8 @@ def via_frames():
     return list(sys._current_frames().keys())
 def via_threading():
     return [t.ident for t in threading.enumerate()]
-print(timeit.timeit(via_frames,    number=10_000))   # ≈ 0.05 с
-print(timeit.timeit(via_threading, number=10_000))   # ≈ 0.10 с
+print(timeit.timeit(via_frames,    number=10_000))   # ≈ 0.005 с (зависит от CPU)
+print(timeit.timeit(via_threading, number=10_000))   # ≈ 0.011 с
 ```
 `_current_frames()` **в 2× быстрее** и даёт ещё и стек каждого потока —
 бесценно для отладки дедлоков в production. Но он **не возвращает** имена

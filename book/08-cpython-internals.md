@@ -11,7 +11,7 @@ print(a is b)   # True — один ID в памяти
 
 c = "hello world"   # пробел — не валидный идентификатор
 d = "hello world"
-print(c is d)   # False — два разных объекта (по умолчанию)
+print(c is d)   # False в REPL на отдельных строках; в скрипте — True (один код-объект дедуплицирует литералы)
 
 # А вот runtime-конкатенация — НЕ интернируется автоматически:
 # ⚠️ ВАЖНО: "hello" + "_" + "world" — это НЕ рантайм-конкатенация!
@@ -65,10 +65,10 @@ print(x is y)   # True
 # Вне кэша:
 a = 257
 b = 257
-print(a is b)   # False (при разных путях создания)
+print(a is b)   # True! (скрипт: константы одного код-объекта дедуплицируются всегда)
 ```
 
-⚠️ **Оптимизация компилятора**: если `a = 257; b = 257` в одной функции или одном модуле, CPython может **склеить** их через constant folding — тогда `a is b` будет `True`. Это не гарантировано и зависит от контекста.
+⚠️ **Дедупликация констант**: если `a = 257` и `b = 257` компилируются в ОДНОМ кодовом объекте (функция, модуль или одна строка REPL), `a is b` — `True` всегда и гарантированно. `False` получите только при раздельной компиляции: две отдельные строки в REPL (`>>> a = 257`, `>>> b = 257`) или pickle-десериализация ниже.
 
 **Проверка с разными путями создания (для гарантии разных объектов):**
 
@@ -84,7 +84,7 @@ b = pickle.loads(pickle.dumps(256))
 print(a is b)   # True — из кэша
 ```
 
-`-5` и `256` — границы кэша. Определены в исходниках CPython как `NSMALLNEGINTS = 5` и `NSMALLPOSINTS = 257` (256 + 1 для нуля). Ищите в `Objects/longobject.c` и `Python/pycore_interp.h`.
+`-5` и `256` — границы кэша. Определены в исходниках CPython как `NSMALLNEGINTS = 5` и `NSMALLPOSINTS = 257` (256 + 1 для нуля). Ищите в `Objects/longobject.c` и `Include/internal/pycore_global_objects.h` (с 3.11 малые инты — глобальные immortal-объекты `_Py_small_ints`; в 3.8–3.10 жили в `pycore_interp.h`).
 
 ## 8.3. Замыкания и `__closure__`/cell objects { #8.3 }
 
@@ -136,7 +136,7 @@ print(outer().__code__.co_freevars)   # ('x',) — x взят из внешне�
 
 > **→ см. также:** Часть X (10.7) — Audit hooks (PEP 578) как более безопасный способ мониторинга вызовов; Часть VII (7.11) — `inspect.stack()` как высокоуровневая обёртка над фреймами.
 
-⚠️ **`sys._getframe` — для отладки.** Для production-кода в Python 3.12+ предпочтительнее `sys.monitoring` (PEP 669) — низкооверхедный трейсинг, заменяющий `sys.settrace`/`sys.setprofile`. `sys.monitoring` не создаёт фреймы при каждом вызове, а регистрирует event-хуки для конкретных событий (CALL, PY_START, PY_RESUME, PY_RETURN, PY_UNWIND), снижая накладные расходы в 10–20× по сравнению с `settrace`. `_getframe` остаётся полезным для отладки и интроспекции, но не для production-мониторинга.
+⚠️ **`sys._getframe` — для отладки.** Для production-кода в Python 3.12+ предпочтительнее `sys.monitoring` (PEP 669) — низкооверхедный трейсинг, заменяющий `sys.settrace`/`sys.setprofile`. `sys.monitoring` не создаёт фреймы при каждом вызове, а регистрирует event-хуки для конкретных событий (CALL, PY_START, PY_RESUME, PY_RETURN, PY_UNWIND); накладные расходы при неиспользуемых событиях — на порядки ниже, чем у `settrace` (точную экономию меряйте на своём workload). `_getframe` остаётся полезным для отладки и интроспекции, но не для production-мониторинга.
 
 `sys._getframe(depth=0)` возвращает фрейм стека. `depth=0` — текущий, `depth=1` — вызвавший, и т.д.
 
@@ -250,7 +250,7 @@ gc.set_threshold(1000, 15, 15)
 
 # Вручную запустить
 gc.collect()              # все поколения
-gc.collect(2)             # только поколение 2 (старые объекты)
+gc.collect(2)             # полная сборка (как и без аргумента; прогон: находит свежий цикл в старом поколении); только поколение 0 — gc.collect(0)
 
 # Кто ссылается на объект
 obj = [1, 2, 3]
@@ -366,7 +366,7 @@ class Button:
 ⚠️ **Скрытые проблемы с паттерном через `__class__`**:
 
 - `isinstance(button, IdleState)` вернёт `True` после `__class__ = IdleState`, хотя `Button` не наследует `IdleState`. Это нарушает инварианты типов, mypy/pyright не знают об этом и могут дать неверные подсказки.
-- Если `IdleState` и `ActiveState` имеют разные `__slots__` — смена `__class__` упадёт с `TypeError: __class__ assignment only supported for heap types or ModuleType subclasses` (или layout conflict).
+- Если `IdleState` и `ActiveState` имеют разные `__slots__` — смена `__class__` упадёт с `TypeError: __class__ assignment only supported for mutable types or ModuleType subclasses`; при несовпадении layout — `TypeError: __class__ assignment: 'ActiveState' object layout differs from 'IdleState'` (обе ошибки сняты на 3.12).
 - `pickle`/`copy`/`repr` таких объектов могут вести себя неожиданно — они смотрят на `type(obj)`, который теперь `IdleState`, а `__init__` у `Button` ожидает другие аргументы.
 - В реальном коде предпочитают **композицию** (`self.state = IdleState()` + `self.state.click(self)`) — она не ломает систему типов и работает с любым layout.
 
@@ -385,12 +385,12 @@ dis.dis(f)
 #  3           2 LOAD_FAST 0 (x)
 #              4 LOAD_CONST 1 (2)
 #              6 BINARY_OP 5 (*)
-#              8 RETURN_VALUE
+#             10 RETURN_VALUE        ← offset 10: BINARY_OP несёт 1 CACHE-слово
 ```
 
 Полезно, чтобы понять:
 
-- **Почему `a, b = b, a` быстрее, чем `temp = a; a = b; b = temp`** — `a, b = b, a` компилируется в последовательность `LOAD_FAST` + `LOAD_FAST` + `STORE_FAST` + `STORE_FAST` (на Python 3.11+; ранее — через `ROT_TWO`, который был удалён).
+- **Почему `a, b = b, a` быстрее, чем `temp = a; a = b; b = temp`** — в функции `a, b = b, a` компилируется в `LOAD_FAST` + `LOAD_FAST` + `STORE_FAST` + `STORE_FAST` (порядок STORE переставлен; на уровне модуля — `LOAD_NAME` ×2 + `SWAP 2` + `STORE_NAME` ×2; `ROT_TWO` удалён в 3.11).
 - **Почему `is` быстрее `==`** — `is` это `IS_OP` (сравнение указателей), а `==` вызывает `__eq__` через `COMPARE_OP`.
 - **Что Python реально делает** с вашим кодом.
 
@@ -405,7 +405,7 @@ dis.dis("x = 1; y = x + 2")
 
 # Показать байт-код без красивого форматирования
 print(f.__code__.co_code.hex())
-# 6401... — шестнадцатеричное представление
+# 97007c0064017a0500005300 — hex (RESUME; LOAD_FAST; LOAD_CONST; BINARY_OP с CACHE; RETURN_VALUE)
 
 # Получить программно — список инструкций
 for instr in dis.Bytecode(f):
@@ -561,7 +561,7 @@ asyncio.run(main())
 
 ```python
 ctx = contextvars.copy_context()   # сделать копию текущего контекста
-ctx.run(some_function, args)        # выполнить функцию с этой копией
+ctx.run(some_function, *args, **kwargs)   # выполнить функцию с этой копией (args распаковываются)
 ```
 
 Это используется во всех современных async-фреймворках: FastAPI, Starlette, aiohttp — для проброса `request_id`/`user_id` без явных аргументов.
@@ -580,6 +580,9 @@ p = Path.home() / 'docs'                # /home/user/docs (платформен�
 p = Path.cwd()                          # текущий каталог
 p = Path(__file__)                       # путь к этому скрипту
 p = Path('/tmp') / 'sub' / 'file.txt'   # /tmp/sub/file.txt
+
+# ⚠️ Выше p перезаписывался 6 раз — ниже разобран первый вариант:
+p = Path('/home/user/docs/file.txt')
 
 # Чтение
 print(p.name)           # 'file.txt'
@@ -830,6 +833,7 @@ print(len(cache))   # 100
 
 # Удаляем все сильные ссылки
 images.clear()
+del img   # ⚠️ переменная цикла держит последний Image — без del будет len(cache) == 1
 
 import gc; gc.collect()
 print(len(cache))   # 0 — все элементы удалены из cache автоматически
@@ -854,7 +858,7 @@ del obj
 # print(p.name)   # ReferenceError — объект удалён
 ```
 
-⚠️ Прокси «прозрачный» для доступа к атрибутам и для `isinstance` — `isinstance(p, Big)` вернёт `True` (прокси делегирует `__class__` к целевому объекту). Но сам `type(p)` — это `<class 'weakproxy'>`, а не `Big`. Поэтому проверка через `type(p) is Big` или `type(p) == Big` уже **даст False**. Если объект удалён — любое обращение к прокси поднимет `ReferenceError`.
+⚠️ Прокси «прозрачный» для доступа к атрибутам и для `isinstance` — `isinstance(p, Big)` вернёт `True` (прокси делегирует `__class__` к целевому объекту). Но сам `type(p)` — это `<class 'weakref.ProxyType'>`, а не `Big`. Поэтому проверка через `type(p) is Big` или `type(p) == Big` уже **даст False**. Если объект удалён — любое обращение к прокси поднимет `ReferenceError`.
 
 ### `weakref.finalize` — детерминированный финализатор { #8.14-weakreffinalize }
 
@@ -872,10 +876,10 @@ def cleanup(file_path, lock_id):
 r = Resource()
 finalizer = weakref.finalize(r, cleanup, '/tmp/data.bin', 42)
 
-del r   # "Cleaning up /tmp/data.bin (lock 42)"
+# Явный вызов ДО удаления:
+finalizer()   # "Cleaning up /tmp/data.bin (lock 42)"
 
-# Можно явно вызвать до удаления:
-finalizer()   # вызовет cleanup
+del r   # финализатор уже сработал — повторный вызов no-op
 # Также finalizer.detach() — отключить, без вызова
 # finalizer.peek() — посмотреть, что было бы вызвано
 ```
@@ -902,7 +906,9 @@ class Buggy:
     def __del__(self):
         raise ValueError("ups")
 
-Buggy()   # при GC: "UNRAISABLE in <Buggy object>: ValueError: ups"
+Buggy()   # при уничтожении (по refcount — сразу на конце строки):
+# "UNRAISABLE in <function Buggy.__del__ at 0x...>: ValueError: ups"
+# (args.object — это bound __del__, не сам экземпляр)
 ```
 
 Зачем: по умолчанию Python печатает такие исключения в stderr, что засоряет логи. Через hook можно их подавить, залогировать, или превратить в alert.
@@ -930,32 +936,39 @@ for thread_id, frame in sys._current_frames().items():
 
 ### Бенчмарки к Части VIII { #8.15-benchmarki }
 
-**1. `sys.intern` — ускорение lookup'а в dict по строковым ключам.**
+**1. `sys.intern` — влияет ли на скорость lookup'а в dict по строковым ключам.**
 ```python
 import sys, timeit
-# Без intern — 10 000 разных строк-ключей
+# 10 000 строк-ключей
 keys = [f"key_{i}" for i in range(10_000)]
 d = {k: i for i, k in enumerate(keys)}
-# С intern — те же строки, но интернированы
 d_intern = {sys.intern(k): i for i, k in enumerate(keys)}
-lookup = [sys.intern(k) for k in keys]   # и ключи lookup'а тоже интернированы
+# ⚠️ Честный тест: ключи для lookup — НОВЫЕ объекты с теми же значениями.
+# Если lookup идёт по тем же объектам, что лежат в dict (как в наивном
+# варианте бенчмарка), dict и так срабатывает по identity — intern ни при чём.
+lookup_new = [(k + "!")[:-1] for k in keys]                    # новые равные строки
+lookup_new_intern = [sys.intern((k + "!")[:-1]) for k in keys]
 
 def lookup_plain():
-    for k in keys: _ = d[k]
+    for k in lookup_new: _ = d[k]
 def lookup_intern():
-    for k in lookup: _ = d_intern[k]
-print(timeit.timeit(lookup_plain,  number=10))   # ≈ 0.45 с
-print(timeit.timeit(lookup_intern, number=10))   # ≈ 0.30 с
+    for k in lookup_new_intern: _ = d_intern[k]
+print(timeit.timeit(lookup_plain,  number=10))   # ≈ 0.0125 с (зависит от CPU)
+print(timeit.timeit(lookup_intern, number=10))   # ≈ 0.0064 с — без выигрыша, даже чуть медленнее
 ```
-Интернирование ключей даёт **~30–40% ускорения** lookup'а — сравнение строк
-сводится к сравнению указателей (`is`), а не побайтовому сравнению.
+На 3.12 честный замер показывает **нулевую или отрицательную разницу**:
+intern не ускоряет dict-lookup — быстрый путь по hash/length уже встроен,
+а identity-сравнение у dict и так первое. Реальные выгоды `sys.intern` —
+память (дедупликация равных строк) и быстрые `is`-сравнения в вашем коде,
+а не скорость словарей.
 
 **2. Кэш малых чисел (-5..256) — реальные последствия.**
 ```python
 a, b = 256, 256
 print(a is b)   # True — оба из кэша
 c, d = 257, 257
-print(c is d)   # False — разные объекты (в CPython 3.12 в REPL)
+print(c is d)   # True в скрипте (константы одного код-объекта дедуплицируются);
+# False — только на двух отдельных строках REPL
 ```
 **На производительность это не влияет** — арифметика работает одинаково.
 Влияет на **`is`-сравнения**: никогда не сравнивайте целые через `is`,
@@ -974,7 +987,7 @@ class Slotted:
 # Размер одного экземпляра (честный подсчёт через sys.getsizeof):
 p = Plain(); s = Slotted()
 print(f"Plain:   {sys.getsizeof(p) + sys.getsizeof(p.__dict__)} bytes")  # 344 (48 obj + 296 __dict__)
-print(f"Slotted: {sys.getsizeof(s)} bytes")                                # 56 (нет __dict__)
+print(f"Slotted: {sys.getsizeof(s)} bytes")                                # 48 (нет __dict__)
 
 # 1M объектов (tracemalloc недооценивает __dict__, но порядок виден):
 tracemalloc.start()
@@ -983,11 +996,11 @@ _, peak1 = tracemalloc.get_traced_memory()
 del objs
 objs = [Slotted() for _ in range(1_000_000)]
 _, peak2 = tracemalloc.get_traced_memory()
-print(f"Plain 1M:   {peak1 / 1e6:.1f} MB (tracemalloc)")   # ~128 MB (не считает __dict__ отдельно)
-print(f"Slotted 1M: {peak2 / 1e6:.1f} MB (tracemalloc)")   # ~96 MB
-# Реальная экономия через sys.getsizeof: 344 MB vs 56 MB — 6× разница
+print(f"Plain 1M:   {peak1 / 1e6:.1f} MB (tracemalloc)")   # ~88.5 MB — на 3.12 __dict__ не материализуется
+print(f"Slotted 1M: {peak2 / 1e6:.1f} MB (tracemalloc)")   # ~88.5 MB — разницы tracemalloc не видит
+# Честный per-instance через getsizeof: 344 vs 48 байт — ~7.2×
 ```
-Экономия **~6×** на 1M объектов (344 байта → 56 байта на экземпляр) — уходит `__dict__` (хеш-таблица ~296 байт на маленький dict) и накладные расходы на его поддержку. `tracemalloc` недооценивает Plain (не считает `__dict__`-таблицы как отдельные аллокации), но `sys.getsizeof(p) + sys.getsizeof(p.__dict__)` даёт честную картину.
+Экономия **~7×** на экземпляр по `sys.getsizeof` (344 байта → 48) — уходит `__dict__` (хеш-таблица ~296 байт). Нюанс 3.12: `tracemalloc` на реальном миллионе показывает одинаковые ~88.5 MB — instance-`__dict__` хранится inline (in-object values) и не материализуется, пока к нему не обратятся; честная per-instance картина — через `getsizeof(p) + getsizeof(p.__dict__)`, как выше.
 
 **4. `weakref.WeakValueDictionary` vs обычный `dict` — цена слабых ссылок.**
 ```python
@@ -1001,10 +1014,10 @@ o = Obj()
 strong["k"] = o
 weak["k"] = o
 # Доступ
-print(timeit.timeit(lambda: strong["k"], number=1_000_000))   # ≈ 0.10 с
-print(timeit.timeit(lambda: weak["k"],  number=1_000_000))   # ≈ 0.35 с
+print(timeit.timeit(lambda: strong["k"], number=1_000_000))   # ≈ 0.06 с (зависит от CPU)
+print(timeit.timeit(lambda: weak["k"],  number=1_000_000))   # ≈ 0.14 с
 ```
-WeakValueDictionary **в ~3× медленнее** на доступ — каждый lookup проверяет,
+WeakValueDictionary **в ~2–3× медленнее** на доступ — каждый lookup проверяет,
 жива ли ссылка, и dereference'ит её. Используйте только когда реально нужна
 автоматическая очистка (кеш, observers).
 
@@ -1019,10 +1032,10 @@ def lru_access():
     for _ in range(1_000_000):
         k = 0  # всегда один и тот же ключ
         od.move_to_end(k)
-# ≈ 0.45 с на 1M операций
+# ≈ 0.05 с на 1M операций (зависит от CPU)
 ```
-`OrderedDict`-based LRU — **~2.2M операций/сек** на одном потоке.
-Для сравнения, `functools.lru_cache` (C-реализация) — ~30M операций/сек.
+`OrderedDict`-based LRU — **~20M операций/сек** на одном потоке.
+Для сравнения, `functools.lru_cache` (C-реализация) — того же порядка, но с готовой политикой вытеснения.
 На горячих путях берите `lru_cache`; кастомный LRU через `OrderedDict` —
 когда нужен кастомный eviction policy или ограничения не по размеру, а по памяти.
 
