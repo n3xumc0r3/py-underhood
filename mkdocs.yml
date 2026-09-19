@@ -137,6 +137,7 @@ nav:
   - 'Часть XIII. От .py к байт-коду: компиляция и виртуальная машина': 13-bytecode-vm.md
   - 'Часть XIV. Не только CPython: кто ещё исполняет Python': 14-implementations.md
   - 'Часть XV. Тестирование: от assert до тестов самого CPython': 15-testing.md
+  - 'Часть XVI. Механика импорта: от import x до исполняемого модуля': 16-import.md
   - 'Приложения':
       - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
       - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md
