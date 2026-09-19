@@ -80,6 +80,25 @@ loop.run_until_complete(main())
 loop.close()
 ```
 
+**Debug-режим asyncio** — ловит блокирующий код и протечки:
+
+```python
+asyncio.run(main(), debug=True)   # параметр debug (3.12+; там же loop_factory)
+```
+
+```bash
+$ python3 -X dev script.py                # Development Mode включает asyncio debug
+$ PYTHONASYNCIODEBUG=1 python3 script.py  # то же самое прицельно
+```
+
+В debug-режиме asyncio логирует шаг цикла, дольше 100 мс (`loop.slow_callback_duration`) — и это главный индикатор заблокированного event loop:
+
+```text
+Executing <Task ... coro=<main() ...>> took 0.200 seconds
+```
+
+Так выглядит `time.sleep(0.2)` внутри корутины (блокирует весь loop) — замените на `await asyncio.sleep(0.2)`. Дополнительно debug-режим предупреждает о незакрытых транспортах/сессиях, ругается на коллбэки из чужого потока и запоминает место создания корутины для трейсбеков. Без смены запуска — `loop.set_debug(True)` на живом loop; порог «медленности» настраивается `loop.slow_callback_duration = 0.05`.
+
 ## 4.4. `asyncio.gather` — конкурентный запуск { #4.4 }
 
 ```python

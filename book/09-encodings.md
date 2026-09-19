@@ -22,6 +22,22 @@
 
 ⚠️ **UTF-8 BOM**: если файл начинается с BOM (`\xef\xbb\xbf`), CPython автоматически определяет UTF-8 без директивы. Если BOM есть, но объявлена другая кодировка — `SyntaxError: encoding problem: cp1251 with BOM`.
 
+**Поймать «забыл `encoding=`»** — отдельная от парсера проблема: рантайм-`open()` без явного `encoding` берёт локаль ОС. Флаг `-X warn_default_encoding` (или `PYTHONWARNDEFAULTENCODING=1`, поле `warn_default_encoding` в `sys.flags`, PEP 597) включает `EncodingWarning` на каждый такой вызов:
+
+```bash
+$ python3 -X warn_default_encoding -c "open('data.txt', 'w')"
+<string>:1: EncodingWarning: 'encoding' argument not specified
+```
+
+В связке с `-W error` (см. 11.6) предупреждение становится ошибкой — мгновенный линтер для I/O-кода:
+
+```bash
+$ python3 -X warn_default_encoding -W error::EncodingWarning -c "open('data.txt', 'w')"
+Traceback (most recent call last):
+  ...
+EncodingWarning: 'encoding' argument not specified
+```
+
 ## 9.2. Почему `rot_13` падает с `SyntaxError` { #9.2 }
 
 ```python

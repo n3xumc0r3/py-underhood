@@ -25,6 +25,9 @@ print(sys.flags)
 | `ignore_environment` | `-E` | Игнорировать переменные окружения `PYTHON*`. |
 | `isolated` | `-I` | `-E + -s + no user site`. Максимальная изоляция. |
 | `verbose` | `-v` | Подробный лог импорта каждого модуля в stderr. |
+| `debug` | `-d` | Отладочный вывод парсера. С PEG-парсером (3.9+) практически ничего не печатает — legacy-поле. |
+| `inspect` / `interactive` | `-i` | Оба поля взводятся флагом `-i`: интерактивная сессия после выполнения скрипта/stdin (проверено: даже когда stdin — пайп). |
+| `quiet` | `-q` | REPL без баннера (версия/копирайт). |
 | `bytes_warning` | `-b`, `-bb` | Предупреждение/ошибка при сравнении `bytes` и `str`. |
 | `hash_randomization` | `-R` | Рандомизация `PYTHONHASHSEED`. По умолчанию 1. |
 | `dev_mode` | `-X dev` | Python Development Mode. |
@@ -67,6 +70,19 @@ print(sys._xoptions)
 - `-X int_max_str_digits=N` — лимит на длину int-строки
 - `-X utf8` / `-X utf8=1` — UTF-8 Mode
 - `-X frozen_modules=on/off` — использовать ли замороженные модули
+- `-X pycache_prefix=PATH` — альтернативный корень `__pycache__` (эквивалент `PYTHONPYCACHEPREFIX`)
+- `-X no_debug_ranges` — вырезать точные позиции (колонки/концы) из traceback — короче сообщения (эквивалент `PYTHONNODEBUGRANGES`)
+- `-X warn_default_encoding` — `EncodingWarning` на каждый `open()` без явного `encoding` (PEP 597, эквивалент `PYTHONWARNDEFAULTENCODING`)
+- `-X perf` — поддержка Linux perf-профайлера (3.12+, `PYTHONPERFSUPPORT`)
+- `-X perf_jit` — то же + DWARF-аннотации, чтобы perf показывал Python-вызовы через JIT (3.13+, `PYTHON_PERF_JIT_SUPPORT`)
+- `-X importtime=2` — дополнительно помечать уже загруженные модули словом `cached` в логе импортов (3.13+)
+- `-X cpu_count=N` — подменить `os.cpu_count()` / `os.process_cpu_count()` / `multiprocessing.cpu_count()` (3.13+, эквивалент `PYTHON_CPU_COUNT`)
+- `-X gil=0/1` — принудительно включить/выключить GIL в free-threaded сборках (3.13+; env `PYTHON_GIL`)
+- `-X presite=package.module` — импортировать модуль до `site` и до появления `__main__` (3.13+, env `PYTHON_PRESITE`)
+- `-X showrefcount` — печатать суммарный refcount и число блоков памяти при выходе; только debug-сборки (`--with-pydebug`)
+- `-X disable_remote_debug` — выключить remote-отладку PEP 768 (подключение кода к работающему процессу) (3.14+, env `PYTHON_DISABLE_REMOTE_DEBUG`)
+- 3.14+: `-X thread_inherit_context=0/1`, `-X context_aware_warnings=0/1`, `-X tlbc=0/1` — наследование contextvars в потоках, предупреждения с учётом контекста, счётчики tier-2 байт-кода (экспериментальные)
+- историческое: `-X showalloccount` удалена в 3.9, `-X oldparser` — в 3.10 (сейчас просто игнорируются)
 - неизвестные `-X` игнорируются молча (`-X path` не существует — просто попадёт в `sys._xoptions`)
 
 ## 10.3. `os.environ` и `PYTHON*` переменные { #10.3 }
@@ -124,6 +140,30 @@ print(interesting)
 - `PYTHONINTMAXSTRDIGITS` — лимит int↔str (эквивалент `-X int_max_str_digits`).
 - `PYTHON_GIL` — 0/1 для free-threaded сборок (3.13+).
 - `PYTHONPLATLIBDIR` — имя каталога платформенных библиотек.
+- `PYTHONPROFILEIMPORTTIME` — эквивалент `-X importtime`.
+- `PYTHONDEVMODE` — эквивалент `-X dev` (Development Mode).
+- `PYTHON_FROZEN_MODULES` — эквивалент `-X frozen_modules=on/off`.
+- `PYTHONMALLOCSTATS` — печатать статистику pymalloc в stderr при выходе (работает в паре с `PYTHONMALLOC`).
+- `PYTHONWARNDEFAULTENCODING` — эквивалент `-X warn_default_encoding`: `EncodingWarning` на `open()` без явного `encoding` (PEP 597; см. 9.1).
+- `PYTHONUSERBASE` — база user-site вместо `~/.local` (см. 11.10).
+- `PYTHONPERFSUPPORT` / `PYTHON_PERF_JIT_SUPPORT` — эквиваленты `-X perf` / `-X perf_jit` (профилирование Linux perf).
+- `PYTHONCASEOK` — только Windows: импортировать модули без учёта регистра имени файла (на POSIX регистр всегда значим).
+- `PYTHONEXECUTABLE` — только macOS/framework-сборки: подменить значение `sys.executable` при старте.
+- `PYTHONLEGACYWINDOWSFSENCODING` / `PYTHONLEGACYWINDOWSSTDIO` — вернуть legacy-кодировки Windows: mbcs для ФС и старый консольный I/O вместо UTF-8 (до 3.6 было так).
+- `PYTHONDUMPREFS` / `PYTHONDUMPREFSFILE` — при выходе выгрузить все живые объекты с refcount (в stderr или файл); только debug-сборки (`--with-pydebug`).
+
+**Только 3.13+/3.14+** (проверяйте `whatsnew` своего релиза):
+
+- `PYTHON_CPU_COUNT` — эквивалент `-X cpu_count=N`: подмена `os.cpu_count()`.
+- `PYTHON_HISTORY` — путь к файлу истории REPL (по умолчанию `~/.python_history`).
+- `PYTHON_COLORS` — управление цветами сообщений/трейсбеков (авто/always/never).
+- `PYTHON_BASIC_REPL` — `1` возвращает до-3.13 REPL без `_pyrepl` (см. 14.4).
+- `PYTHON_PRESITE` — эквивалент `-X presite=package.module`.
+- `PYTHON_JIT` — 0/1 для экспериментального JIT (работает только если интерпретатор собран с `--enable-experimental-jit`).
+- `PYTHON_TLBC` — счётчики tier-2 байт-кода (микро-телеметрия специализированных инструкций, 3.14+).
+- `PYTHON_THREAD_INHERIT_CONTEXT` — наследование `contextvars` в потоках (3.14+).
+- `PYTHON_CONTEXT_AWARE_WARNINGS` — предупреждения с учётом contextvar-контекста (3.14+).
+- `PYTHON_DISABLE_REMOTE_DEBUG` — эквивалент `-X disable_remote_debug` (PEP 768, 3.14+).
 
 ⚠️ **Все `PYTHON*` переменные игнорируются** при флаге `-E` или `-I`.
 

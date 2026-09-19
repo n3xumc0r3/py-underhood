@@ -343,6 +343,26 @@ warnings.simplefilter("error", DeprecationWarning)   # DeprecationWarning под
 warnings.simplefilter("once")
 ```
 
+**Флаг `-W` и `PYTHONWARNINGS` — те же фильтры снаружи процесса** (не меняя код):
+
+```bash
+$ python3 -W error::DeprecationWarning script.py    # категория → исключение
+$ python3 -W ignore::UserWarning script.py          # заглушить категорию
+$ python3 -W error::ResourceWarning -W once::SyntaxWarning script.py   # фильтров может быть несколько
+$ PYTHONWARNINGS="ignore::DeprecationWarning" python3 script.py        # то же через окружение
+```
+
+Формат записи — `action::category::module::lineno` — в точности аргументы `warnings.filterwarnings`. Фильтры применяются по порядку, **последний совпавший побеждает**, поэтому `-W` перекрывает `PYTHONWARNINGS` (его фильтры добавляются позже):
+
+```bash
+$ PYTHONWARNINGS=ignore python3 -W error::DeprecationWarning -c "import warnings; warnings.warn('old', DeprecationWarning)"
+Traceback (most recent call last):
+  ...
+DeprecationWarning: old
+```
+
+Комбо `-X warn_default_encoding -W error::EncodingWarning` превращает «забыл `encoding=`» в ошибку старта (см. 9.1) — жёсткий линтер для I/O-кода.
+
 **Свои категории:**
 
 ```python
@@ -2589,6 +2609,18 @@ python3 -m compileall src/      # скомпилировать все .py в .py
 
 ⚠️ `python3 -m pip` предпочтительнее `pip` напрямую — гарантирует, что pip относится к **тому же** интерпретатору, которым запущен. `pip` может указывать на другой Python (если в `PATH` несколько версий).
 
+**Под капотом `python -m` — модуль `runpy`:** `runpy.run_module("http.server", run_name="__main__")` выполняет модуль как `__main__` (не импортируя его под обычным именем — поэтому срабатывает `if __name__ == "__main__":`), а `runpy.run_path("file.py", run_name="__main__")` — то же для произвольного файла. Для пакетов `python -m pkg` запускает `pkg/__main__.py`.
+
+Семантика `sys.argv[0]` зависит от способа запуска (аргументы после скрипта/`-m`/`-c` попадают в `sys.argv[1:]`):
+
+```bash
+$ python3 script.py        # argv[0] = 'script.py' — как набрано в командной строке
+$ python3 /tmp/script.py   # argv[0] = '/tmp/script.py'
+$ python3 -c "..."         # argv[0] = '-c'
+$ python3 -m modname       # argv[0] = полный путь к найденному модулю (…/modname.py)
+$ echo "..." | python3     # argv[0] = '-' — код из stdin (явная форма: python3 -)
+```
+
 ### Сводная таблица: флаги запуска Python { #11.31-svodnaya }
 
 | Флаг | Что делает | Когда использовать |
@@ -2605,6 +2637,20 @@ python3 -m compileall src/      # скомпилировать все .py в .py
 | `python3 -u` | unbuffered stdout/stderr | логи в реальном времени, CI/CD |
 | `python3 -B` | не писать `.pyc` файлы | чистота директории, Docker |
 | `python3 -X utf8` | принудительный UTF-8 mode | кроссплатформенность |
+| `python3 -b` | `BytesWarning` при сравнениях `bytes`↔`str` (`-bb` — сразу исключение) | ловим типовые bytes/str-баги |
+| `python3 -d` | отладочный вывод парсера (`PYTHONDEBUG`) | с PEG-парсером (3.9+) почти молчит |
+| `python3 -I` | изолированный режим: `-E` + `-s` + без каталога скрипта в `sys.path` | максимальная изоляция, security |
+| `python3 -P` | не добавлять каталог скрипта в `sys.path` (3.11+) | защита от затенения stdlib импортов |
+| `python3 -R` | принудительная рандомизация `hash()` | проверять независимость от порядка хешей |
+| `python3 -q` | REPL без баннера версии/копирайта | тихий старт сессии (в т.ч. после `-i`) |
+| `python3 -V` / `-VV` | версия; `-VV` — ещё сборка и компилятор | скрипты-обёртки, CI-диагностика |
+| `python3 -W <фильтр>` | фильтры `warnings` из CLI (`action::category`, см. 11.6) | `-W error` в CI — предупреждения как ошибки |
+| `python3 -x script.py` | пропустить первую строку скрипта | не-Python шапка (исторический shebang-хак) |
+| `python3 -` | читать код из stdin (`argv[0] = '-'`) | one-liners из пайпов |
+| `python3 -X importtime` | лог импортов с таймингами в stderr | искать медленные импорты |
+| `python3 -X dev` | Development Mode: строже warnings/asyncio/ресурсы | локальная разработка, CI |
+| `python3 -X perf` | поддержка Linux perf-профайлера (3.12+) | профилирование средствами ОС |
+| `python3 --check-hash-based-pycs always\|default\|never` | режим проверки hash-based pyc (см. 13.2) | деплой без надёжного mtime |
 
 ### Бенчмарки к Части XI { #11.31-benchmarki }
 
