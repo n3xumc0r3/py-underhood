@@ -164,7 +164,7 @@ def cleanup(resource: SupportsClose) -> None:
 
 cleanup(FileHandle())   # работает — у FileHandle есть close()
 cleanup(open('x.txt'))   # работает — у file есть close()
-cleanup([1, 2, 3])       # mypy ошибётся — у list нет close()
+cleanup([1, 2, 3])       # mypy ошибётся, а в runtime — AttributeError: у list нет close()
 ```
 
 **Runtime checkable:**
@@ -208,7 +208,7 @@ print(D.__mro__)
 print(D().f())   # "B" — D не имеет f, ищем в B — есть
 ```
 
-Порядок: `D → B → A → C → object` (проверьте: `print(D.__mro__)`).
+Порядок: `D → B → C → A → object` (проверьте: `print(D.__mro__)` — ровно как в примере выше; C3 вытягивает `A` наверх только после того, как решён порядок между `B` и `C`).
 
 ⚠️ **C3-линеаризация — это НЕ поиск в ширину** (BFS). Распространённое заблуждение: «сначала все прямые родители, потом их предки». На самом деле алгоритм C3 гарантирует:
 
@@ -216,7 +216,7 @@ print(D().f())   # "B" — D не имеет f, ищем в B — есть
 2. **Потомок раньше предка**: `B` раньше `A` (т.к. `B(A)`).
 3. **Монотонность**: порядок в дочерних классах не может противоречить порядку в базовых.
 
-Контрпример к BFS: `class D(B, C)` где `B(A)` — MRO даёт `[D, B, A, C, object]`, т.е. `A` (дедушка через `B`) стоит **раньше** `C` (прямого родителя). При BFS было бы `[D, B, C, A, object]` — но CPython выдаёт именно `[D, B, A, C, object]`.
+Контрпример к BFS требует класс, который **не** наследует общий предок: `class A: pass; class B(A): pass; class C: pass; class D(B, C)` — MRO даёт `[D, B, A, C, object]`: `A` (дедушка через `B`) стоит **раньше** `C` (прямого родителя). При BFS было бы `[D, B, C, A, object]` (прогон: `['D2','B2','A2','C2','object']`). А в ромбе выше (`C` тоже наследует `A`) C3 и BFS дают одинаковый `[D, B, C, A, object]`.
 
 Если C3 не может построить консистентный порядок — `TypeError: Cannot create a consistent method resolution order`.
 
@@ -283,7 +283,7 @@ print(u < User("Bob", 25))  # False
 **Правила mixin:**
 
 - Mixin не должен иметь `__init__` (или вызывает `super().__init__(*args, **kwargs)` — **обязательно** с `*args, **kwargs`, иначе разорвёт цепочку MRO).
-- **Миксины всегда объявляются слева** от основного базового класса: `class User(JsonMixin, BaseEntity)` — не наоборот, иначе `BaseEntity` встанет в MRO раньше миксина и его методы никогда не вызовутся.
+- **Миксины всегда объявляются слева** от основного базового класса: `class User(JsonMixin, BaseEntity)` — не наоборот, иначе `BaseEntity` встанет в MRO раньше миксина и одноимённые методы `BaseEntity` перекроют методы миксина.
 - Если проект использует `__slots__`, mixin обязан объявить `__slots__ = ()` — иначе CPython создаст `__dict__` и уничтожит экономию памяти.
 - Mixin обычно использует методы, которые определит целевой класс (как `_cmp_key()` выше). Для типизации в mypy — объявляйте их через `@abstractmethod` или `typing.Protocol`.
 
@@ -305,7 +305,9 @@ class Plugin:
     registry = {}
     
     def __init_subclass__(cls, name=None, **kwargs):
-        super().__init_subclass__(**kwargs)  # обязательно! иначе object упадёт на неизвестных kwargs
+        super().__init_subclass__(**kwargs)  # обязателен, чтобы цепочка хуков не рвалась;
+        # бонус: неизвестные kwargs, дошедшие до object, дадут TypeError —
+        # опечатки в class Foo(Base, kw=...) будут пойманы (без super() они молча теряются)
         # __init_subclass__ — неявный classmethod (без @classmethod), cls = создаваемый подкласс
         # Вызывается после __set_name__ но до завершения создания класса
         Plugin.registry[name or cls.__name__] = cls
@@ -345,7 +347,7 @@ print(Service.log_level)   # DEBUG
 
 ⚠️ **`super()` в `@classmethod` работает** — интерпретатор видит `cls` и компилирует как `super(CurrentClass, cls)`.
 
-⚠️ **Связка `@classmethod @property` нестабильна между версиями**: на Python 3.12 `MyClass.name` возвращает значение свойства (`'Python'`), но на **Python 3.13** поведение изменилось — возвращается `<bound method>` вместо значения, нужно вызывать `MyClass.name()`. Для свойств уровня класса используйте `@property` в **метаклассе**:
+⚠️ **Связка `@classmethod @property` удалена в Python 3.13** (deprecated с 3.11): на 3.12 `MyClass.name` ещё возвращает значение свойства (`'Python'`), но в 3.13 chained classmethod-дескрипторы больше не поддерживаются — паттерн не работает вовсе. Для свойств уровня класса используйте `@property` в **метаклассе**:
 ```python
 class Meta(type):
     @property
@@ -472,7 +474,7 @@ class C(A, B):       # ❌ TypeError!
 | Линейное наследование: `B(A)` со своими slots | ✅ | layout продолжается — B добавляет свои slots после A'овских |
 | Подкласс без slots наследует slot-класс | ✅ | но `__dict__` появится — экономии нет |
 | Два slot-класса без общего предка — множественно | ❌ | у каждого свой layout, конфликт |
-| Два slot-класса с общим slot-предком | ⚠️ иногда | только если общий предок **первый** в MRO и имеет совместимый layout |
+| Два slot-класса с общим slot-предком | ⚠️ только один непустой | если у обоих непустые slots — `TypeError: multiple bases have instance lay-out conflict`, даже с общим предком; работает `D(E1, E3)`, где у `E3.__slots__ = ()` |
 | Mixin с методами, но без slots + slot-класс | ✅ | mixin не добавляет layout, slot-класс диктует структуру |
 | Обычный класс (с `__dict__`) + slot-класс | ✅ | `__dict__` «съедает» конфликт — но slot'ы всё равно работают |
 
@@ -482,7 +484,7 @@ class C(A, B):       # ❌ TypeError!
 import json, pickle
 from dataclasses import dataclass, asdict
 
-# Mixin'ы БЕЗ __slots__ — у них есть __dict__, но они не добавляют атрибутов
+# Mixin'ы БЕЗ __slots__ — не конфликтуют по layout, НО приносят экземплярам __dict__
 class JsonMixin:
     def to_json(self):
         # dataclasses.asdict умеет работать со slots-классами
@@ -501,17 +503,19 @@ class User(JsonMixin, PickleMixin):
 u = User("Alice", "a@b.c")
 print(u.to_json())        # '{"name": "Alice", "email": "a@b.c"}'
 print(u.to_pickle()[:8])  # b'\x80\x04\x95...'
-# Slot'ы работают, mixin'ы работают, конфликтов нет.
+# Slot'ы-дескрипторы работают, mixin'ы работают, конфликтов нет.
+# ⚠️ Но экономии памяти НЕТ: из-за mixin'ов без __slots__ у экземпляра есть
+# __dict__ (hasattr(u, '__dict__') → True) — паттерн решает конфликт layout'ов, а не память.
 ```
 
 ⚠️ Если **оба** mixin'а имеют `__slots__` с разными атрибутами — это типичный сценарий конфликта. В Python **невозможно** наследовать два slot-класса с разными slots, если только они не образуют общую slot-иерархию. В этом случае откажитесь от slots у mixin'ов или переработайте архитектуру.
 
 ⚠️ **Скрытые проблемы со сторонними протоколами**:
 
-- **`pickle`** со slots-классами не работает «из коробки» — default pickle path ищет `__dict__`. Чтобы pickle работал, нужно явно определить `__getstate__` и `__setstate__` (или `__reduce_ex__`), собирающие/восстанавливающие значения из slots через `__class__.__slots__` (учитывая наследование — обойти все классы в MRO). Если этого не сделать — `pickle.dumps(obj)` упадёт с `TypeError: cannot pickle`.
+- **`pickle`** со slots-классами работает «из коробки» (протокол 2+): значения slots едут в state-кортеже `(None, {slot: value})` — проверьте: `pickle.loads(pickle.dumps(P(1, 2)))` без ошибок. Явные `__getstate__`/`__setstate__` нужны только при `'__dict__'` в slots, сложном наследовании или нестандартной версии/сжатии.
 - **`copy.deepcopy`** для slots-классов обычно работает (через `__reduce_ex__`), но если в slots есть объекты без `__deepcopy__` — будут грабли.
-- **`functools.cached_property`** **не работает** на slots-классе без `__dict__` — он пытается записать результат в `__dict__`, а его нет. Получите `AttributeError`. Если нужен cached_property на slots-классе — придётся либо добавить `'__dict__'` в `__slots__` (что убивает экономию памяти), либо реализовать кэш вручную через один из slots.
-- **`@property` + `__slots__` с тем же именем** — конфликт, описано выше. Но есть менее очевидное: `@property` **без** сеттера блокирует запись в этот slot, даже если slot был объявлен. То есть `__slots__ = ('x',)` + `@property def x(self): return self._x` приведёт к тому, что `self.x = 1` упадет (нет setter), а `self._x = 1` тоже упадёт (`_x` не в slots). Порядок объявления важен — `property` перекрывает slot.
+- **`functools.cached_property`** **не работает** на slots-классе без `__dict__` — он пытается записать результат в `__dict__`, а его нет. Получите `TypeError: No '__dict__' attribute on ... to cache 'val' property`. Если нужен cached_property на slots-классе — придётся либо добавить `'__dict__'` в `__slots__` (что убивает экономию памяти), либо реализовать кэш вручную через один из slots.
+- **`@property` + `__slots__` с тем же именем** — конфликт, описано выше: `__slots__ = ('x',)` + `@property def x` в **одном классе** не соберётся вовсе — `ValueError: 'x' in __slots__ conflicts with class variable`. Реальный сценарий затенения — в подклассе: `class Base: __slots__ = ('x',)`, `class Sub(Base): @property def x(self): return self._x` — тогда `s.x = 1` упадёт (`AttributeError: property 'x' of 'Sub' object has no setter`), а `self._x = 1` упадёт только если у `Sub` свой `__slots__ = ()` (иначе `_x` уйдёт в появившийся `__dict__`).
 
 ## 5.9. `@classmethod` vs `@staticmethod` { #5.9 }
 
@@ -550,7 +554,7 @@ print(Math.is_even(4))   # True
 - `@classmethod` — для альтернативных конструкторов (`from_string`, `from_dict`, `now`).
 - `@staticmethod` — для утилит, которые логически принадлежат классу, но не требуют ни экземпляра, ни класса.
 
-⚠️ `@classmethod` уважает наследование: `Date.from_string()` в подклассе вернёт экземпляр подкласса, а `Date`.
+⚠️ `@classmethod` уважает наследование: `Date.from_string()` в подклассе вернёт экземпляр подкласса, а не `Date`.
 
 ### Mutable class variables — главная ловушка OOP { #5.9-mutable }
 
@@ -588,7 +592,7 @@ print(cart2.items)   # [] ← корректно, cart2 пуст
 
 Это та же ловушка, что `a = b = []` (см. 1.12) и `def f(x=[])` (default arguments — см. Приложение B). Правило: **mutable объекты на уровне класса — всегда баг**, если только ты не хочешь shared state (что редко).
 
-⚠️ `__slots__` защищает от этой ловушки — слоты создаются на экземпляр, не разделяются. Но `__slots__` с mutable default — другая история (нужен `field(default_factory=list)` в dataclass).
+⚠️ `__slots__` сам по себе **не** защищает от этой ловушки: имя вне slots можно объявить классовым атрибутом (`class Cart: __slots__ = ('n',); items = []`) — получите тот же shared mutable. Защита лишь косвенная: классовую переменную с именем ИЗ slots объявить нельзя (`ValueError` при создании класса). А `__slots__` с mutable default — другая история (нужен `field(default_factory=list)` в dataclass).
 
 ## 5.10. `enum` — Enum, IntEnum, IntFlag, auto { #5.10 }
 
@@ -644,13 +648,15 @@ print(Priority.HIGH > 3)                   # True — сравним с обыч
 print(Priority.HIGH + 5)                   # 15 — арифметика работает
 
 # Используется как обычный int везде
+def set_priority_impl(p): pass   # заглушка для примера
+
 def set_priority(p: int):
     set_priority_impl(p)
 
 set_priority(Priority.HIGH)   # OK — IntEnum это int
 ```
 
-⚠️ Обычный `Enum` **не** сравним с int напрямую — `Priority.HIGH > 3` вызовет `TypeError`. `IntEnum` наследуется от `int` и сравним.
+⚠️ Обычный `Enum` (не `IntEnum`, как `Priority` выше) **не** сравним с int напрямую: `class Plain(Enum): HIGH = 10`; `Plain.HIGH > 3` — `TypeError: '>' not supported between instances of 'Plain' and 'int'`. `IntEnum` наследуется от `int` и сравним.
 
 **`StrEnum` (Python 3.11+) — строковые перечисления:**
 
@@ -681,7 +687,7 @@ class Strict(Enum):
     B = 1   # ValueError: duplicate values found
 ```
 
-⚠️ **Нельзя расширять Enum** с элементами через наследование: `class Extended(BaseEnum): NEW = 3` → `TypeError: Cannot extend enumerations`. Наследоваться можно только от Enum без элементов (для добавления методов).
+⚠️ **Нельзя расширять Enum** с элементами через наследование: `class Extended(BaseEnum): NEW = 3` → `TypeError: <enum 'Extended'> cannot extend <enum 'BaseEnum'>`. Наследоваться можно только от Enum без элементов (для добавления методов).
 
 ⚠️ **Сравнение через `is`** — элементы Enum гарантированно singleton в рамках процесса. `status is Status.ACTIVE` быстрее и безопаснее `==`.
 
@@ -694,9 +700,9 @@ class Permission(IntFlag):
     X = 1      # execute
 
 perm = Permission.R | Permission.W
-print(perm)              # Permission.W|R
+print(perm)              # 6 — с 3.11 str(IntFlag) числовой; repr: <Permission.R|W: 6>
 print(Permission.R in perm)   # True — проверка
-print(perm & Permission.X)   # Permission.0 — нет X
+print(perm & Permission.X)   # 0 — нет X (int-результат)
 
 # Итерация по флагам
 for p in Permission.R | Permission.W | Permission.X:
@@ -770,7 +776,7 @@ print(asdict(t))
 # Вложенные dataclass тоже конвертируются рекурсивно!
 ```
 
-⚠️ `asdict` рекурсивно обходит вложенные dataclass, list/dict/tuple/... но **не** другие классы. Если внутри есть `datetime` или свой класс — `asdict` оставит его как есть (не преобразует).
+⚠️ `asdict` рекурсивно обходит вложенные dataclass, list/dict/tuple/... но **не** другие классы. Если внутри есть `datetime` или свой класс — тип не преобразуется, но объект **копируется** через `copy.deepcopy` (`d['blob'] is b` → `False`).
 
 ### `dataclasses.astuple` — в кортеж { #5.11-dataclassesastuple }
 
@@ -788,8 +794,9 @@ from dataclasses import fields
 
 for f in fields(User):
     print(f"{f.name}: {f.type}, default={f.default}")
-# name: <class 'str'>, default=<class 'inspect._empty'>
-# age: <class 'int'>, default=<class 'inspect._empty'>
+# name: <class 'str'>, default=<dataclasses._MISSING_TYPE object at 0x...>
+# age: <class 'int'>, default=<dataclasses._MISSING_TYPE object at 0x...>
+# у поля без дефолта f.default/f.default_factory — сентинел dataclasses.MISSING
 
 # Проверка поля
 fields_dict = {f.name: f for f in fields(User)}
@@ -871,10 +878,13 @@ print(first([1, 2, 3]))         # int → возвращает int
 print(first(["a", "b"]))        # str → возвращает str
 
 # С ограничением (bound)
-Number = TypeVar('Number', bound='int | float')   # только числа
+Number = TypeVar('Number', int, float)   # только числа (constraints — тело проверяется mypy)
 
 def add(a: Number, b: Number) -> Number:
     return a + b
+
+# ⚠️ bound-union — TypeVar('Number', bound='int | float') — mypy принимает при объявлении,
+# но не может проверить тело add (Incompatible return value type); используйте constraints.
 
 # С перечислением возможных типов
 StringOrBytes = TypeVar('StringOrBytes', str, bytes)
@@ -968,11 +978,10 @@ def handle(e: Event) -> None:
         print(e["x"], e["y"])
     elif e["type"] == "keypress":
         print(e["key"])
-
-⚠️ `Union[dict, dict]` — **невалидная конструкция**: в `Union` нельзя передавать
-dict-литералы, это типы, а не значения. Discriminated unions в Python строятся
-только через `TypedDict` + `Literal`-поле-дискриминатор.
 ```
+
+⚠️ В `Union` нельзя передавать **значения** — только типы: `Union[{"type": "click"}, ...]` — ошибка. (А вот `typing.Union[dict, dict]` валиден и дедуплицируется до `dict`.) Discriminated unions в Python строятся
+только через `TypedDict` + `Literal`-поле-дискриминатор.
 
 ### `@final` — нельзя наследовать/переопределять { #5.12-final }
 
@@ -1014,7 +1023,7 @@ class UserOptional(TypedDict, total=False):
     age: int
     email: str  # все поля опциональны
 
-# Смешанное (Python 3.11+):
+# Смешанное (доступно с самого TypedDict, 3.8; Required/NotRequired по-полю — 3.11, PEP 655):
 class UserMix(TypedDict):
     name: str          # required
     age: int           # required
@@ -1052,7 +1061,7 @@ print(v.magnitude())   # 5.0
 
 ⚠️ `NamedTuple` — это тот же `collections.namedtuple`, но с аннотациями. Неизменяемый.
 
-### `Protocol` с типами-параметрами (Python 3.12+) { #5.12-protocol }
+### `Protocol` с типами-параметрами (PEP 544, 3.8+; синтаксис PEP 695 — 3.12+) { #5.12-protocol }
 
 ```python
 from typing import Protocol, TypeVar
@@ -1105,9 +1114,9 @@ class User(Base):
     # Mapped[int] = Annotated[int, ...] — встроенная в SQLAlchemy обёртка
 ```
 
-`Annotated` позволяют third-party фреймворкам расширять систему типов без модификации самого Python.
+`Annotated` позволяет third-party фреймворкам расширять систему типов без модификации самого Python.
 
-⚠️ В runtime `Annotated[int, "label"]` ≈ `int` — `isinstance` проверки используют только первый аргумент. Метаданные читаются через `typing.get_type_hints` + ручной разбор.
+⚠️ В runtime `Annotated[int, "label"]` — это `int` для аннотаций (`get_type_hints` вернёт `Annotated[...]`, метаданные читают фреймворки), но сам `Annotated[int, "label"]` в `isinstance` использовать нельзя — `TypeError: Subscripted generics cannot be used with class and instance checks`.
 
 ### `Self` (PEP 673, Python 3.11+) { #5.12-self }
 
@@ -1159,7 +1168,7 @@ print(Counter.instances)   # 2
 
 ⚠️ `ClassVar` — для type checker. В runtime никаких проверок нет. `dataclass` уважает `ClassVar` и **не** включает её в `__init__`/`__repr__`.
 
-### `Final` — нельзя переназначать { #5.12-final }
+### `Final` — нельзя переназначать { #5.12-final-type }
 
 ```python
 from typing import Final
@@ -1171,9 +1180,9 @@ MAX_RETRIES = 5   # mypy ошибётся, в runtime — спокойно
 
 Также как `@final` декоратор (см. §5.12 выше).
 
-### `Literal` — конкретные значения { #5.12-literal }
+### `Literal` — конкретные значения { #5.12-literal-alias }
 
-(См. выше в §5.12.)
+Альтернативная точка входа: полный разбор `Literal` — выше, в §5.12 (`{ #5.12-literal }`). Раздел оставлен для навигации: `Literal["fast", "slow"]` ограничивает значение набором констант и служит дискриминатором в `TypedDict`-union (см. пример выше).
 
 ### `Never` и `NoReturn` — недостижимый код { #5.12-never }
 
@@ -1196,7 +1205,7 @@ def f(x: int):
     print("only if x >= 0")
 ```
 
-`Never` (Python 3.11+) — более общее название, чем `NoReturn`. `NoReturn` теперь deprecated как alias для `Never` для контекста «функция без return».
+`Never` (Python 3.11+) — то же понятие «нижнего типа» под более общим именем. `NoReturn` при этом **не** удалён и не помечен deprecated (проверьте: `typing.NoReturn is typing.Never` → `False` — это отдельные объекты); докстринг 3.12 лишь рекомендует `Never` для bottom-типа, а чекеры считают их эквивалентными.
 
 ### `Any` vs `object` { #5.12-any }
 
@@ -1403,7 +1412,7 @@ def f(x):
     return y
 ```
 
-`reveal_type` — это **mypy-specific** функция, не существует в runtime. Только для отладки аннотаций.
+`reveal_type` исторически — mypy-specific, но с Python 3.11 она есть и в `typing` (`typing.reveal_type(x)` в runtime напечатает `Runtime type is 'int'`). Назначение то же — отладка аннотаций: чекер покажет статический тип, runtime — фактический.
 
 ### `get_type_hints` — резолвить строковые аннотации { #5.12-gettypehints }
 
@@ -1433,12 +1442,12 @@ print(get_origin(T))   # <class 'dict'>
 print(get_args(T))     # (<class 'str'>, <class 'int'>)
 
 T = list[int | str]
-print(get_args(T))     # (typing.Union[int, str],)
+print(get_args(T))     # (int | str,) — PEP 604-union остаётся одним аргументом
 ```
 
 Полезно при написании своего ORM/сериализатора — динамически проверять аннотации полей.
 
-### `dataclass_transform` (PEP 712, Python 3.11+) { #5.12-dataclasstransform }
+### `dataclass_transform` (PEP 681, Python 3.11+) { #5.12-dataclasstransform }
 
 Для декораторов, которые делают то же, что `@dataclass` — добавляют методы, поля и т.д.:
 
@@ -1489,16 +1498,17 @@ print(db.config)      # {'loaded_from': '/etc/db.conf'}
 
 Главный кейс — параметры, которые нужны только для инициализации, не для состояния. Без `InitVar` пришлось бы сохранять `config_path` в экземпляре (лишнее поле).
 
-⚠️ `InitVar` нельзя сделать `field(default=...)` напрямую — нужно указать default в `__init__`:
+⚠️ `InitVar` может иметь дефолт — и через `=`, и через `field(default=...)` (проверено на 3.12):
 
 ```python
 @dataclass
 class C:
-    x: InitVar[str]
+    x: InitVar[str] = "hi"     # или: x: InitVar[str] = field(default="hi")
     y: int = 0
 
 C("hello", 1)   # OK
 C("hello")       # OK — y = 0 (default)
+C()              # OK — x = "hi", дефолт делает параметр необязательным
 ```
 
 ### `__post_init__` — инициализация после `__init__` { #5.13-postinit }
@@ -1575,7 +1585,7 @@ match p:
     case Point(x=x, y=y): print(f"at ({x}, {y})")
 ```
 
-### `@dataclass(order=True)` — генерирует `__lt__`, `__le__`, `__gt__`, `__ge__` { #5.13-dataclass }
+### `@dataclass(order=True)` — генерирует `__lt__`, `__le__`, `__gt__`, `__ge__` { #5.13-order }
 
 ```python
 @dataclass(order=True)
@@ -1630,7 +1640,7 @@ async def gen() -> AsyncGenerator[int, None]:
     yield 1
 ```
 
-⚠️ **Частая ошибка** — писать `async def f() -> Awaitable[int]: return 42`. Это означает, что `await f()` вернёт `Awaitable[int]` (то есть нужно ещё раз await-ить), а не `int`. Type checker'ы (mypy, pyright) такое пропустят, но смысл будет неверный. Правильно — `async def f() -> int: return 42`. `Coroutine[None, None, T]` как return-аннотация для `async def` — та же ловушка.
+⚠️ **Частая ошибка** — писать `async def f() -> Awaitable[int]: return 42`. Это означает, что `await f()` вернёт `Awaitable[int]` (то есть нужно ещё раз await-ить), а не `int`. mypy такое НЕ пропустит: `error: Incompatible return value type (got "int", expected "Awaitable[int]")` — семантика аннотации неверна. Правильно — `async def f() -> int: return 42`. `Coroutine[None, None, T]` как return-аннотация для `async def` — та же ловушка.
 
 Эти типы полезны в аннотациях сигнатур, особенно для абстракций (например, `async def process(stream: AsyncIterator[bytes]) -> None`).
 
@@ -1700,10 +1710,12 @@ def apply(fn: Callable[[int], int], x: int) -> int:
 ⚠️ `collections.abc` (не `typing`) — это «настоящие» ABC, с методами по умолчанию. `typing.Iterable` — это typing-алиас для `collections.abc.Iterable`. В современном коде (Python 3.9+) можно писать просто `Iterable`, импортируя из `collections.abc`.
 
 ```python
-# Старый (typing) и новый (collections.abc) — эквивалентны:
+# Старый (typing) — обёртка над новым (collections.abc):
 from typing import Iterable
 from collections.abc import Iterable as IterableABC
-Iterable is IterableABC   # True в Python 3.9+
+Iterable is IterableABC                    # False — это разные объекты
+Iterable.__origin__ is IterableABC         # True — typing-версия ссылается на abc
+# isinstance и сабскрипты работают одинаково; с 3.9 пишите просто collections.abc.Iterable
 ```
 
 ### typing-алиасы для collections { #5.14-typing-aliasy }
@@ -1748,7 +1760,7 @@ if match:
     print(match.group())   # '42'
 ```
 
-⚠️ В Python 3.8+ `Pattern` и `Match` deprecated — используйте `re.Pattern[str]` и `re.Match[str]` напрямую.
+⚠️ В Python 3.8+ `Pattern` и `Match` deprecated — используйте `re.Pattern[str]` и `re.Match[str]` напрямую. В Python 3.13 `typing.Pattern`/`typing.Match` (и пространства `typing.io`/`typing.re`) **удалены**.
 
 ## 5.15. `typing.TYPE_CHECKING` — типы только для статического анализа { #5.15 }
 
@@ -1832,7 +1844,7 @@ class Person:
 
 p = Person("Alice", 30)
 >>> repr(p)            # "Person(name='Alice', age=30)"
->>> str(p)             # "Alice (30 лет)"
+>>> str(p)             # 'Alice (30 лет)'
 >>> p                  # в REPL — repr (через sys.displayhook)
 >>> print(p)           # str
 >>> f"{p}"             # str
@@ -2051,7 +2063,8 @@ class Hex:
 # - a[obj]            ← __getitem__ с __index__
 # - a[i:j:k]          ← slice — все три через __index__
 # - bin(obj), hex(obj), oct(obj)
-# - int.from_bytes(..., byteorder) если byteorder — объект с __index__
+# - (⚠️ byteorder в int.from_bytes обязан быть строкой 'big'/'little' —
+#    TypeError: from_bytes() argument 'byteorder' must be str, not H)
 # - array('i', ...) при определении размера
 ```
 
@@ -2095,8 +2108,8 @@ class TempFile:
 
 ⚠️ **Не полагайся на `__del__`** для критичных cleanup-операций (закрытие файлов, соединений с БД, снятие блокировок):
 
-- GC может не вызвать `__del__` до выхода процесса (особенно для циклических ссылок).
-- При `sys.exit()` или `os._exit()` `__del__` не вызывается.
+- GC может не вызвать `__del__` до выхода процесса. Циклические ссылки с 3.4 (PEP 442) собираются безопасно — финализаторы вызываются; реальный риск — порядок финализации при завершении и уже уничтоженные глобалы, на которые опирается `__del__`.
+- При `os._exit()` и `kill -9` `__del__` не вызывается вовсе; при `sys.exit()` интерпретатор финализируется нормально и финализаторы запускаются (проверено: subprocess печатает 'released via sys.exit').
 - Порядок вызова между объектами не гарантирован.
 
 Для детерминированного cleanup используй **контекстные менеджеры** (`with`, см. Часть II) или `weakref.finalize` (Часть VIII, 8.14). `__del__` — только для best-effort cleanup (логирование, статистика, кэш).
@@ -2116,13 +2129,17 @@ class TempFile:
 | **Унарные** | `__neg__`, `__pos__`, `__abs__`, `__invert__`, `__bool__` | `-x`, `+x`, `abs(x)`, `~x`, `bool(x)` |
 | **Преобразования** | `__int__`, `__float__`, `__complex__`, `__index__`, `__round__`, `__trunc__`, `__floor__`, `__ceil__` | `int()`, `float()`, `complex()`, `bin/hex/oct`, `round()`, `math.trunc/floor/ceil` |
 | **Итерация** | `__iter__`, `__next__`, `__reversed__`, `__contains__` | `for`, `iter()`, `next()`, `reversed()`, `in` |
-| **Доступ по ключу** | `__getitem__`, `__setitem__`, `__delitem__`, `__missing__`, `__len__` | `obj[k]`, `obj[k]=v`, `del obj[k]`, `len()` |
+| **Доступ по ключу** | `__getitem__`, `__setitem__`, `__delitem__`, `__missing__` | `obj[k]`, `obj[k]=v`, `del obj[k]` |
 | **Атрибуты** | `__getattr__`, `__getattribute__`, `__setattr__`, `__delattr__`, `__dir__` | доступ к атрибутам |
 | **Дескрипторы** | `__get__`, `__set__`, `__delete__`, `__set_name__` | доступ через класс (Часть VI) |
 | **Контекст** | `__enter__`, `__exit__`, `__aenter__`, `__aexit__` | `with`, `async with` (Часть II, IV) |
 | **Callable** | `__call__` | `obj(args)` |
 | **Класс-мета** | `__class__`, `__dict__`, `__mro__`, `__subclasses__`, `__init_subclass__` | интроспекция (Часть V, VIII) |
-| **Размер** | `__sizeof__` | `sys.getsizeof()` |
+| **Размер** | `__sizeof__`, `__len__` | `sys.getsizeof()`, `len()` |
+| **Битовые** | `__and__`, `__or__`, `__xor__`, `__lshift__`, `__rshift__` (+ reflected/in-place) | `&`, `|`, `^`, `<<`, `>>` |
+| **Копирование/сериализация** | `__copy__`, `__deepcopy__`, `__reduce__`, `__reduce_ex__`, `__getstate__`, `__setstate__` | `copy`, `pickle` |
+| **Параметрика/мета** | `__class_getitem__`, `__instancecheck__`, `__subclasscheck__`, `__length_hint__` | `list[int]`, `isinstance` (у метакласса) |
+| **Пути и async** | `__fspath__`, `__await__`, `__aiter__`, `__anext__` | `os.fspath`, `await`, `async for` |
 
 ### Бенчмарки к Части V { #5.17-benchmarki }
 
@@ -2142,8 +2159,8 @@ class PointData:
 
 p1 = PointClass(1.0, 2.0)
 p2 = PointData(1.0, 2.0)
-print(sys.getsizeof(p1), sys.getsizeof(p1.__dict__))   # 48 + 112 = 160 байт
-print(sys.getsizeof(p2), sys.getsizeof(p2.__dict__))   # 48 + 112 = 160 байт
+print(sys.getsizeof(p1), sys.getsizeof(p1.__dict__))   # 48 + 296 = 344 байта (3.12)
+print(sys.getsizeof(p2), sys.getsizeof(p2.__dict__))   # 48 + 296 = 344 байта
 ```
 Память **идентична** — `dataclass` генерирует тот же `__init__`, что и ручной.
 Выгода `dataclass` — в `__repr__`, `__eq__`, `__hash__`, `field()`, `__post_init__`
@@ -2162,15 +2179,17 @@ class NoSlots:
 class WithSlots:
     x: float; y: float; label: str = "origin"
 
-n, ns, ws = 100_000, [], []
-ns = [NoSlots(i, i)   for i in range(n)]   # 1 000 000 объектов
+n = 100_000
+ns = [NoSlots(i, i)   for i in range(n)]   # 100 000 объектов
 ws = [WithSlots(i, i) for i in range(n)]
-print(sys.getsizeof(ns[0]) + sys.getsizeof(ns[0].__dict__))  # ≈ 160 байт/объект
-print(sys.getsizeof(ws[0]))                                  # ≈ 64 байта/объект
-# На 1M объектов: 160 MB vs 64 MB — экономия ~96 MB (≈40%)
+print(sys.getsizeof(ns[0]) + sys.getsizeof(ns[0].__dict__))  # 48 + 296 = 344 байта/объект
+print(sys.getsizeof(ws[0]))                                  # 56 байт/объект
+# На 1M по getsizeof: ~344 MB vs ~56 MB — экономия ≈84%.
+# Нюанс 3.12: instance-__dict__ хранится inline и не материализуется до
+# обращения — фактическая разница по tracemalloc меньше (см. бенчмарк 8.15).
 ```
-Дополнительно: доступ к слот-атрибуту ~1.05× быстрее обычного (`__dict__` lookup
-— это хеш-таблица, slot — это смещение в массиве).
+Дополнительно: доступ к слот-атрибуту на 3.12 сопоставим с обычным (~1.0× —
+специализированные LOAD_ATTR сравняли их); главный выигрыш slots — память.
 
 **3. `frozen=True` vs обычный класс — цена immutability.**
 ```python
@@ -2205,7 +2224,7 @@ class Mutable:
     x: float; y: float
 
 # Mutable.__init__ (упрощённо): прямая запись в __dict__
-#   LOAD_FAST 'x'; STORE_FAST 'self.x'   ← один опкод на поле
+#   LOAD_FAST x; LOAD_FAST self; STORE_ATTR x   ← STORE_ATTR на каждое поле
 
 # Frozen.__init__: ВЫЗОВ object.__setattr__ на каждое поле
 dis.dis(Frozen.__init__)
@@ -2219,7 +2238,7 @@ dis.dis(Frozen.__init__)
 # (повторяется для y)
 ```
 
-Mutable пишет поля напрямую в `self.__dict__` (опкод `STORE_FAST`-подобный). Frozen **не может** так делать — `__dict__` недоступен (точнее, писать в него напрямую нельзя, иначе frozen можно было бы обойти). Поэтому сгенерированный `__init__` идёт через `object.__setattr__(self, 'x', x)` — это **функциональный вызов** на каждое поле, плюс lookup `__setattr__` через closure (`__dataclass_builtins_object__`). Это и есть основная цена замедления.
+Mutable пишет поля напрямую (опкод `STORE_ATTR`). Frozen **не может** так делать — `__dict__` недоступен (точнее, писать в него напрямую нельзя, иначе frozen можно было бы обойти). Поэтому сгенерированный `__init__` идёт через `object.__setattr__(self, 'x', x)` — это **функциональный вызов** на каждое поле, плюс lookup `__setattr__` через closure (`__dataclass_builtins_object__`). Это и есть основная цена замедления.
 
 **А что же проверяет `__setattr__`?** Сгенерированный `Frozen.__setattr__` поднимает `FrozenInstanceError`, **но он не вызывается из `__init__`** (тот идёт через `object.__setattr__` напрямую, минуя переопределённый `__setattr__` класса). Проверка работает только при **последующих** попытках мутации:
 
@@ -2319,9 +2338,9 @@ c = Circle()
 print(isinstance(c, ABCDrawable))    # False (не наследует)
 print(isinstance(c, ProtoDrawable))  # True (структурно)
 # Скорость isinstance:
-print(timeit.timeit(lambda: isinstance(c, ProtoDrawable), number=1_000_000))  # ≈ 0.20 с
+print(timeit.timeit(lambda: isinstance(c, ProtoDrawable), number=1_000_000))  # ≈ 0.4 с (зависит от CPU)
 ```
-`runtime_checkable`-проверка **медленнее** обычного `isinstance` (~0.2 мкс/вызов),
+`runtime_checkable`-проверка **медленнее** обычного `isinstance` (~0.4 мкс/вызов на 3.12),
 потому что проверяет наличие методов через `hasattr`. На горячих путях — кешируйте.
 
 **5. `Enum` vs `str`-константы — скорость сравнения.**
