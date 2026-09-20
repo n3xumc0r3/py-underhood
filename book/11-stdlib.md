@@ -2669,6 +2669,190 @@ $ echo "..." | python3     # argv[0] = '-' — код из stdin (явная ф�
 | `python3 -X perf` | поддержка Linux perf-профайлера (3.12+) | профилирование средствами ОС |
 | `python3 --check-hash-based-pycs always\|default\|never` | режим проверки hash-based pyc (см. 13.2) | деплой без надёжного mtime |
 
+## 11.32. `zoneinfo` — часовые пояса IANA: PEP 615, fold и данные { #11.32 }
+
+`datetime.timezone` умеет только фиксированный сдвиг от UTC. Но у реальных зон сдвиг меняется: летом и зимой (DST), а то и по указу правительства. Вся эта история хранится в базе часовых поясов IANA (tzdata), а `zoneinfo` (PEP 615, с 3.9) — её Python-интерфейс. До 3.9 всё держалось на стороннем `pytz` со своей (неудобной) моделью — с 3.9 стандартная библиотека работает с зонами напрямую.
+
+### База: aware-datetime с зоной из базы IANA { #11.32-baza }
+
+```python
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+msk = ZoneInfo("Europe/Moscow")          # ключ IANA: Area/Location
+dt = datetime(2025, 6, 1, 12, 0, tzinfo=msk)
+dt.utcoffset(), dt.tzname()              # (timedelta(hours=3), 'MSK')
+
+# перевод момента времени между зонами — astimezone:
+ny = ZoneInfo("America/New_York")
+dt.astimezone(ny)        # 2025-06-01 05:00:00-04:00 — тот же момент, другое время на стене
+dt.replace(tzinfo=ny)    # 2025-06-01 12:00:00-04:00 — те же ЧАСЫ, но другой момент!
+(dt.replace(tzinfo=ny) - dt.astimezone(ny))   # timedelta(hours=7) — ловушка на 7 часов
+```
+
+⚠️ **`astimezone` меняет точку зрения на момент времени, `replace(tzinfo=...)` — перепрошивает ярлык**, оставив настенные часы на месте. Почти всегда нужен `astimezone`; `replace` — когда вы точно знаете, что наивное время выражено в другой зоне.
+
+Сила IANA-данных — история: один и тот же ключ `Europe/Moscow` даёт правильные сдвиги для любых дат прошлого:
+
+```python
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+msk = ZoneInfo("Europe/Moscow")
+# реальные данные базы IANA (проверено на tzdata 2026a):
+datetime(2010, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (MSK, зима)
+datetime(2010, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSD, летнее время действовало)
+datetime(2011, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSK! — указ 2011: постоянное «лето»)
+datetime(2015, 1, 1, tzinfo=msk).utcoffset()   # 4:00 (ещё постоянное лето)
+datetime(2016, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (с октября 2014 — постоянная зима)
+```
+
+`datetime.timezone` такое не умеет в принципе — у него одна фикс-величина на все времена.
+
+### `fold` (PEP 495): несуществующие и двоякие времена { #11.32-fold }
+
+При переводе стрелок час на стене случается дважды или ни разу. Атрибут `fold` (0 или 1) объясняет, какое из двух возможных состояний вы имеете в виду. По умолчанию `fold=0` — «раньше».
+
+```python
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+ny = ZoneInfo("America/New_York")
+# Осень 2024: 3 ноября в 02:00 EDT стрелки назад на 01:00 EST.
+# 01:30 на стене существует ДВАЖДЫ:
+amb0 = datetime(2024, 11, 3, 1, 30, tzinfo=ny, fold=0)
+amb1 = datetime(2024, 11, 3, 1, 30, tzinfo=ny, fold=1)
+amb0.utcoffset()   # -1 day, 20:00:00  (EDT, -4)
+amb1.utcoffset()   # -1 day, 19:00:00  (EST, -5)
+amb0.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-11-03T05:30:00+00:00
+amb1.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-11-03T06:30:00+00:00 — час спустя!
+
+# Весна 2024: 10 марта в 02:00 EST стрелки вперёд на 03:00 EDT.
+# 02:30 НЕ существует, но объект datetime его «проживёт» — просто выберет интерпретацию:
+nx0 = datetime(2024, 3, 10, 2, 30, tzinfo=ny, fold=0)   # трактуется как EST (-5)
+nx1 = datetime(2024, 3, 10, 2, 30, tzinfo=ny, fold=1)   # трактуется как EDT (-4)
+nx0.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-03-10T07:30:00+00:00
+nx1.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-03-10T06:30:00+00:00
+```
+
+❌ Классическая ошибка — расписание типа «01:30 ночи каждый день»: в осенний переход оно произойдёт дважды (cron и таймеры разъезжаются с календарём), а в весенний — ни разу. Если приложение чувствительно — нормализуйте через UTC или явно работайте с `fold`.
+
+Экзотика, доказывающая, что `fold` — не теория: на острове Лорд-Хау DST сдвигает часы на **30 минут**:
+
+```python
+lh = ZoneInfo("Australia/Lord_Howe")
+d0 = datetime(2024, 4, 7, 1, 45, tzinfo=lh, fold=0)   # +11:00
+d1 = datetime(2024, 4, 7, 1, 45, tzinfo=lh, fold=1)   # +10:30 — разница 30 минут
+```
+
+### Арифметика aware-дат: wall clock против абсолютного времени { #11.32-arifmetika }
+
+Самая коварная часть модели. Датetime-объекты с **одним и тем же** объектом `tzinfo` вычитаются как наивные (wall clock), даже если между ними был переход DST:
+
+```python
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+ny = ZoneInfo("America/New_York")
+t1 = datetime(2024, 3, 9, 12, 0, tzinfo=ny)     # EST (-5)
+t2 = datetime(2024, 3, 11, 12, 0, tzinfo=ny)    # EDT (-4), между ними переход
+t2 - t1                        # 2 days, 0:00:00 — wall clock!
+(t2.astimezone(timezone.utc) - t1.astimezone(timezone.utc))   # 1 day, 23:00:00 — абсолют
+
+# +24 часа «по стене» против +24 часа абсолютных:
+(t1 + timedelta(days=1)).isoformat()          # 2024-03-10T12:00:00-04:00 — 12:00 на стене
+(t1.astimezone(timezone.utc) + timedelta(hours=24)).astimezone(ny).isoformat()
+                                              # 2024-03-10T13:00:00-04:00 — 13:00 на стене
+```
+
+✅ Правило: `timedelta` прибавляется к **наивной части**, зона не пересчитывается. Для «завтра в это же время» этого обычно и хотят; для «ровно через 24 часа абсолютных» — ходите через UTC. И да: `amb1 - amb0` из примера выше даст `0:00:00` — потому что `tzinfo` у обоих один и тот же объект.
+
+### Откуда берутся данные: TZPATH и пакет tzdata { #11.32-dannye }
+
+При загрузке зоны `zoneinfo` ищет данные в строгом порядке (это видно прямо в `_zoneinfo.py`):
+
+1. **Системные файлы** по путям `zoneinfo.TZPATH` — на Linux это `/usr/share/zoneinfo` (+ ещё 3 запасных каталога);
+2. **Пакет `tzdata`** из PyPI (`importlib.resources` по пакету `tzdata.zoneinfo`) — если системных файлов не нашлось.
+
+```python
+import zoneinfo
+zoneinfo.TZPATH
+# ('/usr/share/zoneinfo', '/usr/lib/zoneinfo', '/usr/share/lib/zoneinfo', '/etc/zoneinfo')
+
+len(zoneinfo.available_timezones())   # 599 ключей на tzdata 2026a (число растёт с релизами базы)
+"UTC" in zoneinfo.available_timezones()   # True
+
+# свой источник: файл TZif вручную (например, из другого набора данных)
+with open("/usr/share/zoneinfo/Europe/Moscow", "rb") as f:
+    z = zoneinfo.ZoneInfo.from_file(f, key="Europe/Moscow")   # ключ — только ярлык
+```
+
+Порядок «сначала TZPATH, потом пакет» имеет практическое следствие: если в окружении стоит пакет `tzdata`, а системная база устарела — Python всё равно возьмёт **системную**. Обновлять tzdata лучше средствами ОС (`apt install tzdata`); пакет `tzdata` из PyPI — запас для Windows, альпийских образов и прочих сред без системной базы. Приоритет можно перевернуть, подменив `TZPATH`:
+
+```bash
+# переменная окружения: свой путь поиска (PEP 615)
+PYTHONTZPATH=/opt/tzdata python3 -c "import zoneinfo; print(zoneinfo.TZPATH)"
+# → ('/opt/tzdata',)
+```
+
+```python
+import zoneinfo
+# программно — точка входа для тестов и вендоринга:
+zoneinfo.reset_tzpath(("/opt/tzdata",))          # сменить путь поиска на ходу
+zoneinfo.ZoneInfo.clear_cache()                  # СБРОСИТЬ КЭШ — classmethod у ZoneInfo!
+```
+
+⚠️ **`clear_cache()` — метод класса `ZoneInfo`, а не функция модуля**: `zoneinfo.clear_cache()` бросит `AttributeError`. И он существует не зря — зоны кэшируются:
+
+```python
+from zoneinfo import ZoneInfo
+a = ZoneInfo("Europe/Moscow")
+b = ZoneInfo("Europe/Moscow")
+a is b              # True — один и тот же объект из кэша
+ZoneInfo.clear_cache()
+c = ZoneInfo("Europe/Moscow")
+a is c              # False — после сброса пересоздан
+# без кэша: ZoneInfo.no_cache("Europe/Moscow") — отдельный экземпляр
+```
+
+### Ошибки, UTC и шпаргалка { #11.32-oshibki }
+
+```python
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+ZoneInfo("No/Such/Zone")     # ZoneInfoNotFoundError (наследник KeyError)
+ZoneInfo("/abs/path")        # ValueError: ZoneInfo keys may not be absolute paths
+                             # — ключ ≠ путь; абсолютный путь только через from_file()
+```
+
+```python
+# ZoneInfo('UTC') против datetime.timezone.utc — похожи, но не равны:
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+zu = ZoneInfo("UTC")
+datetime(2025, 1, 1, tzinfo=zu).utcoffset() == datetime(2025, 1, 1, tzinfo=timezone.utc).utcoffset()
+# True — сдвиг один
+zu == timezone.utc             # False — разные классы, сравнение не по сдвигу
+datetime(2025, 1, 1, tzinfo=zu).tzname() == datetime(2025, 1, 1, tzinfo=timezone.utc).tzname()
+# True — оба зовутся 'UTC'
+```
+
+| Задача | Инструмент |
+|---|---|
+| aware-datetime в зоне IANA | `datetime(..., tzinfo=ZoneInfo("Europe/Moscow"))` |
+| Перевести момент в другую зону | `dt.astimezone(ZoneInfo("Asia/Tokyo"))` |
+| Часы «перепрыгнули»/задвоились | поле `fold` (PEP 495) |
+| Список всех зон | `zoneinfo.available_timezones()` |
+| Данные без системной базы | `pip install tzdata` (PyPI-пакет, запасной источник) |
+| Свой путь поиска данных | `PYTHONTZPATH` (10.3) или `zoneinfo.reset_tzpath()` |
+| Сбросить кэш зон | `ZoneInfo.clear_cache()` — classmethod |
+| Зона из файла/архива | `ZoneInfo.from_file(open(path, "rb"), key="...")` |
+| Наивное ↔ aware | `dt.replace(tzinfo=z)` ↔ `dt.astimezone(z)`; смесь в одной арифметике — `TypeError` |
+
+⚠️ Подмена системных данных через `PYTHONTZPATH`/`reset_tzpath` не аннулирует уже загруженные зоны — сначала `ZoneInfo.clear_cache()`. А `from_file` и `no_cache` минуют кэш по дизайну: два экземпляра одной зоны из файла не `is`-равны.
+
+Перекрёстные ссылки: подмена времени в тестах — 15.4; `sys.flags` и `-S`/`-E` не влияют на `zoneinfo`, но `PYTHONTZPATH` читается при старте и попадает в общую картину переменных окружения — 10.3; сериализация aware-datetime в JSON/базы — 11.19.
+
 ### Бенчмарки к Части XI { #11.31-benchmarki }
 
 **1. `lru_cache` vs `cache` (Python 3.9+) vs ручной `dict`.**
