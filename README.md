@@ -19,7 +19,7 @@
 
 ## Что внутри
 
-~21 500 строк, 16 глав и 4 приложения, 202 раздела с собственным коротким якорем `#N.M`. Все примеры проверены на CPython 3.12+.
+~22 600 строк, 17 глав и 4 приложения, 213 разделов с собственным коротким якорем `#N.M`. Все примеры проверены на CPython 3.12+.
 
 ### Краткое оглавление
 
@@ -41,12 +41,13 @@
 | XIV | [Не только CPython](book/14-implementations.md) | язык против реализации, PyPy/GraalPy/MicroPython/RustPython, Jython/IronPython/Stackless/Pyston, Numba/Cython, IPython и Jupyter |
 | XV | [Тестирование](book/15-testing.md) | assert в байт-коде, unittest/mock изнутри, doctest, pytest (fixtures, assertion rewriting), coverage.py, sys.settrace и sys.monitoring (PEP 669), тесты самого CPython, диагностические режимы для CI |
 | XVI | [Механика импорта](book/16-import.md) | IMPORT_NAME и sys.modules, анатомия sys.path и -P, finders/path hooks, ModuleSpec и loaders, namespace-пакеты (PEP 420), круговые импорты, PEP 562 и LazyLoader, reload, builtin/frozen/extension/zipimport, кастомные импорт-хуки, -X importtime + бенчмарки старта |
+| XVII | [C-расширения и C API](book/17-c-api.md) | ctypes (структуры, колбэки, use_errno), cffi ABI/API, PyObject и owned/borrowed-ссылки, бессмертные объекты (PEP 683), свой модуль (METH_*), свой тип (static/heap), PyErr-протокол, GIL из C (Py_BEGIN_ALLOW_THREADS), stable ABI (abi3), сборки без GIL, встраивание интерпретатора, отладка + бенчмарки |
 | A | [Прил. A. Системы обнаружения плагиата](book/appendix-a-plagiarism.md) | Winnowing, MOSS, JPlag, Dolos, метрики Хальстеда, McCabe |
 | B | [Прил. B. Взаимодействие с системами проверки кода](book/appendix-b-code-checkers.md) | косметические и архитектурные приёмы, песочницы, обход через `__subclasses__()` |
 | C | [Прил. C. Code golf](book/appendix-c-code-golf.md) | Python на минималках — сжатие, алиасы, канонические задачи, разбор онелинеров |
 | D | [Прил. D. Где почитать](book/appendix-d-references.md) | библиография: PEP-ы, книги по CPython internals, статьи |
 
-Полное кликабельное оглавление по всем 202 разделам — на сайте: **<https://n3xumc0r3.github.io/>**
+Полное кликабельное оглавление по всем 213 разделам — на сайте: **<https://n3xumc0r3.github.io/>**
 
 ## Как читать
 

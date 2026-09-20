@@ -138,6 +138,7 @@ nav:
   - 'Часть XIV. Не только CPython: кто ещё исполняет Python': 14-implementations.md
   - 'Часть XV. Тестирование: от assert до тестов самого CPython': 15-testing.md
   - 'Часть XVI. Механика импорта: от import x до исполняемого модуля': 16-import.md
+  - 'Часть XVII. C-расширения и C API: из Python в C и обратно': 17-c-api.md
   - 'Приложения':
       - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
       - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md

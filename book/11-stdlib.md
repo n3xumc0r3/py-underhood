@@ -1,5 +1,7 @@
 # Часть XI. Полезные модули стандартной библиотеки
 
+Модули, которые редко попадают в туториалы, но закрывают повседневные задачи: кэширование и мемоизация, weakref, бинарные форматы, логирование, очереди, профилирование, venv/pip/site (11.31). Конвенция части — код плюс таблицы; у каждого модуля отмечено, чем он цепляется за интерпретатор (ссылки на Часть VIII) и какая у него CLI-обёртка (11.31).
+
 ## 11.1. `functools.lru_cache`, `functools.cache` { #11.1 }
 
 > **→ см. также:** Часть VII (7.4) — `functools.wraps` и общее устройство декораторов; Часть VIII (8.15, бенчмарки) — `OrderedDict`-based LRU как альтернатива C-реализации `lru_cache`.
@@ -1255,10 +1257,25 @@ class MyEncoder(json.JSONEncoder):
         return super().default(o)
 
 json.dumps({'ts': datetime.datetime.now()}, cls=MyEncoder)
-
-# json.tool — CLI для красивого вывода
-# $ echo '{"x":1}' | python -m json.tool
 ```
+
+**`json.tool` — CLI-валидатор и pretty-printer** (он же в списке `python -m` в 11.31). Читает JSON из файла или stdin, пишет отформатированный — в stdout или в файл-аргумент:
+
+```bash
+$ echo '{"b":1,"a":{"yy":2,"zz":1}}' | python3 -m json.tool --sort-keys
+{
+    "a": {
+        "yy": 2,
+        "zz": 1
+    },
+    "b": 1
+}
+$ python3 -m json.tool --compact data.json        # одна строка, без пробелов
+$ python3 -m json.tool --json-lines data.jsonl    # JSON Lines → обычный JSON
+$ python3 -m json.tool data.json out.json         # файл на вход → файл на выход
+```
+
+Флаги: `--indent N` (по умолчанию 4), `--tab`, `--no-indent`, `--compact` — взаимоисключающие режимы форматирования; `--sort-keys` сортирует ключи словарей по алфавиту; `--no-ensure-ascii` оставляет кириллицу как есть (аналог `ensure_ascii=False` из `json.dumps`); `--json-lines` разбирает вход по одной JSON-записи на строку (для валидного вывода JSON Lines обратно — вместе с `--compact` или `--no-indent`). Коротких флагов нет — только `-h`. Невалидный JSON → код выхода 1 и трейсбек в stderr, поэтому `python3 -m json.tool file.json >/dev/null` — готовая проверка валидности для шелл-скриптов и CI.
 
 ⚠️ `json.loads` по умолчанию **принимает** `NaN`/`Infinity`/`-Infinity` (это расширение сверх стандарта: `json.loads('NaN')` → `nan`). Для строгого JSON передайте `parse_constant`, поднимающий `ValueError`; `json.dumps` тоже пишет `NaN` по умолчанию (`allow_nan=True`).
 
