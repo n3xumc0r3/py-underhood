@@ -134,12 +134,12 @@ nav:
   - 'Часть X. Интроспекция окружения': 10-introspection.md
   - 'Часть XI. Полезные модули stdlib': 11-stdlib.md
   - 'Часть XII. Линтеры и директивы': 12-linters.md
-  - 'Часть XIII. От .py к байт-коду: компиляция и виртуальная машина': 13-bytecode-vm.md
-  - 'Часть XIV. Не только CPython: кто ещё исполняет Python': 14-implementations.md
-  - 'Часть XV. Тестирование: от assert до тестов самого CPython': 15-testing.md
+  - 'Часть XIII. Тестирование: от assert до тестов самого CPython': 13-testing.md
+  - 'Часть XIV. Упаковка: от исходников до PyPI': 14-packaging.md
+  - 'Часть XV. От .py к байт-коду: компиляция и виртуальная машина': 15-bytecode-vm.md
   - 'Часть XVI. Механика импорта: от import x до исполняемого модуля': 16-import.md
-  - 'Часть XVII. C-расширения и C API: из Python в C и обратно': 17-c-api.md
-  - 'Часть XVIII. Упаковка: от исходников до PyPI': 18-packaging.md
+  - 'Часть XVII. Не только CPython: кто ещё исполняет Python': 17-implementations.md
+  - 'Часть XVIII. C-расширения и C API: из Python в C и обратно': 18-c-api.md
   - 'Приложения':
       - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
       - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md

@@ -43,17 +43,17 @@
 
 [Часть XII](12-linters.md) — линтеры, директивы
 
-[Часть XIII](13-bytecode-vm.md) — от .py к байт-коду: компиляция и виртуальная машина
+[Часть XIII](13-testing.md) — тестирование: assert, unittest, mock, doctest, pytest, coverage, sys.monitoring
 
-[Часть XIV](14-implementations.md) — не только CPython: реализации и REPL-ы
+[Часть XIV](14-packaging.md) — упаковка: pyproject.toml, бэкенды, wheel/sdist, pip изнутри, editable, entry points, PyPI
 
-[Часть XV](15-testing.md) — тестирование: assert, unittest, mock, doctest, pytest, coverage, sys.monitoring
+[Часть XV](15-bytecode-vm.md) — от .py к байт-коду: компиляция и виртуальная машина
 
 [Часть XVI](16-import.md) — механика импорта: finders, spec, namespace-пакеты, хуки
 
-[Часть XVII](17-c-api.md) — C-расширения и C API: ctypes, cffi, PyObject, свой модуль и тип, GIL, встраивание
+[Часть XVII](17-implementations.md) — не только CPython: реализации и REPL-ы
 
-[Часть XVIII](18-packaging.md) — упаковка: pyproject.toml, бэкенды, wheel/sdist, pip изнутри, editable, entry points, PyPI
+[Часть XVIII](18-c-api.md) — C-расширения и C API: ctypes, cffi, PyObject, свой модуль и тип, GIL, встраивание
 
 [Приложение A](appendix-a-plagiarism.md) — системы обнаружения плагиата
 
@@ -268,21 +268,21 @@
 - [11.15. `logging`](11-stdlib.md#11.15)
 - [11.16. `signal` и `atexit`](11-stdlib.md#11.16)
 - [11.17. `datetime`, `timedelta`, `timezone`](11-stdlib.md#11.17)
-- [11.18. `bisect` и `heapq`](11-stdlib.md#11.18)
-- [11.19. `csv`, `json`, `urllib.parse`](11-stdlib.md#11.19)
-- [11.20. `mmap`](11-stdlib.md#11.20)
-- [11.21. `shutil` и `tempfile`](11-stdlib.md#11.21)
-- [11.22. `decimal` и `fractions`](11-stdlib.md#11.22)
-- [11.23. `re`](11-stdlib.md#11.23)
-- [11.24. `unicodedata`](11-stdlib.md#11.24)
-- [11.25. `struct`, `memoryview`](11-stdlib.md#11.25)
-- [11.26. `hashlib`, `hmac`, `secrets`](11-stdlib.md#11.26)
-- [11.27. `math`, `statistics`](11-stdlib.md#11.27)
-- [11.28. `random`](11-stdlib.md#11.28)
-- [11.29. `argparse`, `configparser`, `subprocess`](11-stdlib.md#11.29)
-- [11.30. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop`](11-stdlib.md#11.30)
-- [11.31. `venv`, `pip`, `site`](11-stdlib.md#11.31)
-- [11.32. `zoneinfo` — часовые пояса IANA](11-stdlib.md#11.32)
+- [11.19. `bisect` и `heapq`](11-stdlib.md#11.19)
+- [11.20. `csv`, `json`, `urllib.parse`](11-stdlib.md#11.20)
+- [11.21. `mmap`](11-stdlib.md#11.21)
+- [11.22. `shutil` и `tempfile`](11-stdlib.md#11.22)
+- [11.23. `decimal` и `fractions`](11-stdlib.md#11.23)
+- [11.24. `re`](11-stdlib.md#11.24)
+- [11.25. `unicodedata`](11-stdlib.md#11.25)
+- [11.26. `struct`, `memoryview`](11-stdlib.md#11.26)
+- [11.27. `hashlib`, `hmac`, `secrets`](11-stdlib.md#11.27)
+- [11.28. `math`, `statistics`](11-stdlib.md#11.28)
+- [11.29. `random`](11-stdlib.md#11.29)
+- [11.30. `argparse`, `configparser`, `subprocess`](11-stdlib.md#11.30)
+- [11.31. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop`](11-stdlib.md#11.31)
+- [11.32. `venv`, `pip`, `site`](11-stdlib.md#11.32)
+- [11.18. `zoneinfo` — часовые пояса IANA](11-stdlib.md#11.18)
 
 ### Часть XII. Линтеры и директивы в комментариях
 
@@ -299,40 +299,47 @@
 - [12.9. Типовые игноры: `# type: ignore` vs `# type: ignore[code]` vs `# pyright: ignore`](12-linters.md#12.9)
 - [12.10. pre-commit: ruff + mypy в одном конвейере](12-linters.md#12.10)
 
-### Часть XIII. От .py к байт-коду: компиляция и виртуальная машина
+### Часть XIII. Тестирование: от assert до тестов самого CPython
 
-[Открыть часть →](13-bytecode-vm.md)
+[Открыть часть →](13-testing.md)
 
-- [13.1. Почему Python и компилируется, и интерпретируется](13-bytecode-vm.md#13.1)
-- [13.2. Импорт и .pyc: формат, кэширование, инвалидация](13-bytecode-vm.md#13.2)
-- [13.3. Пайплайн компилятора: токены → PEG → AST → байт-код](13-bytecode-vm.md#13.3)
-- [13.4. Стековая машина: как читается байт-код](13-bytecode-vm.md#13.4)
-- [13.5. Виртуальная машина: eval loop, специализация, GIL, JIT](13-bytecode-vm.md#13.5)
+- [13.1. `assert` под капотом: байт-код, `-O` и тонкие локации ошибок](13-testing.md#13.1)
+- [13.2. `unittest` изнутри: loader → suite → runner → result](13-testing.md#13.2)
+- [13.3. `unittest.mock` изнутри: анатомия подмены](13-testing.md#13.3)
+- [13.4. Подмена времени и окружения в тестах](13-testing.md#13.4)
+- [13.5. `doctest` изнутри](13-testing.md#13.5)
+- [13.6. `pytest` изнутри](13-testing.md#13.6)
+- [13.7. `coverage.py`: измерение покрытия](13-testing.md#13.7)
+- [13.8. `sys.settrace`/`sys.setprofile`: крючки отладчика и профайлера](13-testing.md#13.8)
+- [13.9. `sys.monitoring` (PEP 669, 3.12+): один API для инструментов](13-testing.md#13.9)
+- [13.10. Тесты самого CPython: `python -m test`](13-testing.md#13.10)
+- [13.11. Тестовые режимы интерпретатора: шпаргалка](13-testing.md#13.11)
 
-### Часть XIV. Не только CPython: кто ещё исполняет Python
+### Часть XIV. Упаковка: от исходников до PyPI
 
-[Открыть часть →](14-implementations.md)
+[Открыть часть →](14-packaging.md)
 
-- [14.1. Язык против реализации: контракт Python](14-implementations.md#14.1)
-- [14.2. Альтернативные реализации: кто, на чём, зачем](14-implementations.md#14.2)
-- [14.3. Не реализации: Numba, Cython и граница «тот же язык»](14-implementations.md#14.3)
-- [14.4. REPL поверх REPL: IPython, Jupyter и соседи](14-implementations.md#14.4)
+- [14.1. Словарь упаковки и importlib.metadata](14-packaging.md#14.1)
+- [14.2. Анатомия dist-info: паспорт установленного пакета](14-packaging.md#14.2)
+- [14.3. pyproject.toml: PEP 621](14-packaging.md#14.3)
+- [14.4. Build-бэкенды и PEP 517](14-packaging.md#14.4)
+- [14.5. sdist и wheel: два формата артефактов](14-packaging.md#14.5)
+- [14.6. Анатомия wheel: имя как протокол](14-packaging.md#14.6)
+- [14.7. pip изнутри: что происходит при pip install](14-packaging.md#14.7)
+- [14.8. Editable-установка: .pth и finder](14-packaging.md#14.8)
+- [14.9. Зависимости: PEP 508 и PEP 440](14-packaging.md#14.9)
+- [14.10. entry points: console-скрипты и плагины](14-packaging.md#14.10)
+- [14.11. Публикация: PyPI, twine и альтернативные формы](14-packaging.md#14.11)
 
-### Часть XV. Тестирование: от assert до тестов самого CPython
+### Часть XV. От .py к байт-коду: компиляция и виртуальная машина
 
-[Открыть часть →](15-testing.md)
+[Открыть часть →](15-bytecode-vm.md)
 
-- [15.1. `assert` под капотом: байт-код, `-O` и тонкие локации ошибок](15-testing.md#15.1)
-- [15.2. `unittest` изнутри: loader → suite → runner → result](15-testing.md#15.2)
-- [15.3. `unittest.mock` изнутри: анатомия подмены](15-testing.md#15.3)
-- [15.4. Подмена времени и окружения в тестах](15-testing.md#15.4)
-- [15.5. `doctest` изнутри](15-testing.md#15.5)
-- [15.6. `pytest` изнутри](15-testing.md#15.6)
-- [15.7. `coverage.py`: измерение покрытия](15-testing.md#15.7)
-- [15.8. `sys.settrace`/`sys.setprofile`: крючки отладчика и профайлера](15-testing.md#15.8)
-- [15.9. `sys.monitoring` (PEP 669, 3.12+): один API для инструментов](15-testing.md#15.9)
-- [15.10. Тесты самого CPython: `python -m test`](15-testing.md#15.10)
-- [15.11. Тестовые режимы интерпретатора: шпаргалка](15-testing.md#15.11)
+- [15.1. Почему Python и компилируется, и интерпретируется](15-bytecode-vm.md#15.1)
+- [15.2. Импорт и .pyc: формат, кэширование, инвалидация](15-bytecode-vm.md#15.2)
+- [15.3. Пайплайн компилятора: токены → PEG → AST → байт-код](15-bytecode-vm.md#15.3)
+- [15.4. Стековая машина: как читается байт-код](15-bytecode-vm.md#15.4)
+- [15.5. Виртуальная машина: eval loop, специализация, GIL, JIT](15-bytecode-vm.md#15.5)
 
 ### Часть XVI. Механика импорта: от `import x` до исполняемого модуля
 
@@ -350,37 +357,30 @@
 - [16.10. Кастомные импорт-хуки: от логгера до блокировщика](16-import.md#16.10)
 - [16.11. Диагностика старта: `-X importtime`](16-import.md#16.11)
 
-### Часть XVII. C-расширения и C API: из Python в C и обратно
+### Часть XVII. Не только CPython: кто ещё исполняет Python
 
-[Открыть часть →](17-c-api.md)
+[Открыть часть →](17-implementations.md)
 
-- [17.1. Три пути в C: ctypes, cffi, C API](17-c-api.md#17.1)
-- [17.2. `ctypes` — C без компиляции](17-c-api.md#17.2)
-- [17.3. `cffi` — объявления вместо прототипов](17-c-api.md#17.3)
-- [17.4. `PyObject` и подсчёт ссылок](17-c-api.md#17.4)
-- [17.5. Свой модуль на C API](17-c-api.md#17.5)
-- [17.6. Свой тип из C API](17-c-api.md#17.6)
-- [17.7. Ошибки и исключения из C](17-c-api.md#17.7)
-- [17.8. GIL из C-кода](17-c-api.md#17.8)
-- [17.9. Stable ABI и сборки без GIL](17-c-api.md#17.9)
-- [17.10. Встраивание интерпретатора в C](17-c-api.md#17.10)
-- [17.11. Отладка C-расширений](17-c-api.md#17.11)
+- [17.1. Язык против реализации: контракт Python](17-implementations.md#17.1)
+- [17.2. Альтернативные реализации: кто, на чём, зачем](17-implementations.md#17.2)
+- [17.3. Не реализации: Numba, Cython и граница «тот же язык»](17-implementations.md#17.3)
+- [17.4. REPL поверх REPL: IPython, Jupyter и соседи](17-implementations.md#17.4)
 
-### Часть XVIII. Упаковка: от исходников до PyPI
+### Часть XVIII. C-расширения и C API: из Python в C и обратно
 
-[Открыть часть →](18-packaging.md)
+[Открыть часть →](18-c-api.md)
 
-- [18.1. Словарь упаковки и importlib.metadata](18-packaging.md#18.1)
-- [18.2. Анатомия dist-info: паспорт установленного пакета](18-packaging.md#18.2)
-- [18.3. pyproject.toml: PEP 621](18-packaging.md#18.3)
-- [18.4. Build-бэкенды и PEP 517](18-packaging.md#18.4)
-- [18.5. sdist и wheel: два формата артефактов](18-packaging.md#18.5)
-- [18.6. Анатомия wheel: имя как протокол](18-packaging.md#18.6)
-- [18.7. pip изнутри: что происходит при pip install](18-packaging.md#18.7)
-- [18.8. Editable-установка: .pth и finder](18-packaging.md#18.8)
-- [18.9. Зависимости: PEP 508 и PEP 440](18-packaging.md#18.9)
-- [18.10. entry points: console-скрипты и плагины](18-packaging.md#18.10)
-- [18.11. Публикация: PyPI, twine и альтернативные формы](18-packaging.md#18.11)
+- [18.1. Три пути в C: ctypes, cffi, C API](18-c-api.md#18.1)
+- [18.2. `ctypes` — C без компиляции](18-c-api.md#18.2)
+- [18.3. `cffi` — объявления вместо прототипов](18-c-api.md#18.3)
+- [18.4. `PyObject` и подсчёт ссылок](18-c-api.md#18.4)
+- [18.5. Свой модуль на C API](18-c-api.md#18.5)
+- [18.6. Свой тип из C API](18-c-api.md#18.6)
+- [18.7. Ошибки и исключения из C](18-c-api.md#18.7)
+- [18.8. GIL из C-кода](18-c-api.md#18.8)
+- [18.9. Stable ABI и сборки без GIL](18-c-api.md#18.9)
+- [18.10. Встраивание интерпретатора в C](18-c-api.md#18.10)
+- [18.11. Отладка C-расширений](18-c-api.md#18.11)
 
 ### Приложения
 

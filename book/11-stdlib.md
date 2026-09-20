@@ -1,6 +1,6 @@
 # Часть XI. Полезные модули стандартной библиотеки
 
-Модули, которые редко попадают в туториалы, но закрывают повседневные задачи: кэширование и мемоизация, weakref, бинарные форматы, логирование, очереди, профилирование, venv/pip/site (11.31). Конвенция части — код плюс таблицы; у каждого модуля отмечено, чем он цепляется за интерпретатор (ссылки на Часть VIII) и какая у него CLI-обёртка (11.31).
+Модули, которые редко попадают в туториалы, но закрывают повседневные задачи: кэширование и мемоизация, weakref, бинарные форматы, логирование, очереди, профилирование, venv/pip/site (11.32). Конвенция части — код плюс таблицы; у каждого модуля отмечено, чем он цепляется за интерпретатор (ссылки на Часть VIII) и какая у него CLI-обёртка (11.32).
 
 ## 11.1. `functools.lru_cache`, `functools.cache` { #11.1 }
 
@@ -1113,9 +1113,193 @@ aware_msk = datetime.datetime.now(tz_msk)
 
 ⚠️ Всегда используйте **tz-aware** datetime в коде, который работает с разными часовыми поясами. Naive datetime — главная причина багов в коде, который работает с временем.
 
-## 11.18. `bisect` и `heapq` — быстрые операции на отсортированных данных { #11.18 }
+## 11.18. `zoneinfo` — часовые пояса IANA: PEP 615, fold и данные { #11.18 }
 
-### `bisect` — бинарный поиск в отсортированном списке { #11.18-bisect }
+`datetime.timezone` умеет только фиксированный сдвиг от UTC. Но у реальных зон сдвиг меняется: летом и зимой (DST), а то и по указу правительства. Вся эта история хранится в базе часовых поясов IANA (tzdata), а `zoneinfo` (PEP 615, с 3.9) — её Python-интерфейс. До 3.9 всё держалось на стороннем `pytz` со своей (неудобной) моделью — с 3.9 стандартная библиотека работает с зонами напрямую.
+
+### База: aware-datetime с зоной из базы IANA { #11.18-baza }
+
+```python
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+msk = ZoneInfo("Europe/Moscow")          # ключ IANA: Area/Location
+dt = datetime(2025, 6, 1, 12, 0, tzinfo=msk)
+dt.utcoffset(), dt.tzname()              # (timedelta(hours=3), 'MSK')
+
+# перевод момента времени между зонами — astimezone:
+ny = ZoneInfo("America/New_York")
+dt.astimezone(ny)        # 2025-06-01 05:00:00-04:00 — тот же момент, другое время на стене
+dt.replace(tzinfo=ny)    # 2025-06-01 12:00:00-04:00 — те же ЧАСЫ, но другой момент!
+(dt.replace(tzinfo=ny) - dt.astimezone(ny))   # timedelta(hours=7) — ловушка на 7 часов
+```
+
+⚠️ **`astimezone` меняет точку зрения на момент времени, `replace(tzinfo=...)` — перепрошивает ярлык**, оставив настенные часы на месте. Почти всегда нужен `astimezone`; `replace` — когда вы точно знаете, что наивное время выражено в другой зоне.
+
+Сила IANA-данных — история: один и тот же ключ `Europe/Moscow` даёт правильные сдвиги для любых дат прошлого:
+
+```python
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+msk = ZoneInfo("Europe/Moscow")
+# реальные данные базы IANA (проверено на tzdata 2026a):
+datetime(2010, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (MSK, зима)
+datetime(2010, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSD, летнее время действовало)
+datetime(2011, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSK! — указ 2011: постоянное «лето»)
+datetime(2015, 1, 1, tzinfo=msk).utcoffset()   # 4:00 (ещё постоянное лето)
+datetime(2016, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (с октября 2014 — постоянная зима)
+```
+
+`datetime.timezone` такое не умеет в принципе — у него одна фикс-величина на все времена.
+
+### `fold` (PEP 495): несуществующие и двоякие времена { #11.18-fold }
+
+При переводе стрелок час на стене случается дважды или ни разу. Атрибут `fold` (0 или 1) объясняет, какое из двух возможных состояний вы имеете в виду. По умолчанию `fold=0` — «раньше».
+
+```python
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+ny = ZoneInfo("America/New_York")
+# Осень 2024: 3 ноября в 02:00 EDT стрелки назад на 01:00 EST.
+# 01:30 на стене существует ДВАЖДЫ:
+amb0 = datetime(2024, 11, 3, 1, 30, tzinfo=ny, fold=0)
+amb1 = datetime(2024, 11, 3, 1, 30, tzinfo=ny, fold=1)
+amb0.utcoffset()   # -1 day, 20:00:00  (EDT, -4)
+amb1.utcoffset()   # -1 day, 19:00:00  (EST, -5)
+amb0.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-11-03T05:30:00+00:00
+amb1.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-11-03T06:30:00+00:00 — час спустя!
+
+# Весна 2024: 10 марта в 02:00 EST стрелки вперёд на 03:00 EDT.
+# 02:30 НЕ существует, но объект datetime его «проживёт» — просто выберет интерпретацию:
+nx0 = datetime(2024, 3, 10, 2, 30, tzinfo=ny, fold=0)   # трактуется как EST (-5)
+nx1 = datetime(2024, 3, 10, 2, 30, tzinfo=ny, fold=1)   # трактуется как EDT (-4)
+nx0.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-03-10T07:30:00+00:00
+nx1.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-03-10T06:30:00+00:00
+```
+
+❌ Классическая ошибка — расписание типа «01:30 ночи каждый день»: в осенний переход оно произойдёт дважды (cron и таймеры разъезжаются с календарём), а в весенний — ни разу. Если приложение чувствительно — нормализуйте через UTC или явно работайте с `fold`.
+
+Экзотика, доказывающая, что `fold` — не теория: на острове Лорд-Хау DST сдвигает часы на **30 минут**:
+
+```python
+lh = ZoneInfo("Australia/Lord_Howe")
+d0 = datetime(2024, 4, 7, 1, 45, tzinfo=lh, fold=0)   # +11:00
+d1 = datetime(2024, 4, 7, 1, 45, tzinfo=lh, fold=1)   # +10:30 — разница 30 минут
+```
+
+### Арифметика aware-дат: wall clock против абсолютного времени { #11.18-arifmetika }
+
+Самая коварная часть модели. Датetime-объекты с **одним и тем же** объектом `tzinfo` вычитаются как наивные (wall clock), даже если между ними был переход DST:
+
+```python
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+ny = ZoneInfo("America/New_York")
+t1 = datetime(2024, 3, 9, 12, 0, tzinfo=ny)     # EST (-5)
+t2 = datetime(2024, 3, 11, 12, 0, tzinfo=ny)    # EDT (-4), между ними переход
+t2 - t1                        # 2 days, 0:00:00 — wall clock!
+(t2.astimezone(timezone.utc) - t1.astimezone(timezone.utc))   # 1 day, 23:00:00 — абсолют
+
+# +24 часа «по стене» против +24 часа абсолютных:
+(t1 + timedelta(days=1)).isoformat()          # 2024-03-10T12:00:00-04:00 — 12:00 на стене
+(t1.astimezone(timezone.utc) + timedelta(hours=24)).astimezone(ny).isoformat()
+                                              # 2024-03-10T13:00:00-04:00 — 13:00 на стене
+```
+
+✅ Правило: `timedelta` прибавляется к **наивной части**, зона не пересчитывается. Для «завтра в это же время» этого обычно и хотят; для «ровно через 24 часа абсолютных» — ходите через UTC. И да: `amb1 - amb0` из примера выше даст `0:00:00` — потому что `tzinfo` у обоих один и тот же объект.
+
+### Откуда берутся данные: TZPATH и пакет tzdata { #11.18-dannye }
+
+При загрузке зоны `zoneinfo` ищет данные в строгом порядке (это видно прямо в `_zoneinfo.py`):
+
+1. **Системные файлы** по путям `zoneinfo.TZPATH` — на Linux это `/usr/share/zoneinfo` (+ ещё 3 запасных каталога);
+2. **Пакет `tzdata`** из PyPI (`importlib.resources` по пакету `tzdata.zoneinfo`) — если системных файлов не нашлось.
+
+```python
+import zoneinfo
+zoneinfo.TZPATH
+# ('/usr/share/zoneinfo', '/usr/lib/zoneinfo', '/usr/share/lib/zoneinfo', '/etc/zoneinfo')
+
+len(zoneinfo.available_timezones())   # 599 ключей на tzdata 2026a (число растёт с релизами базы)
+"UTC" in zoneinfo.available_timezones()   # True
+
+# свой источник: файл TZif вручную (например, из другого набора данных)
+with open("/usr/share/zoneinfo/Europe/Moscow", "rb") as f:
+    z = zoneinfo.ZoneInfo.from_file(f, key="Europe/Moscow")   # ключ — только ярлык
+```
+
+Порядок «сначала TZPATH, потом пакет» имеет практическое следствие: если в окружении стоит пакет `tzdata`, а системная база устарела — Python всё равно возьмёт **системную**. Обновлять tzdata лучше средствами ОС (`apt install tzdata`); пакет `tzdata` из PyPI — запас для Windows, альпийских образов и прочих сред без системной базы. Приоритет можно перевернуть, подменив `TZPATH`:
+
+```bash
+# переменная окружения: свой путь поиска (PEP 615)
+PYTHONTZPATH=/opt/tzdata python3 -c "import zoneinfo; print(zoneinfo.TZPATH)"
+# → ('/opt/tzdata',)
+```
+
+```python
+import zoneinfo
+# программно — точка входа для тестов и вендоринга:
+zoneinfo.reset_tzpath(("/opt/tzdata",))          # сменить путь поиска на ходу
+zoneinfo.ZoneInfo.clear_cache()                  # СБРОСИТЬ КЭШ — classmethod у ZoneInfo!
+```
+
+⚠️ **`clear_cache()` — метод класса `ZoneInfo`, а не функция модуля**: `zoneinfo.clear_cache()` бросит `AttributeError`. И он существует не зря — зоны кэшируются:
+
+```python
+from zoneinfo import ZoneInfo
+a = ZoneInfo("Europe/Moscow")
+b = ZoneInfo("Europe/Moscow")
+a is b              # True — один и тот же объект из кэша
+ZoneInfo.clear_cache()
+c = ZoneInfo("Europe/Moscow")
+a is c              # False — после сброса пересоздан
+# без кэша: ZoneInfo.no_cache("Europe/Moscow") — отдельный экземпляр
+```
+
+### Ошибки, UTC и шпаргалка { #11.18-oshibki }
+
+```python
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+ZoneInfo("No/Such/Zone")     # ZoneInfoNotFoundError (наследник KeyError)
+ZoneInfo("/abs/path")        # ValueError: ZoneInfo keys may not be absolute paths
+                             # — ключ ≠ путь; абсолютный путь только через from_file()
+```
+
+```python
+# ZoneInfo('UTC') против datetime.timezone.utc — похожи, но не равны:
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+zu = ZoneInfo("UTC")
+datetime(2025, 1, 1, tzinfo=zu).utcoffset() == datetime(2025, 1, 1, tzinfo=timezone.utc).utcoffset()
+# True — сдвиг один
+zu == timezone.utc             # False — разные классы, сравнение не по сдвигу
+datetime(2025, 1, 1, tzinfo=zu).tzname() == datetime(2025, 1, 1, tzinfo=timezone.utc).tzname()
+# True — оба зовутся 'UTC'
+```
+
+| Задача | Инструмент |
+|---|---|
+| aware-datetime в зоне IANA | `datetime(..., tzinfo=ZoneInfo("Europe/Moscow"))` |
+| Перевести момент в другую зону | `dt.astimezone(ZoneInfo("Asia/Tokyo"))` |
+| Часы «перепрыгнули»/задвоились | поле `fold` (PEP 495) |
+| Список всех зон | `zoneinfo.available_timezones()` |
+| Данные без системной базы | `pip install tzdata` (PyPI-пакет, запасной источник) |
+| Свой путь поиска данных | `PYTHONTZPATH` (10.3) или `zoneinfo.reset_tzpath()` |
+| Сбросить кэш зон | `ZoneInfo.clear_cache()` — classmethod |
+| Зона из файла/архива | `ZoneInfo.from_file(open(path, "rb"), key="...")` |
+| Наивное ↔ aware | `dt.replace(tzinfo=z)` ↔ `dt.astimezone(z)`; смесь в одной арифметике — `TypeError` |
+
+⚠️ Подмена системных данных через `PYTHONTZPATH`/`reset_tzpath` не аннулирует уже загруженные зоны — сначала `ZoneInfo.clear_cache()`. А `from_file` и `no_cache` минуют кэш по дизайну: два экземпляра одной зоны из файла не `is`-равны.
+
+Перекрёстные ссылки: подмена времени в тестах — 13.4; `sys.flags` и `-S`/`-E` не влияют на `zoneinfo`, но `PYTHONTZPATH` читается при старте и попадает в общую картину переменных окружения — 10.3; сериализация aware-datetime в JSON/базы — 11.20.
+
+## 11.19. `bisect` и `heapq` — быстрые операции на отсортированных данных { #11.19 }
+
+### `bisect` — бинарный поиск в отсортированном списке { #11.19-bisect }
 
 ```python
 import bisect
@@ -1138,7 +1322,7 @@ print(bisect.bisect_right(nums, 2))  # 4 — позиция после посл�
 
 O(log n) для поиска, O(n) для вставки (из-за сдвига).
 
-### `heapq` — куча (heap) { #11.18-heapq }
+### `heapq` — куча (heap) { #11.19-heapq }
 
 Куча — список, поддерживающий быстрое извлечение минимума. Не сортирует весь список, но всегда даёт O(1) на минимум и O(log n) на insert/extract.
 
@@ -1189,9 +1373,9 @@ print(pop_task())   # "medium"
 print(pop_task())   # "low"
 ```
 
-## 11.19. `csv`, `json`, `urllib.parse` { #11.19 }
+## 11.20. `csv`, `json`, `urllib.parse` { #11.20 }
 
-### `csv` — чтение/запись CSV { #11.19-csv }
+### `csv` — чтение/запись CSV { #11.20-csv }
 
 ```python
 import csv
@@ -1222,7 +1406,7 @@ csv.writer(f, dialect='excel-tab')   # tab-separated
 csv.register_dialect('myformat', delimiter=';', quotechar='"')
 ```
 
-### `json` — JSON { #11.19-json }
+### `json` — JSON { #11.20-json }
 
 ```python
 import json
@@ -1259,7 +1443,7 @@ class MyEncoder(json.JSONEncoder):
 json.dumps({'ts': datetime.datetime.now()}, cls=MyEncoder)
 ```
 
-**`json.tool` — CLI-валидатор и pretty-printer** (он же в списке `python -m` в 11.31). Читает JSON из файла или stdin, пишет отформатированный — в stdout или в файл-аргумент:
+**`json.tool` — CLI-валидатор и pretty-printer** (он же в списке `python -m` в 11.32). Читает JSON из файла или stdin, пишет отформатированный — в stdout или в файл-аргумент:
 
 ```bash
 $ echo '{"b":1,"a":{"yy":2,"zz":1}}' | python3 -m json.tool --sort-keys
@@ -1279,7 +1463,7 @@ $ python3 -m json.tool data.json out.json         # файл на вход → �
 
 ⚠️ `json.loads` по умолчанию **принимает** `NaN`/`Infinity`/`-Infinity` (это расширение сверх стандарта: `json.loads('NaN')` → `nan`). Для строгого JSON передайте `parse_constant`, поднимающий `ValueError`; `json.dumps` тоже пишет `NaN` по умолчанию (`allow_nan=True`).
 
-### `urllib.parse` — работа с URL { #11.19-urllibparse }
+### `urllib.parse` — работа с URL { #11.20-urllibparse }
 
 ```python
 from urllib.parse import urlparse, parse_qs, urlencode, urljoin
@@ -1305,7 +1489,7 @@ full = urljoin('https://example.com/api/v1/', '../v2/users')
 # 'https://example.com/api/v2/users'
 ```
 
-## 11.20. `mmap` — memory-mapped files { #11.20 }
+## 11.21. `mmap` — memory-mapped files { #11.21 }
 
 `mmap` — отображение файла в память. Большие файлы читаются как память (через страничный кэш ОС, страницы подгружаются по требованию), не загружаясь целиком в RAM.
 
@@ -1329,7 +1513,7 @@ with open('huge.bin', 'r+b') as f:
     mm.close()
 ```
 
-### `find()` / `rfind()` — поиск без загрузки в RAM { #11.20-find }
+### `find()` / `rfind()` — поиск без загрузки в RAM { #11.21-find }
 
 Главное преимущество `mmap` для больших файлов — поиск подстроки **без чтения файла в Python**. Поиск идёт на C-уровне внутри CPython (`mmapmodule.c`) и не аллоцирует промежуточных Python-объектов:
 
@@ -1361,7 +1545,7 @@ with open('huge.log', 'rb') as f:
 
 ⚠️ `find`/`rfind` работают только на **bytes** (`mmap.mmap` всегда байтовый, не str). Для текстового поиска — `b'ERROR'`, не `'ERROR'`.
 
-### Случайный доступ через `seek()` и срезы { #11.20-sluchaynyy }
+### Случайный доступ через `seek()` и срезы { #11.21-sluchaynyy }
 
 `mmap` поддерживает оба способа — `seek` (как у file) и индексацию (как у bytes). ⚠️ Срезы на mmap **копируют** данные: каждый срез — новый объект `bytes` (`mm[0:4] is mm[0:4]` → `False`). Zero-copy — только `memoryview` (способ 3 ниже):
 
@@ -1380,7 +1564,7 @@ mv = memoryview(mm)
 chunk = mv[100_000_000:100_004_096]   # не копирует, пока не понадобится
 ```
 
-### `MAP_SHARED` — разделяемая память между процессами { #11.20-mapshared }
+### `MAP_SHARED` — разделяемая память между процессами { #11.21-mapshared }
 
 Когда несколько процессов должны работать с одним и тем же регионом памяти, `mmap` с `MAP_SHARED` даёт дешёвый IPC — без pickle, без очередей, без sockets. Изменения, сделанные одним процессом, **сразу** видны другим:
 
@@ -1406,7 +1590,7 @@ with open(shared_path, 'w+b') as f:
 
 ⚠️ На Windows `MAP_SHARED` работает только для **файлов** (не анонимной памяти). Для анонимной shared memory между процессами на всех платформах — `multiprocessing.shared_memory` (Python 3.8+), см. ниже.
 
-### `multiprocessing.shared_memory` — кроссплатформенная shared memory { #11.20-multiprocessingsharedmemory }
+### `multiprocessing.shared_memory` — кроссплатформенная shared memory { #11.21-multiprocessingsharedmemory }
 
 Python 3.8+ даёт высокоуровневую обёртку над `mmap` для IPC между процессами:
 
@@ -1452,7 +1636,7 @@ if __name__ == '__main__':
 - **Синхронизация на тебе** — `multiprocessing.Lock` или `mmap`+атомики. Без этого — race conditions.
 - **Размер фиксирован** при создании; для динамических данных — `multiprocessing.Array` или `queue.Queue`.
 
-### `access=` — режимы доступа { #11.20-access }
+### `access=` — режимы доступа { #11.21-access }
 
 | Флаг | Чтение | Запись | Синхронизация с файлом |
 |---|---|---|---|
@@ -1466,7 +1650,7 @@ mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_COPY)
 mm[0:4] = b'TEST'   # изменяет только память, не файл
 ```
 
-### ⚠️ Платформенные особенности { #11.20-platformennye }
+### ⚠️ Платформенные особенности { #11.21-platformennye }
 
 | Платформа | Что отличается |
 |---|---|
@@ -1478,9 +1662,9 @@ mm[0:4] = b'TEST'   # изменяет только память, не файл
 
 > **→ см. также:** Часть IV (4.11) — `multiprocessing` для CPU-bound параллелизма; `multiprocessing.shared_memory` — логичное расширение mmap для межпроцессного обмена.
 
-## 11.21. `shutil` и `tempfile` { #11.21 }
+## 11.22. `shutil` и `tempfile` { #11.22 }
 
-### `shutil` — высокоуровневые операции с файлами { #11.21-shutil }
+### `shutil` — высокоуровневые операции с файлами { #11.22-shutil }
 
 ```python
 import shutil
@@ -1508,7 +1692,7 @@ shutil.make_archive('backup', 'zip', root_dir='src')   # создает backup.z
 shutil.unpack_archive('backup.zip', 'unpacked/')
 ```
 
-### `tempfile` — временные файлы { #11.21-tempfile }
+### `tempfile` — временные файлы { #11.22-tempfile }
 
 ```python
 import tempfile
@@ -1538,9 +1722,9 @@ fd, path = tempfile.mkstemp()
 
 ⚠️ `TemporaryDirectory` через `with` — самый безопасный вариант. Если не `with` — то `shutil.rmtree(tmpdir)` вручную в `finally`.
 
-## 11.22. `decimal` и `fractions` { #11.22 }
+## 11.23. `decimal` и `fractions` { #11.23 }
 
-### `decimal` — точная арифметика с фиксированной точкой { #11.22-decimal }
+### `decimal` — точная арифметика с фиксированной точкой { #11.23-decimal }
 
 Для финансовых расчётов, где `float` даёт погрешности:
 
@@ -1576,7 +1760,7 @@ price = Decimal('19.999')
 rounded = price.quantize(Decimal('0.01'))   # Decimal('20.00')
 ```
 
-### `fractions` — рациональные числа { #11.22-fractions }
+### `fractions` — рациональные числа { #11.23-fractions }
 
 ```python
 from fractions import Fraction
@@ -1600,7 +1784,7 @@ print(Fraction(5, 4) / Fraction(3, 2))   # Fraction(5, 6)
 
 ⚠️ `Fraction` — точные, но **медленные** (целочисленная арифметика с произвольной точностью). Для большинства задач `float` достаточно.
 
-## 11.23. `re` — регулярные выражения { #11.23 }
+## 11.24. `re` — регулярные выражения { #11.24 }
 
 ```python
 import re
@@ -1705,7 +1889,7 @@ new_str, count = re.subn(r'\d+', 'N', 'a1 b22 c333')
 
 ⚠️ **Не используйте re для парсинга XML/HTML** — используйте `xml.etree.ElementTree` или `lxml`. Регулярки не справляются с вложенными структурами.
 
-## 11.24. `unicodedata` — нормализация Unicode { #11.24 }
+## 11.25. `unicodedata` — нормализация Unicode { #11.25 }
 
 Строки, выглядящие одинаково, могут быть разными:
 
@@ -1757,9 +1941,9 @@ print(normalize_search('Café'))   # 'cafe'
 print(normalize_search('CAFÉ'))   # 'cafe'
 ```
 
-## 11.25. `struct`, `memoryview` — бинарные данные { #11.25 }
+## 11.26. `struct`, `memoryview` — бинарные данные { #11.26 }
 
-### `struct` — упаковка/распаковка бинарных данных { #11.25-struct }
+### `struct` — упаковка/распаковка бинарных данных { #11.26-struct }
 
 ```python
 import struct
@@ -1798,7 +1982,7 @@ print(s.unpack(data))
 - `!` — network byte order (как `>`)
 - без prefix — native
 
-### `memoryview` — zero-copy срезы bytes { #11.25-memoryview }
+### `memoryview` — zero-copy срезы bytes { #11.26-memoryview }
 
 ```python
 data = b'0123456789' * 1000   # 10000 байт
@@ -1830,9 +2014,9 @@ print(arr)   # bytearray(b'XYZ3456789')
 
 Применение `memoryview` — чтение больших бинарных файлов без копирования срезов, парсинг протоколов, mmap.
 
-## 11.26. `hashlib`, `hmac`, `secrets` — криптография { #11.26 }
+## 11.27. `hashlib`, `hmac`, `secrets` — криптография { #11.27 }
 
-### `hashlib` — хеши { #11.26-hashlib }
+### `hashlib` — хеши { #11.27-hashlib }
 
 ```python
 import hashlib
@@ -1861,7 +2045,7 @@ print(digest.hexdigest())
 
 ⚠️ `md5` и `sha1` — **сломаны** для криптографии. Используйте `sha256`/`sha512`/`blake2b`. Для file deduplication — md5 ещё ок.
 
-### `hmac` — keyed-hash (для аутентификации сообщений) { #11.26-hmac }
+### `hmac` — keyed-hash (для аутентификации сообщений) { #11.27-hmac }
 
 ```python
 import hmac, hashlib
@@ -1879,7 +2063,7 @@ print(hmac.compare_digest(signature, expected))   # True — constant-time compa
 
 ⚠️ Используйте `hmac.compare_digest` (constant-time) для проверки подписей, не `==` — иначе timing-атаки.
 
-### `secrets` — криптостойкая случайность { #11.26-secrets }
+### `secrets` — криптостойкая случайность { #11.27-secrets }
 
 ```python
 import secrets
@@ -1901,9 +2085,9 @@ secrets.compare_digest('hello', 'hello')   # True
 
 ⚠️ **Никогда** не используйте `random` для криптографии — он не криптостойкий. Только `secrets`.
 
-## 11.27. `math` — матфункции и `statistics` { #11.27 }
+## 11.28. `math` — матфункции и `statistics` { #11.28 }
 
-### `math` — основные { #11.27-math }
+### `math` — основные { #11.28-math }
 
 ```python
 import math
@@ -1942,7 +2126,7 @@ math.factorial(5)  # 120
 
 `math.prod`, `math.comb`, `math.perm`, `math.isqrt`, `math.lcm` — малоизвестные, но очень полезные функции, заменяющие кучи `reduce` и `factorial`-обёрток.
 
-### `statistics` — статистика { #11.27-statistics }
+### `statistics` — статистика { #11.28-statistics }
 
 ```python
 import statistics
@@ -1969,7 +2153,7 @@ print(statistics.linear_regression([1,2,3], [2,4,6]))   # LinearRegression(slope
 
 `statistics` — для быстрой аналитики без numpy. Не такая быстрая, но для 10000 значений достаточно.
 
-## 11.28. `random` — псевдослучайные числа { #11.28 }
+## 11.29. `random` — псевдослучайные числа { #11.29 }
 
 ```python
 import random
@@ -2000,11 +2184,11 @@ sr = random.SystemRandom()
 print(sr.randint(1, 100))
 ```
 
-⚠️ `random` — **не** криптостойкий. Для паролей, токенов, API-ключей — `secrets` (см. §11.26).
+⚠️ `random` — **не** криптостойкий. Для паролей, токенов, API-ключей — `secrets` (см. §11.27).
 
-## 11.29. `argparse`, `configparser`, `subprocess` — CLI, конфиги, процессы { #11.29 }
+## 11.30. `argparse`, `configparser`, `subprocess` — CLI, конфиги, процессы { #11.30 }
 
-### `argparse` — парсер аргументов командной строки { #11.29-argparse }
+### `argparse` — парсер аргументов командной строки { #11.30-argparse }
 
 ```python
 import argparse
@@ -2030,7 +2214,7 @@ print(args.mode)    # 'slow'
 
 `--help` генерируется автоматически. `argparse` — стандарт для всех CLI-утилит.
 
-### `configparser` — INI-файлы { #11.29-configparser }
+### `configparser` — INI-файлы { #11.30-configparser }
 
 ```ini
 # config.ini
@@ -2054,7 +2238,7 @@ print(config.getint('database', 'port'))   # 5432 (как int)
 print(config.getboolean('features', 'debug'))   # True
 ```
 
-### `tomllib` — TOML (Python 3.11+) { #11.29-tomllib }
+### `tomllib` — TOML (Python 3.11+) { #11.30-tomllib }
 
 ```toml
 # config.toml
@@ -2078,7 +2262,7 @@ print(config['database']['tags'])   # ['primary', 'fast']
 
 TOML — современная замена INI, поддерживает массивы, числа, bool, даты. `tomllib` только читает (не пишет). Для записи — `tomli-w`.
 
-### `subprocess` — запуск внешних процессов { #11.29-subprocess }
+### `subprocess` — запуск внешних процессов { #11.30-subprocess }
 
 ```python
 import subprocess
@@ -2112,7 +2296,7 @@ proc.terminate()
 
 ⚠️ `shell=True` с пользовательским вводом — **command injection**. Всегда передавайте список аргументов, не строку.
 
-### `shell=True` — почему это опасно { #11.29-shelltrue }
+### `shell=True` — почему это опасно { #11.30-shelltrue }
 
 Когда передаёшь **строку** с `shell=True`, Python вызывает `/bin/sh -c "твоя строка"`. Shell парсит строку по своим правилам — метасимволы `;`, `|`, `&`, `` ` ``, `$()`, `>`, `<` интерпретируются. Если в строке есть данные от пользователя — он может «дописать» команду:
 
@@ -2156,7 +2340,7 @@ subprocess.run(f"cat {safe}", shell=True)
 # /bin/sh -c "cat 'x; echo hacked'"  ← cat попытается открыть файл 'x; echo hacked'
 ```
 
-### `subprocess.run` vs `Popen` — когда что { #11.29-subprocessrun }
+### `subprocess.run` vs `Popen` — когда что { #11.30-subprocessrun }
 
 | API | Для чего |
 |---|---|
@@ -2167,7 +2351,7 @@ subprocess.run(f"cat {safe}", shell=True)
 | `os.system(cmd)` | ❌ устаревший. Не возвращает вывод, не безопасен, только returncode. |
 | `os.popen(cmd)` | ❌ устаревший. Используй `subprocess.Popen` с `PIPE`. |
 
-### `sys.argv` — простой доступ к аргументам { #11.29-sysargv }
+### `sys.argv` — простой доступ к аргументам { #11.30-sysargv }
 
 ```python
 import sys
@@ -2179,11 +2363,11 @@ print(sys.argv)
 
 ⚠️ Для чего-то сложнее «взять первый аргумент» — используйте `argparse`.
 
-## 11.30. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop` — профилирование, отладка и REPL-движки { #11.30 }
+## 11.31. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop` — профилирование, отладка и REPL-движки { #11.31 }
 
 Эти модули собраны вместе не случайно — все они **выполняют произвольный Python-код в управляемом окружении**. Понимание их устройства полезно и для инструментов разработки, и для песочниц (или способов их обхода).
 
-### `timeit` — замер производительности { #11.30-timeit }
+### `timeit` — замер производительности { #11.31-timeit }
 
 Главное правило — **не использовать `time.time()`** для бенчмарков: он измеряет «wall clock», на который влияют другие процессы, GC, тепловое регулирование CPU. `timeit` выполняет stmt N раз и возвращает **суммарное** время (для best-of — `timeit.repeat` и `min()`), отключает GC на время замера.
 
@@ -2217,7 +2401,7 @@ API:
 - `globals={'x': x}` позволяет передать локальные переменные в `stmt` (Python 3.5+). Без этого — stmt выполняется в изолированном namespace.
 - `timeit` **отключает GC** на время замера (`gc.disable()`/`gc.enable()`). Если твой код создаёт циклы — это искажает реальную картину. Для реалистичной картины — включай обратно руками.
 
-### `bdb` — базовый класс для отладчиков { #11.30-bdb }
+### `bdb` — базовый класс для отладчиков { #11.31-bdb }
 
 `bdb` (базовый дебаггер) — это **фреймворк для написания своего отладчика**. На нём построены `pdb` (стандартный) и `ipdb` (ipython-версия); `debugpy` (VS Code) построен на pydevd — свой механизм трейсинга, но идея та же. Не отладчик сам по себе — каркас с хуками `break()`, `user_line()`, `user_return()`, `user_exception()`, которые ты переопределяешь.
 
@@ -2244,7 +2428,7 @@ class MyTracer(bdb.Bdb):
 
 `bdb` важен и в контексте **песочниц**: если отладчик может поставить хук на любой строке, значит, код песочницы, разрешающий `breakpoint()` или `sys.settrace`, даёт злоумышленнику полный контроль над выполнением. Блокировка `bdb`/`pdb`/`settrace` — стандартная мера.
 
-### `profile` и `cProfile` — профилирование кода { #11.30-profile }
+### `profile` и `cProfile` — профилирование кода { #11.31-profile }
 
 `profile` (чистый Python) и `cProfile` (C-расширение, быстрее в 10–20×) измеряют, **сколько времени ушло на каждую функцию**. В отличие от `timeit`, который сравнивает куски кода, профайлер показывает полную картину вызовов.
 
@@ -2288,7 +2472,7 @@ python -m cProfile -s cumulative script.py         # сразу вывести �
 
 `profile.Profile` можно инстанцировать программно и точечно — `enable()`/`disable()` вокруг критического участка. Так делают Django/Flask-профайлеры в middleware.
 
-### `code` и `codeop` — движок интерактивной консоли { #11.30-code }
+### `code` и `codeop` — движок интерактивной консоли { #11.31-code }
 
 `code` — модуль для создания **своих интерактивных REPL**. На нём построены `code.interact`/`InteractiveConsole`, `python -m code` и многие встраиваемые консоли; сам `python -i` (C-уровневый REPL) и `IPython` (prompt_toolkit) — не на нём. Если ты делаешь песочницу или встраиваемую консоль — это твой фундамент.
 
@@ -2333,7 +2517,7 @@ code_obj = c("def f():\n", "<input>", "single")
 # Возвращает None — команда не завершена, жди следующую строку
 ```
 
-### Почему эти модули важны для песочниц { #11.30-pochemu }
+### Почему эти модули важны для песочниц { #11.31-pochemu }
 
 Все четыре (`timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop`) — это **готовые движки выполнения Python-кода**. Если ты пишешь песочницу:
 
@@ -2356,11 +2540,11 @@ for m in ('bdb', 'pdb', 'profile', 'cProfile', 'code', 'codeop', 'timeit'):
 
 Реальная защита — это `ast`-фильтрация (Часть VII, 7.13) + изоляция процесса (seccomp, namespaces) + ограниченный `__builtins__`. Модульная блокировка — лишь первый уровень.
 
-## 11.31. `venv`, `pip`, `site` — виртуальные окружения, пакеты и site-packages { #11.31 }
+## 11.32. `venv`, `pip`, `site` — виртуальные окружения, пакеты и site-packages { #11.32 }
 
 Эти три темы — фундамент **Python-окружения**. Без понимания `venv`/`pip`/`site-packages` невозможно вести разработку сколь-нибудь сложного проекта, но в большинстве учебников они упоминаются вскользь.
 
-### `venv` — виртуальные окружения { #11.31-venv }
+### `venv` — виртуальные окружения { #11.32-venv }
 
 **Виртуальное окружение** — изолированная директория с собственным набором пакетов. Каждый проект — свой `venv`, пакеты не конфликтуют между проектами.
 
@@ -2427,7 +2611,7 @@ python3 -m venv .venv --copies                 # копии вместо сим�
 
 ⚠️ **venv и системные пакеты**: `--system-site-packages` — **не рекомендуется**. Если системный `requests` обновится, твой код сломается без предупреждения. Изолируй полностью.
 
-### `pip` — менеджер пакетов { #11.31-pip }
+### `pip` — менеджер пакетов { #11.32-pip }
 
 ```bash
 # Базовые операции:
@@ -2525,7 +2709,7 @@ pip install --no-index --find-links ./wheels/ requests  # только лока�
 
 ⚠️ **`pip install` выполняет код build-backend** (а при наличии `setup.py` — и его) — пакет может запустить arbitrary code при установке. Ставь только доверенные пакеты.
 
-### `site` модуль — что происходит при старте Python { #11.31-site }
+### `site` модуль — что происходит при старте Python { #11.32-site }
 
 При запуске `python3` (без `-S`) автоматически выполняется модуль `site`. Он:
 
@@ -2602,7 +2786,7 @@ sys.setrecursionlimit(5000)
 
 ⚠️ `usercustomize`/`sitecustomize` — **выполняются до вашего кода**. Если они падают с ошибкой — старт не рушится: сообщение уйдёт в stderr («Error in sitecustomize; set PYTHONVERBOSE for traceback»), и Python продолжит работу; полный трейсбек — `python3 -v`.
 
-### `python -m` — запуск модулей как скриптов { #11.31-python }
+### `python -m` — запуск модулей как скриптов { #11.32-python }
 
 `python -m <module>` — находит модуль в `sys.path` и выполняет его `__main__` (или `if __name__ == "__main__":` блок):
 
@@ -2638,7 +2822,7 @@ $ python3 -m modname       # argv[0] = полный путь к найденно
 $ echo "..." | python3     # argv[0] = '-' — код из stdin (явная форма: python3 -)
 ```
 
-### Сводная таблица: флаги запуска Python { #11.31-svodnaya }
+### Сводная таблица: флаги запуска Python { #11.32-svodnaya }
 
 | Флаг | Что делает | Когда использовать |
 |---|---|---|
@@ -2667,193 +2851,9 @@ $ echo "..." | python3     # argv[0] = '-' — код из stdin (явная ф�
 | `python3 -X importtime` | лог импортов с таймингами в stderr | искать медленные импорты |
 | `python3 -X dev` | Development Mode: строже warnings/asyncio/ресурсы | локальная разработка, CI |
 | `python3 -X perf` | поддержка Linux perf-профайлера (3.12+) | профилирование средствами ОС |
-| `python3 --check-hash-based-pycs always\|default\|never` | режим проверки hash-based pyc (см. 13.2) | деплой без надёжного mtime |
+| `python3 --check-hash-based-pycs always\|default\|never` | режим проверки hash-based pyc (см. 15.2) | деплой без надёжного mtime |
 
-## 11.32. `zoneinfo` — часовые пояса IANA: PEP 615, fold и данные { #11.32 }
-
-`datetime.timezone` умеет только фиксированный сдвиг от UTC. Но у реальных зон сдвиг меняется: летом и зимой (DST), а то и по указу правительства. Вся эта история хранится в базе часовых поясов IANA (tzdata), а `zoneinfo` (PEP 615, с 3.9) — её Python-интерфейс. До 3.9 всё держалось на стороннем `pytz` со своей (неудобной) моделью — с 3.9 стандартная библиотека работает с зонами напрямую.
-
-### База: aware-datetime с зоной из базы IANA { #11.32-baza }
-
-```python
-from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
-
-msk = ZoneInfo("Europe/Moscow")          # ключ IANA: Area/Location
-dt = datetime(2025, 6, 1, 12, 0, tzinfo=msk)
-dt.utcoffset(), dt.tzname()              # (timedelta(hours=3), 'MSK')
-
-# перевод момента времени между зонами — astimezone:
-ny = ZoneInfo("America/New_York")
-dt.astimezone(ny)        # 2025-06-01 05:00:00-04:00 — тот же момент, другое время на стене
-dt.replace(tzinfo=ny)    # 2025-06-01 12:00:00-04:00 — те же ЧАСЫ, но другой момент!
-(dt.replace(tzinfo=ny) - dt.astimezone(ny))   # timedelta(hours=7) — ловушка на 7 часов
-```
-
-⚠️ **`astimezone` меняет точку зрения на момент времени, `replace(tzinfo=...)` — перепрошивает ярлык**, оставив настенные часы на месте. Почти всегда нужен `astimezone`; `replace` — когда вы точно знаете, что наивное время выражено в другой зоне.
-
-Сила IANA-данных — история: один и тот же ключ `Europe/Moscow` даёт правильные сдвиги для любых дат прошлого:
-
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-msk = ZoneInfo("Europe/Moscow")
-# реальные данные базы IANA (проверено на tzdata 2026a):
-datetime(2010, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (MSK, зима)
-datetime(2010, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSD, летнее время действовало)
-datetime(2011, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSK! — указ 2011: постоянное «лето»)
-datetime(2015, 1, 1, tzinfo=msk).utcoffset()   # 4:00 (ещё постоянное лето)
-datetime(2016, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (с октября 2014 — постоянная зима)
-```
-
-`datetime.timezone` такое не умеет в принципе — у него одна фикс-величина на все времена.
-
-### `fold` (PEP 495): несуществующие и двоякие времена { #11.32-fold }
-
-При переводе стрелок час на стене случается дважды или ни разу. Атрибут `fold` (0 или 1) объясняет, какое из двух возможных состояний вы имеете в виду. По умолчанию `fold=0` — «раньше».
-
-```python
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-ny = ZoneInfo("America/New_York")
-# Осень 2024: 3 ноября в 02:00 EDT стрелки назад на 01:00 EST.
-# 01:30 на стене существует ДВАЖДЫ:
-amb0 = datetime(2024, 11, 3, 1, 30, tzinfo=ny, fold=0)
-amb1 = datetime(2024, 11, 3, 1, 30, tzinfo=ny, fold=1)
-amb0.utcoffset()   # -1 day, 20:00:00  (EDT, -4)
-amb1.utcoffset()   # -1 day, 19:00:00  (EST, -5)
-amb0.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-11-03T05:30:00+00:00
-amb1.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-11-03T06:30:00+00:00 — час спустя!
-
-# Весна 2024: 10 марта в 02:00 EST стрелки вперёд на 03:00 EDT.
-# 02:30 НЕ существует, но объект datetime его «проживёт» — просто выберет интерпретацию:
-nx0 = datetime(2024, 3, 10, 2, 30, tzinfo=ny, fold=0)   # трактуется как EST (-5)
-nx1 = datetime(2024, 3, 10, 2, 30, tzinfo=ny, fold=1)   # трактуется как EDT (-4)
-nx0.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-03-10T07:30:00+00:00
-nx1.astimezone(ZoneInfo("UTC")).isoformat()   # 2024-03-10T06:30:00+00:00
-```
-
-❌ Классическая ошибка — расписание типа «01:30 ночи каждый день»: в осенний переход оно произойдёт дважды (cron и таймеры разъезжаются с календарём), а в весенний — ни разу. Если приложение чувствительно — нормализуйте через UTC или явно работайте с `fold`.
-
-Экзотика, доказывающая, что `fold` — не теория: на острове Лорд-Хау DST сдвигает часы на **30 минут**:
-
-```python
-lh = ZoneInfo("Australia/Lord_Howe")
-d0 = datetime(2024, 4, 7, 1, 45, tzinfo=lh, fold=0)   # +11:00
-d1 = datetime(2024, 4, 7, 1, 45, tzinfo=lh, fold=1)   # +10:30 — разница 30 минут
-```
-
-### Арифметика aware-дат: wall clock против абсолютного времени { #11.32-arifmetika }
-
-Самая коварная часть модели. Датetime-объекты с **одним и тем же** объектом `tzinfo` вычитаются как наивные (wall clock), даже если между ними был переход DST:
-
-```python
-from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
-
-ny = ZoneInfo("America/New_York")
-t1 = datetime(2024, 3, 9, 12, 0, tzinfo=ny)     # EST (-5)
-t2 = datetime(2024, 3, 11, 12, 0, tzinfo=ny)    # EDT (-4), между ними переход
-t2 - t1                        # 2 days, 0:00:00 — wall clock!
-(t2.astimezone(timezone.utc) - t1.astimezone(timezone.utc))   # 1 day, 23:00:00 — абсолют
-
-# +24 часа «по стене» против +24 часа абсолютных:
-(t1 + timedelta(days=1)).isoformat()          # 2024-03-10T12:00:00-04:00 — 12:00 на стене
-(t1.astimezone(timezone.utc) + timedelta(hours=24)).astimezone(ny).isoformat()
-                                              # 2024-03-10T13:00:00-04:00 — 13:00 на стене
-```
-
-✅ Правило: `timedelta` прибавляется к **наивной части**, зона не пересчитывается. Для «завтра в это же время» этого обычно и хотят; для «ровно через 24 часа абсолютных» — ходите через UTC. И да: `amb1 - amb0` из примера выше даст `0:00:00` — потому что `tzinfo` у обоих один и тот же объект.
-
-### Откуда берутся данные: TZPATH и пакет tzdata { #11.32-dannye }
-
-При загрузке зоны `zoneinfo` ищет данные в строгом порядке (это видно прямо в `_zoneinfo.py`):
-
-1. **Системные файлы** по путям `zoneinfo.TZPATH` — на Linux это `/usr/share/zoneinfo` (+ ещё 3 запасных каталога);
-2. **Пакет `tzdata`** из PyPI (`importlib.resources` по пакету `tzdata.zoneinfo`) — если системных файлов не нашлось.
-
-```python
-import zoneinfo
-zoneinfo.TZPATH
-# ('/usr/share/zoneinfo', '/usr/lib/zoneinfo', '/usr/share/lib/zoneinfo', '/etc/zoneinfo')
-
-len(zoneinfo.available_timezones())   # 599 ключей на tzdata 2026a (число растёт с релизами базы)
-"UTC" in zoneinfo.available_timezones()   # True
-
-# свой источник: файл TZif вручную (например, из другого набора данных)
-with open("/usr/share/zoneinfo/Europe/Moscow", "rb") as f:
-    z = zoneinfo.ZoneInfo.from_file(f, key="Europe/Moscow")   # ключ — только ярлык
-```
-
-Порядок «сначала TZPATH, потом пакет» имеет практическое следствие: если в окружении стоит пакет `tzdata`, а системная база устарела — Python всё равно возьмёт **системную**. Обновлять tzdata лучше средствами ОС (`apt install tzdata`); пакет `tzdata` из PyPI — запас для Windows, альпийских образов и прочих сред без системной базы. Приоритет можно перевернуть, подменив `TZPATH`:
-
-```bash
-# переменная окружения: свой путь поиска (PEP 615)
-PYTHONTZPATH=/opt/tzdata python3 -c "import zoneinfo; print(zoneinfo.TZPATH)"
-# → ('/opt/tzdata',)
-```
-
-```python
-import zoneinfo
-# программно — точка входа для тестов и вендоринга:
-zoneinfo.reset_tzpath(("/opt/tzdata",))          # сменить путь поиска на ходу
-zoneinfo.ZoneInfo.clear_cache()                  # СБРОСИТЬ КЭШ — classmethod у ZoneInfo!
-```
-
-⚠️ **`clear_cache()` — метод класса `ZoneInfo`, а не функция модуля**: `zoneinfo.clear_cache()` бросит `AttributeError`. И он существует не зря — зоны кэшируются:
-
-```python
-from zoneinfo import ZoneInfo
-a = ZoneInfo("Europe/Moscow")
-b = ZoneInfo("Europe/Moscow")
-a is b              # True — один и тот же объект из кэша
-ZoneInfo.clear_cache()
-c = ZoneInfo("Europe/Moscow")
-a is c              # False — после сброса пересоздан
-# без кэша: ZoneInfo.no_cache("Europe/Moscow") — отдельный экземпляр
-```
-
-### Ошибки, UTC и шпаргалка { #11.32-oshibki }
-
-```python
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-
-ZoneInfo("No/Such/Zone")     # ZoneInfoNotFoundError (наследник KeyError)
-ZoneInfo("/abs/path")        # ValueError: ZoneInfo keys may not be absolute paths
-                             # — ключ ≠ путь; абсолютный путь только через from_file()
-```
-
-```python
-# ZoneInfo('UTC') против datetime.timezone.utc — похожи, но не равны:
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
-zu = ZoneInfo("UTC")
-datetime(2025, 1, 1, tzinfo=zu).utcoffset() == datetime(2025, 1, 1, tzinfo=timezone.utc).utcoffset()
-# True — сдвиг один
-zu == timezone.utc             # False — разные классы, сравнение не по сдвигу
-datetime(2025, 1, 1, tzinfo=zu).tzname() == datetime(2025, 1, 1, tzinfo=timezone.utc).tzname()
-# True — оба зовутся 'UTC'
-```
-
-| Задача | Инструмент |
-|---|---|
-| aware-datetime в зоне IANA | `datetime(..., tzinfo=ZoneInfo("Europe/Moscow"))` |
-| Перевести момент в другую зону | `dt.astimezone(ZoneInfo("Asia/Tokyo"))` |
-| Часы «перепрыгнули»/задвоились | поле `fold` (PEP 495) |
-| Список всех зон | `zoneinfo.available_timezones()` |
-| Данные без системной базы | `pip install tzdata` (PyPI-пакет, запасной источник) |
-| Свой путь поиска данных | `PYTHONTZPATH` (10.3) или `zoneinfo.reset_tzpath()` |
-| Сбросить кэш зон | `ZoneInfo.clear_cache()` — classmethod |
-| Зона из файла/архива | `ZoneInfo.from_file(open(path, "rb"), key="...")` |
-| Наивное ↔ aware | `dt.replace(tzinfo=z)` ↔ `dt.astimezone(z)`; смесь в одной арифметике — `TypeError` |
-
-⚠️ Подмена системных данных через `PYTHONTZPATH`/`reset_tzpath` не аннулирует уже загруженные зоны — сначала `ZoneInfo.clear_cache()`. А `from_file` и `no_cache` минуют кэш по дизайну: два экземпляра одной зоны из файла не `is`-равны.
-
-Перекрёстные ссылки: подмена времени в тестах — 15.4; `sys.flags` и `-S`/`-E` не влияют на `zoneinfo`, но `PYTHONTZPATH` читается при старте и попадает в общую картину переменных окружения — 10.3; сериализация aware-datetime в JSON/базы — 11.19.
-
-### Бенчмарки к Части XI { #11.31-benchmarki }
+### Бенчмарки к Части XI { #11.32-benchmarki }
 
 **1. `lru_cache` vs `cache` (Python 3.9+) vs ручной `dict`.**
 ```python

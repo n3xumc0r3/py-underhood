@@ -1,0 +1,544 @@
+MOVE zoneinfo: 183 строк перенесено после 11.17 (перед "## 11.18.")
+SEC  [01-basics.md] 11.27 -> 11.28  |комплексными — в Части XI (11.27 `math`/`statistic|
+SEC  [01-basics.md] 11.22 -> 11.23  |decimal.Decimal` (Часть XI, 11.22) или `fractions.F|
+SEC  [01-basics.md] 11.26 -> 11.27  |`, `secrets` (см. Часть XI, 11.26).|
+SEC  [01-basics.md] 11.30 -> 11.31  |стомные REPL (см. Часть XI, 11.30 `code`/`codeop`).|
+SEC  [01-basics.md] 13.2 -> 15.2  |еское число pyc-файлов (см. 13.2) или ROT13-шифр `|
+ROM  [07-metaprogramming.md] XV -> XIII  |рым дальше пользуются части X и XV.|
+ROM  [08-cpython-internals.md] XIII -> XV  |енных (8.11) до байт-кода Части XIII и импорта Части X|
+SEC  [10-introspection.md] 11.31 -> 11.32  |. Отсюда же растут CLI-темы 11.31 и диагностические|
+ROM  [10-introspection.md] XV -> XIII  |и диагностические режимы Части XV.|
+SEC  [10-introspection.md] 14.4 -> 17.4  |.13 REPL без `_pyrepl` (см. 14.4).|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |филирование, venv/pip/site (11.31). Конвенция части|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |и какая у него CLI-обёртка (11.31).|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |## 11.32. `zoneinfo` — час|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |: PEP 615, fold и данные { #11.32 }|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |ime с зоной из базы IANA { #11.32-baza }|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |вующие и двоякие времена { #11.32-fold }|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |отив абсолютного времени { #11.32-arifmetika }|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |е: TZPATH и пакет tzdata { #11.32-dannye }|
+SEC  [11-stdlib.md] 11.32 -> 11.18  |Ошибки, UTC и шпаргалка { #11.32-oshibki }|
+SEC  [11-stdlib.md] 15.4 -> 13.4  |подмена времени в тестах — 15.4; `sys.flags` и `-|
+SEC  [11-stdlib.md] 11.19 -> 11.20  |ware-datetime в JSON/базы — 11.19.|
+SEC  [11-stdlib.md] 11.18 -> 11.19  |## 11.18. `bisect` и `heap|
+SEC  [11-stdlib.md] 11.18 -> 11.19  |а отсортированных данных { #11.18 }|
+SEC  [11-stdlib.md] 11.18 -> 11.19  |в отсортированном списке { #11.18-bisect }|
+SEC  [11-stdlib.md] 11.18 -> 11.19  |## `heapq` — куча (heap) { #11.18-heapq }|
+SEC  [11-stdlib.md] 11.19 -> 11.20  |## 11.19. `csv`, `json`, `|
+SEC  [11-stdlib.md] 11.19 -> 11.20  |, `json`, `urllib.parse` { #11.19 }|
+SEC  [11-stdlib.md] 11.19 -> 11.20  |csv` — чтение/запись CSV { #11.19-csv }|
+SEC  [11-stdlib.md] 11.19 -> 11.20  |### `json` — JSON { #11.19-json }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |н же в списке `python -m` в 11.31). Читает JSON из|
+SEC  [11-stdlib.md] 11.19 -> 11.20  |ib.parse` — работа с URL { #11.19-urllibparse }|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |## 11.20. `mmap` — memory-|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |p` — memory-mapped files { #11.20 }|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |поиск без загрузки в RAM { #11.20-find }|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |п через `seek()` и срезы { #11.20-sluchaynyy }|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |память между процессами { #11.20-mapshared }|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |тформенная shared memory { #11.20-multiprocessingsh|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |ccess=` — режимы доступа { #11.20-access }|
+SEC  [11-stdlib.md] 11.20 -> 11.21  |латформенные особенности { #11.20-platformennye }|
+SEC  [11-stdlib.md] 11.21 -> 11.22  |## 11.21. `shutil` и `temp|
+SEC  [11-stdlib.md] 11.21 -> 11.22  |1. `shutil` и `tempfile` { #11.21 }|
+SEC  [11-stdlib.md] 11.21 -> 11.22  |невые операции с файлами { #11.21-shutil }|
+SEC  [11-stdlib.md] 11.21 -> 11.22  |pfile` — временные файлы { #11.21-tempfile }|
+SEC  [11-stdlib.md] 11.22 -> 11.23  |## 11.22. `decimal` и `fra|
+SEC  [11-stdlib.md] 11.22 -> 11.23  |`decimal` и `fractions` { #11.22 }|
+SEC  [11-stdlib.md] 11.22 -> 11.23  |а с фиксированной точкой { #11.22-decimal }|
+SEC  [11-stdlib.md] 11.22 -> 11.23  |ns` — рациональные числа { #11.22-fractions }|
+SEC  [11-stdlib.md] 11.23 -> 11.24  |## 11.23. `re` — регулярны|
+SEC  [11-stdlib.md] 11.23 -> 11.24  |` — регулярные выражения { #11.23 }|
+SEC  [11-stdlib.md] 11.24 -> 11.25  |## 11.24. `unicodedata` —|
+SEC  [11-stdlib.md] 11.24 -> 11.25  |` — нормализация Unicode { #11.24 }|
+SEC  [11-stdlib.md] 11.25 -> 11.26  |## 11.25. `struct`, `memor|
+SEC  [11-stdlib.md] 11.25 -> 11.26  |yview` — бинарные данные { #11.25 }|
+SEC  [11-stdlib.md] 11.25 -> 11.26  |спаковка бинарных данных { #11.25-struct }|
+SEC  [11-stdlib.md] 11.25 -> 11.26  |— zero-copy срезы bytes { #11.25-memoryview }|
+SEC  [11-stdlib.md] 11.26 -> 11.27  |## 11.26. `hashlib`, `hmac|
+SEC  [11-stdlib.md] 11.26 -> 11.27  |`secrets` — криптография { #11.26 }|
+SEC  [11-stdlib.md] 11.26 -> 11.27  |### `hashlib` — хеши { #11.26-hashlib }|
+SEC  [11-stdlib.md] 11.26 -> 11.27  |утентификации сообщений) { #11.26-hmac }|
+SEC  [11-stdlib.md] 11.26 -> 11.27  |риптостойкая случайность { #11.26-secrets }|
+SEC  [11-stdlib.md] 11.27 -> 11.28  |## 11.27. `math` — матфунк|
+SEC  [11-stdlib.md] 11.27 -> 11.28  |атфункции и `statistics` { #11.27 }|
+SEC  [11-stdlib.md] 11.27 -> 11.28  |### `math` — основные { #11.27-math }|
+SEC  [11-stdlib.md] 11.27 -> 11.28  |statistics` — статистика { #11.27-statistics }|
+SEC  [11-stdlib.md] 11.28 -> 11.29  |## 11.28. `random` — псевд|
+SEC  [11-stdlib.md] 11.28 -> 11.29  |— псевдослучайные числа { #11.28 }|
+SEC  [11-stdlib.md] 11.26 -> 11.27  |PI-ключей — `secrets` (см. §11.26).|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |## 11.29. `argparse`, `con|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |— CLI, конфиги, процессы { #11.29 }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |ументов командной строки { #11.29-argparse }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |onfigparser` — INI-файлы { #11.29-configparser }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |b` — TOML (Python 3.11+) { #11.29-tomllib }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |запуск внешних процессов { #11.29-subprocess }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |rue` — почему это опасно { #11.29-shelltrue }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |` vs `Popen` — когда что { #11.29-subprocessrun }|
+SEC  [11-stdlib.md] 11.29 -> 11.30  |стой доступ к аргументам { #11.29-sysargv }|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |## 11.30. `timeit`, `bdb`,|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |е, отладка и REPL-движки { #11.30 }|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |замер производительности { #11.30-timeit }|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |вый класс для отладчиков { #11.30-bdb }|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |e` — профилирование кода { #11.30-profile }|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |ок интерактивной консоли { #11.30-code }|
+SEC  [11-stdlib.md] 11.30 -> 11.31  |одули важны для песочниц { #11.30-pochemu }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |## 11.31. `venv`, `pip`, `|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |, пакеты и site-packages { #11.31 }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |— виртуальные окружения { #11.31-venv }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |`pip` — менеджер пакетов { #11.31-pip }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |сходит при старте Python { #11.31-site }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |уск модулей как скриптов { #11.31-python }|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |ца: флаги запуска Python { #11.31-svodnaya }|
+SEC  [11-stdlib.md] 13.2 -> 15.2  |роверки hash-based pyc (см. 13.2) | деплой без над|
+SEC  [11-stdlib.md] 11.31 -> 11.32  |### Бенчмарки к Части XI { #11.31-benchmarki }|
+ROM  [13-bytecode-vm.md] XIII -> XV  |# Часть XIII. От .py к байт-ко|
+SEC  [13-bytecode-vm.md] 13.1 -> 15.1  |## 13.1. Почему Python и|
+SEC  [13-bytecode-vm.md] 13.1 -> 15.1  |ется, и интерпретируется { #13.1 }|
+SEC  [13-bytecode-vm.md] 13.5 -> 15.5  |в цикле виртуальной машины (13.5). Java устроена т|
+SEC  [13-bytecode-vm.md] 13.2 -> 15.2  |ультат кэшируется в `.pyc` (13.2);|
+SEC  [13-bytecode-vm.md] 13.2 -> 15.2  |number в заголовке `.pyc` (13.2).|
+SEC  [13-bytecode-vm.md] 13.2 -> 15.2  |## 13.2. Импорт и .pyc: ф|
+SEC  [13-bytecode-vm.md] 13.2 -> 15.2  |кэширование, инвалидация { #13.2 }|
+SEC  [13-bytecode-vm.md] 13.3 -> 15.3  |## 13.3. Пайплайн компиля|
+SEC  [13-bytecode-vm.md] 13.3 -> 15.3  |ы → PEG → AST → байт-код { #13.3 }|
+SEC  [13-bytecode-vm.md] 13.4 -> 15.4  |## 13.4. Стековая машина:|
+SEC  [13-bytecode-vm.md] 13.4 -> 15.4  |а: как читается байт-код { #13.4 }|
+SEC  [13-bytecode-vm.md] 13.5 -> 15.5  |ыми для быстрой инструкции (13.5). В свежескомпили|
+SEC  [13-bytecode-vm.md] 13.3 -> 15.3  |самая таблица исключений из 13.3, здесь она размеч|
+SEC  [13-bytecode-vm.md] 13.5 -> 15.5  |## 13.5. Виртуальная маши|
+SEC  [13-bytecode-vm.md] 13.5 -> 15.5  |специализация, GIL, JIT { #13.5 }|
+SEC  [13-bytecode-vm.md] 13.4 -> 15.4  |ptive=True)   # тот же f из 13.4, после прогрева i|
+SEC  [13-bytecode-vm.md] 13.4 -> 15.4  |теми самыми кэш-словами из 13.4:|
+SEC  [13-bytecode-vm.md] 13.5 -> 15.5  |# Бенчмарки к Части XIII { #13.5-benchmarki }|
+ROM  [13-bytecode-vm.md] XIII -> XV  |### Бенчмарки к Части XIII { #15.5-benchmark|
+SEC  [13-bytecode-vm.md] 13.1 -> 15.1  |второй срез того же мифа из 13.1: pyc ускоряет **и|
+SEC  [13-bytecode-vm.md] 13.2 -> 15.2  |ED_HASH против timestamp из 13.2) на этом фоне нер|
+ROM  [14-implementations.md] XIV -> XVII  |# Часть XIV. Не только CPytho|
+SEC  [14-implementations.md] 14.1 -> 17.1  |## 14.1. Язык против реал|
+SEC  [14-implementations.md] 14.1 -> 17.1  |лизации: контракт Python { #14.1 }|
+SEC  [14-implementations.md] 13.2 -> 15.2  |рмат `.pyc` и magic number (13.2) — внутренний кэш|
+SEC  [14-implementations.md] 13.2 -> 15.2  |м тегом из имён pyc-файлов, 13.2).|
+SEC  [14-implementations.md] 14.2 -> 17.2  |## 14.2. Альтернативные р|
+SEC  [14-implementations.md] 14.2 -> 17.2  |ации: кто, на чём, зачем { #14.2 }|
+SEC  [14-implementations.md] 13.5 -> 15.5  |CPython **внутри** проекта (13.5).|
+SEC  [14-implementations.md] 14.3 -> 17.3  |## 14.3. Не реализации: N|
+SEC  [14-implementations.md] 14.3 -> 17.3  |и граница «тот же язык» { #14.3 }|
+SEC  [14-implementations.md] 14.2 -> 17.2  |гом движке** (PyPy и все из 14.2). Реализация обяз|
+SEC  [14-implementations.md] 14.4 -> 17.4  |## 14.4. REPL поверх REPL|
+SEC  [14-implementations.md] 14.4 -> 17.4  |Python, Jupyter и соседи { #14.4 }|
+SEC  [14-implementations.md] 14.3 -> 17.3  |рить числовое ядро | Numba (14.3) ||
+SEC  [14-implementations.md] 14.2 -> 17.2  |стый Python целиком | PyPy (14.2) ||
+SEC  [14-implementations.md] 14.4 -> 17.4  |## Бенчмарки к Части XIV { #14.4-benchmarki }|
+ROM  [14-implementations.md] XIV -> XVII  |### Бенчмарки к Части XIV { #17.4-benchmark|
+SEC  [14-implementations.md] 11.31 -> 11.32  |тарта CPython — это `site` (11.31): сканирование ка|
+SEC  [14-implementations.md] 14.4 -> 17.4  |овая цена того не отменяет (14.4).|
+SEC  [14-implementations.md] 14.2 -> 17.2  |ро-плат. Урок тот же, что в 14.2: «быстрее» без ут|
+ROM  [15-testing.md] XV -> XIII  |# Часть XV. Тестирование: от|
+SEC  [15-testing.md] 14.1 -> 17.1  |лняемая спецификация языка (14.1). Разделы идут от|
+SEC  [15-testing.md] 15.1 -> 13.1  |## 15.1. `assert` под кап|
+SEC  [15-testing.md] 15.1 -> 13.1  |и тонкие локации ошибок { #15.1 }|
+SEC  [15-testing.md] 15.1 -> 13.1  |бок в трейсбеках (3.11+) { #15.1-pep-657 }|
+SEC  [15-testing.md] 15.6 -> 13.6  |переписывает сами assert'ы (15.6) — уже не локация|
+SEC  [15-testing.md] 15.2 -> 13.2  |## 15.2. `unittest` изнут|
+SEC  [15-testing.md] 15.2 -> 13.2  |suite → runner → result { #15.2 }|
+SEC  [15-testing.md] 11.31 -> 11.32  |то у `python -m json.tool` (11.31): интерпретатор и|
+SEC  [15-testing.md] 15.2 -> 13.2  |рядок тестов и discovery { #15.2-poryadok }|
+SEC  [15-testing.md] 15.6 -> 13.6  |t_*` как полноценные тесты (15.6).|
+SEC  [15-testing.md] 15.2 -> 13.2  |ся skip, xfail и subTest { #15.2-result }|
+SEC  [15-testing.md] 15.3 -> 13.3  |## 15.3. `unittest.mock`|
+SEC  [15-testing.md] 15.3 -> 13.3  |знутри: анатомия подмены { #15.3 }|
+SEC  [15-testing.md] 15.3 -> 13.3  |трибуты и запись вызовов { #15.3-zapis-vyzovov }|
+SEC  [15-testing.md] 15.3 -> 13.3  |ec: мок, который не врёт { #15.3-spec-i-autospec }|
+SEC  [15-testing.md] 15.3 -> 13.3  |— и классическая ловушка { #15.3-lovushka-from-imp|
+SEC  [15-testing.md] 15.4 -> 13.4  |## 15.4. Подмена времени|
+SEC  [15-testing.md] 15.4 -> 13.4  |ени и окружения в тестах { #15.4 }|
+SEC  [15-testing.md] 15.3 -> 13.3  |нь один — тот же `patch` из 15.3:|
+SEC  [15-testing.md] 15.3 -> 13.3  |eypatch`/`patch.dict` (2.4, 15.3) и пропускают тес|
+SEC  [15-testing.md] 15.5 -> 13.5  |## 15.5. `doctest` изнутр|
+SEC  [15-testing.md] 15.5 -> 13.5  |15.5. `doctest` изнутри { #15.5 }|
+SEC  [15-testing.md] 15.2 -> 13.2  |фектов — это уже территория 15.2/15.6.|
+SEC  [15-testing.md] 15.6 -> 13.6  |в — это уже территория 15.2/15.6.|
+SEC  [15-testing.md] 15.6 -> 13.6  |## 15.6. `pytest` изнутри|
+SEC  [15-testing.md] 15.6 -> 13.6  |# 15.6. `pytest` изнутри { #15.6 }|
+SEC  [15-testing.md] 15.6 -> 13.6  |и, TestCase, parametrize { #15.6-sbor }|
+SEC  [15-testing.md] 15.2 -> 13.2  |ценные `unittest.TestCase` (15.2) в режиме совмест|
+SEC  [15-testing.md] 15.2 -> 13.2  |# unittest.discover — нет (15.2)|
+SEC  [15-testing.md] 15.2 -> 13.2  |ые функции, unittest — нет (15.2).|
+SEC  [15-testing.md] 15.6 -> 13.6  |ert pytest'а такой умный { #15.6-assertion-rewriti|
+SEC  [15-testing.md] 15.1 -> 13.1  |е уже вычислено и потеряно (15.1). pytest перед им|
+SEC  [15-testing.md] 15.1 -> 13.1  |ётесь к сухим сообщениям из 15.1.|
+SEC  [15-testing.md] 15.6 -> 13.6  |dency injection по имени { #15.6-fikstury }|
+SEC  [15-testing.md] 15.6 -> 13.6  |### Плагины и кэш { #15.6-plaginy }|
+SEC  [15-testing.md] 15.7 -> 13.7  |## 15.7. `coverage.py`: и|
+SEC  [15-testing.md] 15.7 -> 13.7  |.py`: измерение покрытия { #15.7 }|
+SEC  [15-testing.md] 15.8 -> 13.8  |чать line-события трейсера (15.8). `coverage.py` —|
+SEC  [15-testing.md] 15.7 -> 13.7  |### Ветвное покрытие { #15.7-vetvnoe-pokrytie|
+SEC  [15-testing.md] 15.7 -> 13.7  |ite и движки трассировки { #15.7-dvizhki }|
+SEC  [15-testing.md] 15.8 -> 13.8  |повторяющий `sys.settrace` (15.8), но целиком в C:|
+SEC  [15-testing.md] 15.9 -> 13.9  |`sys.monitoring` (PEP 669, 15.9): `COVERAGE_CORE=|
+SEC  [15-testing.md] 15.8 -> 13.8  |## 15.8. `sys.settrace`/`|
+SEC  [15-testing.md] 15.8 -> 13.8  |и отладчика и профайлера { #15.8 }|
+SEC  [15-testing.md] 11.30 -> 11.31  |`pdb` (1.16), `bdb` (11.30), `profile` (11.3|
+SEC  [15-testing.md] 11.30 -> 11.31  |, `bdb` (11.30), `profile` (11.30) и line-события c|
+SEC  [15-testing.md] 15.7 -> 13.7  |0) и line-события coverage (15.7) сидят на одном и|
+SEC  [15-testing.md] 11.30 -> 11.31  |ому профайлеры (`cProfile`, 11.30) используют именн|
+SEC  [15-testing.md] 15.8 -> 13.8  |settrace теперь эмуляция { #15.8-izmeneniya-3-12 }|
+SEC  [15-testing.md] 15.9 -> 13.9  |поверх `sys.monitoring`** (15.9): это уже не прям|
+SEC  [15-testing.md] 15.9 -> 13.9  |onitoring` с `INSTRUCTION` (15.9).|
+SEC  [15-testing.md] 11.30 -> 11.31  |араноидальное дополнение из 11.30 остаётся в силе:|
+SEC  [15-testing.md] 15.9 -> 13.9  |## 15.9. `sys.monitoring`|
+SEC  [15-testing.md] 15.9 -> 13.9  |, профайлеров и coverage { #15.9 }|
+SEC  [15-testing.md] 13.5 -> 15.5  |льный tier-2 оптимизатор из 13.5.)|
+SEC  [15-testing.md] 15.9 -> 13.9  |писка на один код-объект { #15.9-lokalnye-sobytiya|
+SEC  [15-testing.md] 15.7 -> 13.7  |рез `COVERAGE_CORE=sysmon` (15.7), фреймворки отла|
+SEC  [15-testing.md] 15.8 -> 13.8  |в 10.3). Старый `settrace` (15.8) теперь — обёртка|
+SEC  [15-testing.md] 15.10 -> 13.10  |## 15.10. Тесты самого CPy|
+SEC  [15-testing.md] 15.10 -> 13.10  |Python: `python -m test` { #15.10 }|
+SEC  [15-testing.md] 14.1 -> 17.1  |лняемой спецификации языка (14.1) — «прошёл test s|
+SEC  [15-testing.md] 15.2 -> 13.2  |изм, что и у `-m unittest` (15.2): `test` — обычны|
+SEC  [15-testing.md] 15.10 -> 13.10  |на рефлаки: debug-сборка { #15.10-refleaki }|
+SEC  [15-testing.md] 15.11 -> 13.11  |## 15.11. Тестовые режимы|
+SEC  [15-testing.md] 15.11 -> 13.11  |нтерпретатора: шпаргалка { #15.11 }|
+SEC  [15-testing.md] 15.11 -> 13.11  |### Бенчмарки к Части XV { #15.11-benchmarki }|
+ROM  [15-testing.md] XV -> XIII  |### Бенчмарки к Части XV { #13.11-benchmar|
+SEC  [15-testing.md] 15.7 -> 13.7  |ы — норма; экономия sysmon (15.7, 15.9) на 3.12+ у|
+SEC  [15-testing.md] 15.9 -> 13.9  |рма; экономия sysmon (15.7, 15.9) на 3.12+ уже зам|
+SEC  [15-testing.md] 15.4 -> 13.4  |ежду минутами и мгновением (15.4).|
+SEC  [16-import.md] 13.2 -> 15.2  |lib` (7.12), формат `.pyc` (13.2), импорт-режимы p|
+SEC  [16-import.md] 15.6 -> 13.6  |3.2), импорт-режимы pytest (15.6). Здесь — сам кон|
+SEC  [16-import.md] 15.2 -> 13.2  |ерезагрузки конфиг-модулей (15.2).|
+SEC  [16-import.md] 13.2 -> 15.2  |щенного скрипта, не модуля (13.2) ||
+SEC  [16-import.md] 15.3 -> 13.3  |— стандартный приём тестов (15.3 подменяет модули|
+SEC  [16-import.md] 11.31 -> 11.32  |я при сборке; `sys.prefix` (11.31) ||
+SEC  [16-import.md] 11.31 -> 11.32  |HONNOUSERSITE`, `-s`, `-I` (11.31) ||
+SEC  [16-import.md] 15.11 -> 13.11  |e и `PYTHON*`-переменные; в 15.11 он фигурирует как|
+SEC  [16-import.md] 13.2 -> 15.2  |.pyc` используется как кэш, 13.2); «голый» `.pyc`|
+SEC  [16-import.md] 13.2 -> 15.2  |ule` живёт вся pyc-кухня из 13.2: `get_code()` про|
+ROM  [16-import.md] XVIII -> XIV  |пакетах — перспективно в Части XVIII про упаковку).|
+SEC  [16-import.md] 13.2 -> 15.2  |идация работает как обычно, 13.2) и **исполняет ег|
+SEC  [16-import.md] 15.2 -> 13.2  |-модули и перезагружают их (15.2). В проде reload|
+SEC  [16-import.md] 14.1 -> 17.1  |ёс к версии интерпретатора (14.1). Подробный разбо|
+ROM  [16-import.md] XVII -> XVIII  |стороны — тема отдельной части (XVII); здесь важно, чт|
+SEC  [16-import.md] 15.6 -> 13.6  |т-хук (assertion rewriting, 15.6) — перехватывая з|
+SEC  [16-import.md] 11.31 -> 11.32  |path`, собранный `site.py` (11.31). Импорт-система|
+SEC  [16-import.md] 13.2 -> 15.2  |дения версий (magic number, 13.2).|
+ROM  [17-c-api.md] XVII -> XVIII  |# Часть XVII. C-расширения и C|
+SEC  [17-c-api.md] 17.1 -> 18.1  |## 17.1. Три пути в C: `c|
+SEC  [17-c-api.md] 17.1 -> 18.1  |`ctypes`, `cffi`, C API { #17.1 }|
+SEC  [17-c-api.md] 17.11 -> 18.11  || Цена вызова (17.11) | ~400 нс | ~300|
+SEC  [17-c-api.md] 17.9 -> 18.9  || — | — | да | опционально (17.9) ||
+SEC  [17-c-api.md] 14.2 -> 17.2  |L) или целитесь в **PyPy** (14.2), где `cffi` — ро|
+ROM  [17-c-api.md] XIII -> XV  |ы типы, объекты, методики Части XIII на C-уровне, — то|
+SEC  [17-c-api.md] 17.5 -> 18.5  |# расширение из 17.5|
+SEC  [17-c-api.md] 17.11 -> 18.11  |Важный вывод из бенчмарков (17.11): вызов C-функции|
+SEC  [17-c-api.md] 17.2 -> 18.2  |## 17.2. `ctypes` — C без|
+SEC  [17-c-api.md] 17.2 -> 18.2  |ypes` — C без компиляции { #17.2 }|
+SEC  [17-c-api.md] 17.2 -> 18.2  |шки `argtypes`/`restype` { #17.2-restype }|
+SEC  [17-c-api.md] 17.2 -> 18.2  |## Ошибки C: `use_errno` { #17.2-errno }|
+SEC  [17-c-api.md] 17.2 -> 18.2  |туры, массивы, указатели { #17.2-structs }|
+SEC  [17-c-api.md] 17.2 -> 18.2  |лбэки: C вызывает Python { #17.2-callbacks }|
+SEC  [17-c-api.md] 17.11 -> 18.11  |ход в обе стороны, ~540 нс, 17.11) и самый опасный:|
+SEC  [17-c-api.md] 17.2 -> 18.2  |`PyDLL`: кто держит GIL { #17.2-gil }|
+SEC  [17-c-api.md] 17.3 -> 18.3  |## 17.3. `cffi` — объявле|
+SEC  [17-c-api.md] 17.3 -> 18.3  |вления вместо прототипов { #17.3 }|
+SEC  [17-c-api.md] 17.11 -> 18.11  |й вызов функции расширения (17.11: на одном порядке|
+SEC  [17-c-api.md] 14.2 -> 17.2  |✅ PyPy-симметрия (14.2): на PyPy `cffi`-|
+SEC  [17-c-api.md] 17.4 -> 18.4  |## 17.4. `PyObject` и под|
+SEC  [17-c-api.md] 17.4 -> 18.4  |Object` и подсчёт ссылок { #17.4 }|
+SEC  [17-c-api.md] 17.6 -> 18.6  |`PyTypeObject` со слотами (17.6). Отсюда же прозр|
+SEC  [17-c-api.md] 17.4 -> 18.4  |сылок: owned vs borrowed { #17.4-refs }|
+SEC  [17-c-api.md] 17.4 -> 18.4  |(PEP 683, Python 3.12+) { #17.4-immortal }|
+SEC  [17-c-api.md] 17.10 -> 18.10  |ов умирает бессмертной (см. 17.10).|
+SEC  [17-c-api.md] 17.5 -> 18.5  |## 17.5. Свой модуль на C|
+SEC  [17-c-api.md] 17.5 -> 18.5  |.5. Свой модуль на C API { #17.5 }|
+SEC  [17-c-api.md] 14.1 -> 17.1  |, но его нет в wheel-тегах (14.1).|
+SEC  [17-c-api.md] 17.5 -> 18.5  |нвенции вызова: `METH_*` { #17.5-conventions }|
+SEC  [17-c-api.md] 17.11 -> 18.11  |кортеж не создаётся вообще (17.11: 84 нс против 124|
+SEC  [17-c-api.md] 17.5 -> 18.5  |нтов: `PyArg_ParseTuple` { #17.5-parse }|
+SEC  [17-c-api.md] 17.5 -> 18.5  |size` и multi-phase init { #17.5-moduledef }|
+SEC  [17-c-api.md] 17.10 -> 18.10  |ояние и суб-интерпретаторы (17.10) не поддерживает;|
+SEC  [17-c-api.md] 17.9 -> 18.9  |н для free-threaded сборок (17.9) — там глобальное|
+SEC  [17-c-api.md] 17.6 -> 18.6  |## 17.6. Свой тип из C AP|
+SEC  [17-c-api.md] 17.6 -> 18.6  |17.6. Свой тип из C API { #17.6 }|
+SEC  [17-c-api.md] 17.6 -> 18.6  |### Слоты ↔ dunder { #17.6-slots }|
+SEC  [17-c-api.md] 17.6 -> 18.6  |-типы: `PyType_FromSpec` { #17.6-heaptypes }|
+SEC  [17-c-api.md] 17.9 -> 18.9  |м числе в ограниченном API (17.9):|
+SEC  [17-c-api.md] 17.7 -> 18.7  |## 17.7. Ошибки и исключе|
+SEC  [17-c-api.md] 17.7 -> 18.7  |Ошибки и исключения из C { #17.7 }|
+SEC  [17-c-api.md] 17.7 -> 18.7  |### Таблица `PyErr_*` { #17.7-pyerr }|
+SEC  [17-c-api.md] 17.7 -> 18.7  |turn NULL` без `PyErr_*` { #17.7-badnull }|
+SEC  [17-c-api.md] 17.8 -> 18.8  |## 17.8. GIL из C-кода {|
+SEC  [17-c-api.md] 17.8 -> 18.8  |## 17.8. GIL из C-кода { #17.8 }|
+SEC  [17-c-api.md] 13.5 -> 15.5  |один eval loop на процесс» (13.5), конкурентность|
+SEC  [17-c-api.md] 17.8 -> 18.8  |te_*`: когда поток чужой { #17.8-pygilstate }|
+SEC  [17-c-api.md] 17.2 -> 18.2  |жность — `PyDLL` из ctypes (17.2): он **не** освоб|
+SEC  [17-c-api.md] 17.9 -> 18.9  |## 17.9. Stable ABI и сбо|
+SEC  [17-c-api.md] 17.9 -> 18.9  |ble ABI и сборки без GIL { #17.9 }|
+SEC  [17-c-api.md] 17.9 -> 18.9  |один `.so` на все версии { #17.9-limited }|
+SEC  [17-c-api.md] 17.6 -> 18.6  |тельно** `PyType_FromSpec` (17.6) ||
+SEC  [17-c-api.md] 14.1 -> 17.1  |— один wheel на все версии (14.1) ||
+SEC  [17-c-api.md] 17.9 -> 18.9  |### Сборки без GIL { #17.9-freethreading }|
+SEC  [17-c-api.md] 17.10 -> 18.10  || каждый суб-интерпретатор (17.10) — свой GIL; треб|
+SEC  [17-c-api.md] 17.5 -> 18.5  |; требует multi-phase init (17.5) и `m_size != -1`|
+SEC  [17-c-api.md] 17.5 -> 18.5  |оэтому же multi-phase init (17.5) в free-threaded|
+SEC  [17-c-api.md] 17.10 -> 18.10  |## 17.10. Встраивание инте|
+SEC  [17-c-api.md] 17.10 -> 18.10  |вание интерпретатора в C { #17.10 }|
+SEC  [17-c-api.md] 17.4 -> 18.4  |из-за бессмертных объектов (17.4) часть памяти не|
+SEC  [17-c-api.md] 17.10 -> 18.10  |### Суб-интерпретаторы { #17.10-subinterps }|
+SEC  [17-c-api.md] 17.5 -> 18.5  |одного процесса. Условие из 17.5 всплывает здесь ж|
+SEC  [17-c-api.md] 11.29 -> 11.30  |ьный процесс: `subprocess` (11.29) или сокет к обыч|
+SEC  [17-c-api.md] 17.11 -> 18.11  |## 17.11. Отладка C-расшир|
+SEC  [17-c-api.md] 17.11 -> 18.11  |11. Отладка C-расширений { #17.11 }|
+SEC  [17-c-api.md] 13.5 -> 15.5  || `-X perf` (11.7, 13.5) | профилирование|
+SEC  [17-c-api.md] 17.11 -> 18.11  |# Бенчмарки к Части XVII { #17.11-benchmarki }|
+ROM  [17-c-api.md] XVII -> XVIII  |### Бенчмарки к Части XVII { #18.11-benchmar|
+SEC  [17-c-api.md] 14.2 -> 17.2  |ядра, CPython 3.12.14, gcc 14.2, `timeit` best-of|
+SEC  [17-c-api.md] 17.8 -> 18.8  |4 000 000** — см. таблицу в 17.8: 1.00× / 1.33× (r|
+ROM  [18-packaging.md] XVIII -> XIV  |# Часть XVIII. Упаковка: от исх|
+SEC  [18-packaging.md] 11.31 -> 11.32  |Части XI (11.31) и XVI уже дали б|
+SEC  [18-packaging.md] 18.1 -> 14.1  |## 18.1. Словарь упаковки|
+SEC  [18-packaging.md] 18.1 -> 14.1  |и и `importlib.metadata` { #18.1 }|
+SEC  [18-packaging.md] 18.5 -> 14.5  |ата артефактов дистрибуции (18.5) | `demo_pkg_hood|
+SEC  [18-packaging.md] 18.9 -> 14.9  |трок-зависимостей (PEP 508, 18.9) | `Requires-Dist|
+SEC  [18-packaging.md] 18.10 -> 14.10  |ints` | `entry_points.txt` (18.10) ||
+SEC  [18-packaging.md] 18.2 -> 14.2  |`dist-info`-каталоги — см. 18.2.|
+SEC  [18-packaging.md] 18.2 -> 14.2  |## 18.2. Анатомия `dist-i|
+SEC  [18-packaging.md] 18.2 -> 14.2  |рт установленного пакета { #18.2 }|
+SEC  [18-packaging.md] 11.31 -> 11.32  |с кодом в `site-packages` (11.31). Реальный пример|
+SEC  [18-packaging.md] 18.10 -> 14.10  |к входа | `entry_points()` (18.10) ||
+SEC  [18-packaging.md] 18.4 -> 14.4  |того же демо, что соберём в 18.4):|
+SEC  [18-packaging.md] 18.7 -> 14.7  |kages` — **относительные** (18.7 покажет `../../bi|
+SEC  [18-packaging.md] 18.2 -> 14.2  |то dist-info не содержит { #18.2-net }|
+SEC  [18-packaging.md] 18.3 -> 14.3  |## 18.3. `pyproject.toml`|
+SEC  [18-packaging.md] 18.3 -> 14.3  |pyproject.toml`: PEP 621 { #18.3 }|
+SEC  [18-packaging.md] 18.9 -> 14.9  |e-зависимости (PEP 508, см. 18.9)|
+SEC  [18-packaging.md] 18.10 -> 14.10  |# консольные команды (18.10)|
+SEC  [18-packaging.md] 18.9 -> 14.9  |`version` | str | PEP 440 (18.9); можно вынести в|
+SEC  [18-packaging.md] 18.1 -> 14.1  |версия живёт в метаданных (18.1), а не в исходник|
+SEC  [18-packaging.md] 18.4 -> 14.4  |## 18.4. Build-бэкенды и|
+SEC  [18-packaging.md] 18.4 -> 14.4  |Build-бэкенды и PEP 517 { #18.4 }|
+SEC  [18-packaging.md] 18.7 -> 14.7  |становка полученного wheel (18.7)|
+SEC  [18-packaging.md] 18.5 -> 14.5  |## 18.5. sdist и wheel: д|
+SEC  [18-packaging.md] 18.5 -> 14.5  |: два формата артефактов { #18.5 }|
+SEC  [18-packaging.md] 18.6 -> 14.6  |вке** zip-архив (анатомия — 18.6). Ключевое отличи|
+SEC  [18-packaging.md] 18.7 -> 14.7  |пускается чужой код сборки (18.7 о границах этого|
+SEC  [18-packaging.md] 18.6 -> 14.6  |p `.whl` со строгим именем (18.6) ||
+SEC  [18-packaging.md] 17.9 -> 18.9  |ждого пользователя (или см. 17.9 про stable ABI: о|
+SEC  [18-packaging.md] 18.6 -> 14.6  |## 18.6. Анатомия wheel:|
+SEC  [18-packaging.md] 18.6 -> 14.6  |wheel: имя как протокол { #18.6 }|
+SEC  [18-packaging.md] 17.9 -> 18.9  |я ABI; `abi3` — stable ABI (17.9) ||
+SEC  [18-packaging.md] 13.2 -> 15.2  |новке компилирует байт-код (13.2) и дописывает стр|
+SEC  [18-packaging.md] 18.7 -> 14.7  |## 18.7. pip изнутри: что|
+SEC  [18-packaging.md] 18.7 -> 14.7  |сходит при `pip install` { #18.7 }|
+SEC  [18-packaging.md] 18.4 -> 14.4  |обрать wheel через PEP 517 (18.4); wheel кэшируетс|
+SEC  [18-packaging.md] 13.2 -> 15.2  |-packages → компиляция pyc (13.2) →|
+SEC  [18-packaging.md] 11.31 -> 11.32  |алога; (3) `python -m pip` (11.31) надёжнее голого|
+SEC  [18-packaging.md] 18.8 -> 14.8  |## 18.8. Editable-установ|
+SEC  [18-packaging.md] 18.8 -> 14.8  |тановка: `.pth` и finder { #18.8 }|
+SEC  [18-packaging.md] 11.31 -> 11.32  |`site` (11.31) при старте читае|
+SEC  [18-packaging.md] 11.31 -> 11.32  |ыполнять arbitrary code» из 11.31) — finder встраив|
+SEC  [18-packaging.md] 18.9 -> 14.9  |## 18.9. Зависимости: PEP|
+SEC  [18-packaging.md] 18.9 -> 14.9  |мости: PEP 508 и PEP 440 { #18.9 }|
+SEC  [18-packaging.md] 18.3 -> 14.3  |что лежит в `dependencies` (18.3) и `Requires-Dist|
+SEC  [18-packaging.md] 18.2 -> 14.2  |Requires-Dist:` в METADATA (18.2).|
+SEC  [18-packaging.md] 11.31 -> 11.32  |репродьюсибл-установки, см. 11.31). Между ними стои|
+SEC  [18-packaging.md] 18.10 -> 14.10  |## 18.10. entry points: co|
+SEC  [18-packaging.md] 18.10 -> 14.10  |onsole-скрипты и плагины { #18.10 }|
+SEC  [18-packaging.md] 18.7 -> 14.7  |л в `bin/` (код обёртки — в 18.7). Функция **не им|
+SEC  [18-packaging.md] 18.3 -> 14.3  |lugins")   # наша группа из 18.3|
+SEC  [18-packaging.md] 18.11 -> 14.11  |## 18.11. Публикация: PyPI|
+SEC  [18-packaging.md] 18.11 -> 14.11  |e и альтернативные формы { #18.11 }|
+SEC  [18-packaging.md] 18.11 -> 14.11  |Бенчмарки к Части XVIII { #18.11-benchmarki }|
+ROM  [18-packaging.md] XVIII -> XIV  |### Бенчмарки к Части XVIII { #14.11-benchmar|
+SEC  [18-packaging.md] 18.5 -> 14.5  |м стоит выкладывать wheels (18.5).|
+SEC  [18-packaging.md] 15.3 -> 13.3  |s")` — скан 430 dist-info | 15.3 мс ||
+SEC  [18-packaging.md] 18.10 -> 14.10  |ргайте его в горячих путях (18.10).|
+ROM  [index.md] XIII -> XV  |[Часть XIII](13-bytecode-vm.m|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |[Часть XV](13-bytecode-vm.md) — от .py к байт-|
+ROM  [index.md] XIV -> XVII  |[Часть XIV](14-implementatio|
+FILE [index.md] 14-implementations.md -> 17-implementations.md  |[Часть XVII](14-implementations.md) — не только CPyt|
+ROM  [index.md] XV -> XIII  |[Часть XV](15-testing.md) —|
+FILE [index.md] 15-testing.md -> 13-testing.md  |[Часть XIII](15-testing.md) — тестирование:|
+ROM  [index.md] XVII -> XVIII  |[Часть XVII](17-c-api.md) — C|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |[Часть XVIII](17-c-api.md) — C-расширения и|
+ROM  [index.md] XVIII -> XIV  |[Часть XVIII](18-packaging.md)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |[Часть XIV](18-packaging.md) — упаковка: pypr|
+SEC  [index.md] 11.18 -> 11.19  |- [11.18. `bisect` и `heap|
+SEC  [index.md] 11.18 -> 11.19  |ct` и `heapq`](11-stdlib.md#11.18)|
+SEC  [index.md] 11.19 -> 11.20  |- [11.19. `csv`, `json`, `|
+SEC  [index.md] 11.19 -> 11.20  |urllib.parse`](11-stdlib.md#11.19)|
+SEC  [index.md] 11.20 -> 11.21  |- [11.20. `mmap`](11-stdli|
+SEC  [index.md] 11.20 -> 11.21  |11.20. `mmap`](11-stdlib.md#11.20)|
+SEC  [index.md] 11.21 -> 11.22  |- [11.21. `shutil` и `temp|
+SEC  [index.md] 11.21 -> 11.22  |и `tempfile`](11-stdlib.md#11.21)|
+SEC  [index.md] 11.22 -> 11.23  |- [11.22. `decimal` и `fra|
+SEC  [index.md] 11.22 -> 11.23  |и `fractions`](11-stdlib.md#11.22)|
+SEC  [index.md] 11.23 -> 11.24  |- [11.23. `re`](11-stdlib.|
+SEC  [index.md] 11.23 -> 11.24  |[11.23. `re`](11-stdlib.md#11.23)|
+SEC  [index.md] 11.24 -> 11.25  |- [11.24. `unicodedata`](1|
+SEC  [index.md] 11.24 -> 11.25  |`unicodedata`](11-stdlib.md#11.24)|
+SEC  [index.md] 11.25 -> 11.26  |- [11.25. `struct`, `memor|
+SEC  [index.md] 11.25 -> 11.26  |`memoryview`](11-stdlib.md#11.25)|
+SEC  [index.md] 11.26 -> 11.27  |- [11.26. `hashlib`, `hmac|
+SEC  [index.md] 11.26 -> 11.27  |c`, `secrets`](11-stdlib.md#11.26)|
+SEC  [index.md] 11.27 -> 11.28  |- [11.27. `math`, `statist|
+SEC  [index.md] 11.27 -> 11.28  |`statistics`](11-stdlib.md#11.27)|
+SEC  [index.md] 11.28 -> 11.29  |- [11.28. `random`](11-std|
+SEC  [index.md] 11.28 -> 11.29  |.28. `random`](11-stdlib.md#11.28)|
+SEC  [index.md] 11.29 -> 11.30  |- [11.29. `argparse`, `con|
+SEC  [index.md] 11.29 -> 11.30  |`subprocess`](11-stdlib.md#11.29)|
+SEC  [index.md] 11.30 -> 11.31  |- [11.30. `timeit`, `bdb`,|
+SEC  [index.md] 11.30 -> 11.31  |ode`/`codeop`](11-stdlib.md#11.30)|
+SEC  [index.md] 11.31 -> 11.32  |- [11.31. `venv`, `pip`, `|
+SEC  [index.md] 11.31 -> 11.32  |`pip`, `site`](11-stdlib.md#11.31)|
+SEC  [index.md] 11.32 -> 11.18  |- [11.32. `zoneinfo` — час|
+SEC  [index.md] 11.32 -> 11.18  |ые пояса IANA](11-stdlib.md#11.32)|
+ROM  [index.md] XIII -> XV  |### Часть XIII. От .py к байт-ко|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |[Открыть часть →](13-bytecode-vm.md)|
+SEC  [index.md] 13.1 -> 15.1  |- [13.1. Почему Python и|
+SEC  [index.md] 13.1 -> 15.1  |тируется](13-bytecode-vm.md#13.1)|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |лируется, и интерпретируется](13-bytecode-vm.md#15.1)|
+SEC  [index.md] 13.2 -> 15.2  |- [13.2. Импорт и .pyc: ф|
+SEC  [index.md] 13.2 -> 15.2  |алидация](13-bytecode-vm.md#13.2)|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |ат, кэширование, инвалидация](13-bytecode-vm.md#15.2)|
+SEC  [index.md] 13.3 -> 15.3  |- [13.3. Пайплайн компиля|
+SEC  [index.md] 13.3 -> 15.3  |байт-код](13-bytecode-vm.md#13.3)|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |окены → PEG → AST → байт-код](13-bytecode-vm.md#15.3)|
+SEC  [index.md] 13.4 -> 15.4  |- [13.4. Стековая машина:|
+SEC  [index.md] 13.4 -> 15.4  |байт-код](13-bytecode-vm.md#13.4)|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |ашина: как читается байт-код](13-bytecode-vm.md#15.4)|
+SEC  [index.md] 13.5 -> 15.5  |- [13.5. Виртуальная маши|
+SEC  [index.md] 13.5 -> 15.5  |GIL, JIT](13-bytecode-vm.md#13.5)|
+FILE [index.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |oop, специализация, GIL, JIT](13-bytecode-vm.md#15.5)|
+ROM  [index.md] XIV -> XVII  |### Часть XIV. Не только CPytho|
+FILE [index.md] 14-implementations.md -> 17-implementations.md  |[Открыть часть →](14-implementations.md)|
+SEC  [index.md] 14.1 -> 17.1  |- [14.1. Язык против реал|
+SEC  [index.md] 14.1 -> 17.1  |thon](14-implementations.md#14.1)|
+FILE [index.md] 14-implementations.md -> 17-implementations.md  |реализации: контракт Python](14-implementations.md#17.1)|
+SEC  [index.md] 14.2 -> 17.2  |- [14.2. Альтернативные р|
+SEC  [index.md] 14.2 -> 17.2  |ачем](14-implementations.md#14.2)|
+FILE [index.md] 14-implementations.md -> 17-implementations.md  |ализации: кто, на чём, зачем](14-implementations.md#17.2)|
+SEC  [index.md] 14.3 -> 17.3  |- [14.3. Не реализации: N|
+SEC  [index.md] 14.3 -> 17.3  |зык»](14-implementations.md#14.3)|
+FILE [index.md] 14-implementations.md -> 17-implementations.md  |thon и граница «тот же язык»](14-implementations.md#17.3)|
+SEC  [index.md] 14.4 -> 17.4  |- [14.4. REPL поверх REPL|
+SEC  [index.md] 14.4 -> 17.4  |седи](14-implementations.md#14.4)|
+FILE [index.md] 14-implementations.md -> 17-implementations.md  |L: IPython, Jupyter и соседи](14-implementations.md#17.4)|
+ROM  [index.md] XV -> XIII  |### Часть XV. Тестирование: от|
+FILE [index.md] 15-testing.md -> 13-testing.md  |[Открыть часть →](15-testing.md)|
+SEC  [index.md] 15.1 -> 13.1  |- [15.1. `assert` под кап|
+SEC  [index.md] 15.1 -> 13.1  |кации ошибок](15-testing.md#15.1)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |`-O` и тонкие локации ошибок](15-testing.md#13.1)|
+SEC  [index.md] 15.2 -> 13.2  |- [15.2. `unittest` изнут|
+SEC  [index.md] 15.2 -> 13.2  |ner → result](15-testing.md#15.2)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |er → suite → runner → result](15-testing.md#13.2)|
+SEC  [index.md] 15.3 -> 13.3  |- [15.3. `unittest.mock`|
+SEC  [index.md] 15.3 -> 13.3  |омия подмены](15-testing.md#15.3)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |k` изнутри: анатомия подмены](15-testing.md#13.3)|
+SEC  [index.md] 15.4 -> 13.4  |- [15.4. Подмена времени|
+SEC  [index.md] 15.4 -> 13.4  |ния в тестах](15-testing.md#15.4)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |времени и окружения в тестах](15-testing.md#13.4)|
+SEC  [index.md] 15.5 -> 13.5  |- [15.5. `doctest` изнутр|
+SEC  [index.md] 15.5 -> 13.5  |est` изнутри](15-testing.md#15.5)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |- [13.5. `doctest` изнутри](15-testing.md#13.5)|
+SEC  [index.md] 15.6 -> 13.6  |- [15.6. `pytest` изнутри|
+SEC  [index.md] 15.6 -> 13.6  |est` изнутри](15-testing.md#15.6)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |- [13.6. `pytest` изнутри](15-testing.md#13.6)|
+SEC  [index.md] 15.7 -> 13.7  |- [15.7. `coverage.py`: и|
+SEC  [index.md] 15.7 -> 13.7  |ние покрытия](15-testing.md#15.7)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |rage.py`: измерение покрытия](15-testing.md#13.7)|
+SEC  [index.md] 15.8 -> 13.8  |- [15.8. `sys.settrace`/`|
+SEC  [index.md] 15.8 -> 13.8  |и профайлера](15-testing.md#15.8)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |рючки отладчика и профайлера](15-testing.md#13.8)|
+SEC  [index.md] 15.9 -> 13.9  |- [15.9. `sys.monitoring`|
+SEC  [index.md] 15.9 -> 13.9  |инструментов](15-testing.md#15.9)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |): один API для инструментов](15-testing.md#13.9)|
+SEC  [index.md] 15.10 -> 13.10  |- [15.10. Тесты самого CPy|
+SEC  [index.md] 15.10 -> 13.10  |hon -m test`](15-testing.md#15.10)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |го CPython: `python -m test`](15-testing.md#13.10)|
+SEC  [index.md] 15.11 -> 13.11  |- [15.11. Тестовые режимы|
+SEC  [index.md] 15.11 -> 13.11  |а: шпаргалка](15-testing.md#15.11)|
+FILE [index.md] 15-testing.md -> 13-testing.md  |мы интерпретатора: шпаргалка](15-testing.md#13.11)|
+ROM  [index.md] XVII -> XVIII  |### Часть XVII. C-расширения и C|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |[Открыть часть →](17-c-api.md)|
+SEC  [index.md] 17.1 -> 18.1  |- [17.1. Три пути в C: ct|
+SEC  [index.md] 17.1 -> 18.1  |s, cffi, C API](17-c-api.md#17.1)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |ути в C: ctypes, cffi, C API](17-c-api.md#18.1)|
+SEC  [index.md] 17.2 -> 18.2  |- [17.2. `ctypes` — C без|
+SEC  [index.md] 17.2 -> 18.2  |без компиляции](17-c-api.md#17.2)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |`ctypes` — C без компиляции](17-c-api.md#18.2)|
+SEC  [index.md] 17.3 -> 18.3  |- [17.3. `cffi` — объявле|
+SEC  [index.md] 17.3 -> 18.3  |сто прототипов](17-c-api.md#17.3)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |объявления вместо прототипов](17-c-api.md#18.3)|
+SEC  [index.md] 17.4 -> 18.4  |- [17.4. `PyObject` и под|
+SEC  [index.md] 17.4 -> 18.4  |подсчёт ссылок](17-c-api.md#17.4)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |`PyObject` и подсчёт ссылок](17-c-api.md#18.4)|
+SEC  [index.md] 17.5 -> 18.5  |- [17.5. Свой модуль на C|
+SEC  [index.md] 17.5 -> 18.5  |одуль на C API](17-c-api.md#17.5)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |[18.5. Свой модуль на C API](17-c-api.md#18.5)|
+SEC  [index.md] 17.6 -> 18.6  |- [17.6. Свой тип из C AP|
+SEC  [index.md] 17.6 -> 18.6  |й тип из C API](17-c-api.md#17.6)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |- [18.6. Свой тип из C API](17-c-api.md#18.6)|
+SEC  [index.md] 17.7 -> 18.7  |- [17.7. Ошибки и исключе|
+SEC  [index.md] 17.7 -> 18.7  |сключения из C](17-c-api.md#17.7)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |.7. Ошибки и исключения из C](17-c-api.md#18.7)|
+SEC  [index.md] 17.8 -> 18.8  |- [17.8. GIL из C-кода](1|
+SEC  [index.md] 17.8 -> 18.8  |GIL из C-кода](17-c-api.md#17.8)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |- [18.8. GIL из C-кода](17-c-api.md#18.8)|
+SEC  [index.md] 17.9 -> 18.9  |- [17.9. Stable ABI и сбо|
+SEC  [index.md] 17.9 -> 18.9  |сборки без GIL](17-c-api.md#17.9)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |Stable ABI и сборки без GIL](17-c-api.md#18.9)|
+SEC  [index.md] 17.10 -> 18.10  |- [17.10. Встраивание инте|
+SEC  [index.md] 17.10 -> 18.10  |рпретатора в C](17-c-api.md#17.10)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |траивание интерпретатора в C](17-c-api.md#18.10)|
+SEC  [index.md] 17.11 -> 18.11  |- [17.11. Отладка C-расшир|
+SEC  [index.md] 17.11 -> 18.11  |а C-расширений](17-c-api.md#17.11)|
+FILE [index.md] 17-c-api.md -> 18-c-api.md  |[18.11. Отладка C-расширений](17-c-api.md#18.11)|
+ROM  [index.md] XVIII -> XIV  |### Часть XVIII. Упаковка: от исх|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |[Открыть часть →](18-packaging.md)|
+SEC  [index.md] 18.1 -> 14.1  |- [18.1. Словарь упаковки|
+SEC  [index.md] 18.1 -> 14.1  |b.metadata](18-packaging.md#18.1)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |паковки и importlib.metadata](18-packaging.md#14.1)|
+SEC  [index.md] 18.2 -> 14.2  |- [18.2. Анатомия dist-in|
+SEC  [index.md] 18.2 -> 14.2  |ого пакета](18-packaging.md#18.2)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |аспорт установленного пакета](18-packaging.md#14.2)|
+SEC  [index.md] 18.3 -> 14.3  |- [18.3. pyproject.toml:|
+SEC  [index.md] 18.3 -> 14.3  |l: PEP 621](18-packaging.md#18.3)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |4.3. pyproject.toml: PEP 621](18-packaging.md#14.3)|
+SEC  [index.md] 18.4 -> 14.4  |- [18.4. Build-бэкенды и|
+SEC  [index.md] 18.4 -> 14.4  |и PEP 517](18-packaging.md#18.4)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |4.4. Build-бэкенды и PEP 517](18-packaging.md#14.4)|
+SEC  [index.md] 18.5 -> 14.5  |- [18.5. sdist и wheel: д|
+SEC  [index.md] 18.5 -> 14.5  |артефактов](18-packaging.md#18.5)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |heel: два формата артефактов](18-packaging.md#14.5)|
+SEC  [index.md] 18.6 -> 14.6  |- [18.6. Анатомия wheel:|
+SEC  [index.md] 18.6 -> 14.6  |к протокол](18-packaging.md#18.6)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |омия wheel: имя как протокол](18-packaging.md#14.6)|
+SEC  [index.md] 18.7 -> 14.7  |- [18.7. pip изнутри: что|
+SEC  [index.md] 18.7 -> 14.7  |ip install](18-packaging.md#18.7)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |о происходит при pip install](18-packaging.md#14.7)|
+SEC  [index.md] 18.8 -> 14.8  |- [18.8. Editable-установ|
+SEC  [index.md] 18.8 -> 14.8  |h и finder](18-packaging.md#18.8)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |ble-установка: .pth и finder](18-packaging.md#14.8)|
+SEC  [index.md] 18.9 -> 14.9  |- [18.9. Зависимости: PEP|
+SEC  [index.md] 18.9 -> 14.9  |и PEP 440](18-packaging.md#18.9)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |висимости: PEP 508 и PEP 440](18-packaging.md#14.9)|
+SEC  [index.md] 18.10 -> 14.10  |- [18.10. entry points: co|
+SEC  [index.md] 18.10 -> 14.10  |и плагины](18-packaging.md#18.10)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |s: console-скрипты и плагины](18-packaging.md#14.10)|
+SEC  [index.md] 18.11 -> 14.11  |- [18.11. Публикация: PyPI|
+SEC  [index.md] 18.11 -> 14.11  |вные формы](18-packaging.md#18.11)|
+FILE [index.md] 18-packaging.md -> 14-packaging.md  |twine и альтернативные формы](18-packaging.md#14.11)|
+ROM  [README.md] XIII -> XV  || XIII | [От .py к байт-|
+FILE [README.md] 13-bytecode-vm.md -> 15-bytecode-vm.md  |т-коду: компиляция и VM](book/13-bytecode-vm.md) | компиляция vs|
+ROM  [README.md] XIV -> XVII  || XIV | [Не только CPyt|
+FILE [README.md] 14-implementations.md -> 17-implementations.md  |II | [Не только CPython](book/14-implementations.md) | язык против ре|
+ROM  [README.md] XV -> XIII  || XV | [Тестирование](|
+FILE [README.md] 15-testing.md -> 13-testing.md  || XIII | [Тестирование](book/15-testing.md) | assert в байт-|
+ROM  [README.md] XVII -> XVIII  || XVII | [C-расширения и|
+FILE [README.md] 17-c-api.md -> 18-c-api.md  || [C-расширения и C API](book/17-c-api.md) | ctypes (структ|
+ROM  [README.md] XVIII -> XIV  || XVIII | [Упаковка](book|
+FILE [README.md] 18-packaging.md -> 14-packaging.md  || XIV | [Упаковка](book/18-packaging.md) | importlib.meta|
+INDEX: структура + TOC переставлены
+README: таблица частей переставлена
+MKDOCS: nav переставлен
