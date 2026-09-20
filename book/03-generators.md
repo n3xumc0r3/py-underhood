@@ -23,7 +23,7 @@ print(next(gen))            # "После 2" + 3
 print(next(gen))            # "После 3" + StopIteration
 ```
 
-`yield` работает как **умная пауза**:
+`yield` — это **пауза с сохранением всего стекового кадра** (instruction pointer, все локальные переменные, стек операндов):
 
 1. Возвращает значение вызывающему.
 2. **Замораживает** состояние функции (все локальные переменные сохраняются в фрейме).
@@ -204,7 +204,19 @@ g.close()            # генератор поднимет GeneratorExit, очи
 next(g)             # StopIteration
 ```
 
-`close()` вставляет `GeneratorExit` в генератор. Если генератор поймал `GeneratorExit` и продолжил `yield`-ить — это `RuntimeError: generator ignored GeneratorExit`.
+`close()` вставляет `GeneratorExit` в генератор. Если генератор поймал `GeneratorExit` и продолжил `yield`-ить — это `RuntimeError: generator ignored GeneratorExit`. Если же при `close()` из `finally`/`except` вылетит **любое другое** исключение (не `GeneratorExit` и не `StopIteration`) — оно пробрасывается наружу, к коду, вызвавшему `close()`:
+
+```python
+def bad_cleanup():
+    try:
+        yield 1
+    finally:
+        raise ValueError("cleanup failed")
+
+g = bad_cleanup()
+next(g)
+g.close()   # ValueError: cleanup failed — всплывает у вызывающего
+```
 
 ⚠️ **`GeneratorExit` наследуется от `BaseException`**, а не от `Exception` — поэтому `except Exception:` его **не поймает**. Это гарантирует, что генератор можно закрыть даже если внутри есть широкий `except Exception`. Внутри `except GeneratorExit` разрешено только освобождать ресурсы и завершаться через `return` — **нельзя `yield`**.
 

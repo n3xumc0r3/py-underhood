@@ -32,7 +32,7 @@ print(sys.flags)
 | `quiet` | `-q` | REPL без баннера (версия/копирайт). |
 | `bytes_warning` | `-b`, `-bb` | Предупреждение/ошибка при сравнении `bytes` и `str`. |
 | `hash_randomization` | `-R` | Рандомизация `PYTHONHASHSEED`. По умолчанию 1. |
-| `dev_mode` | `-X dev` | Python Development Mode. |
+| `dev_mode` | `-X dev` | Python Development Mode (3.7+). |
 | `utf8_mode` | `-X utf8` | UTF-8 Mode (PEP 540). |
 | `safe_path` | `-P` | Не добавлять `sys.path[0]` — каталог скрипта (Python 3.11+). |
 | `int_max_str_digits` | `-X int_max_str_digits` | Лимит на длину строки при `int(str)` (Python 3.11+). |

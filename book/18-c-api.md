@@ -353,6 +353,8 @@ PyInit_fastext(void)
 }
 ```
 
+> ℹ️ Смесь `PyModuleDef_HEAD_INIT` (позиционный макрос) с C99 designated initializers (`.m_name = ...`) — это стандарт C99/C11; GCC и Clang принимают без предупреждений. Старые MSVC (VS 2013 и старше) designated initializers не поддерживают — если таргетитесь на такой компилятор, заполняйте поля позиционно в порядке структуры: `m_name`, `m_doc`, `m_size`, `m_methods`, `m_slots`, `m_traverse`, `m_clear`, `m_free`.
+
 Сборка без setuptools — одна строка gcc:
 
 ```bash

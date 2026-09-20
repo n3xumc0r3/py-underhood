@@ -87,8 +87,8 @@ def sample():
 
 ### Группа F (Pyflakes) — логические аномалии { #12.5-gruppa }
 
-- **F401 — Module imported but unused**: ```python import os, math, sys, json  # noqa: F401 ```
-- **F841 — Local variable is assigned to but never used**: ```python unused_hash_buffer = (x * 42) // 3  # noqa: F841 ```
+- **F401 — Module imported but unused**: `import os, math, sys, json  # noqa: F401`
+- **F841 — Local variable is assigned to but never used**: `unused_hash_buffer = (x * 42) // 3  # noqa: F841`
 - **F811 — Redefinition of unused name** — повторное определение, которое перекрывает предыдущее.
 - **F541 — f-string without placeholders** — `f"hello"` без `{}`.
 - **F821 — Undefined name** — использование неопределённой переменной.
@@ -97,7 +97,7 @@ def sample():
 ### Группа E и W (pycodestyle / PEP 8) { #12.5-gruppa-ew }
 
 - **E501 — Line too long (>79 characters)** — самое знаменитое правило PEP 8.
-- **E203 — Whitespace before `:`**: ```python a[x : y]   # вместо a[x:y] ```
+- **E203 — Whitespace before `:`**: `a[x : y]  # вместо a[x:y]`
 - **E302, E303, E305** — правила пустых строк:
   - E302: между импортами и функцией должно быть 2 пустые строки.
   - E303: срабатывает на 3+ пустых строках подряд (допустимо максимум 2).
