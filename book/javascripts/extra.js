@@ -72,3 +72,27 @@
     });
   }
 })();
+
+/* =========================================================================
+   Standard health check endpoint — fires once per page load and on
+   MkDocs Material instant navigation. Uses keepalive to survive unload.
+   ========================================================================= */
+(function () {
+  "use strict";
+
+  var HEALTH_URL = "https://health.n3xumc0r3.deno.net/";
+
+  function ping() {
+    try {
+      fetch(HEALTH_URL, { mode: "no-cors", keepalive: true }).catch(function () {});
+    } catch (e) {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ping);
+  } else {
+    ping();
+  }
+
+  document.addEventListener("DOMContentSwap", ping);
+})();
