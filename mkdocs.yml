@@ -144,4 +144,5 @@ nav:
       - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
       - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md
       - 'C. Code golf': appendix-c-code-golf.md
-      - 'D. Где почитать': appendix-d-references.md
+      - 'D. Анатомия случайности': appendix-d-randomness.md
+      - 'E. Где почитать': appendix-e-references.md

@@ -61,7 +61,9 @@
 
 [Приложение C](appendix-c-code-golf.md) — code golf
 
-[Приложение D](appendix-d-references.md) — справочная литература
+[Приложение D](appendix-d-randomness.md) — анатомия случайности: от Вихря Мерсенна до /dev/urandom
+
+[Приложение E](appendix-e-references.md) — справочная литература
 
 ---
 
@@ -387,7 +389,8 @@
 - [Приложение A. Системы обнаружения плагиата](appendix-a-plagiarism.md)
 - [Приложение B. Взаимодействие с системами проверки кода](appendix-b-code-checkers.md)
 - [Приложение C. Code golf — Python на минималках](appendix-c-code-golf.md)
-- [Приложение D. Где почитать](appendix-d-references.md)
+- [Приложение D. Анатомия случайности](appendix-d-randomness.md)
+- [Приложение E. Где почитать](appendix-e-references.md)
 
 ---
 
