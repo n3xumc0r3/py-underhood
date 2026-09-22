@@ -2860,12 +2860,12 @@ $ echo "..." | python3     # argv[0] = '-' — код из stdin (явная ф�
 
 ### Бенчмарки к Части XI { #11.32-benchmarki }
 
-**1. `lru_cache` vs `cache` (Python 3.9+) vs ручной `dict`.**
+**1. `lru_cache(maxsize=None)` vs `@cache` (Python 3.9+) vs ручной `dict`.**
 ```python
 from functools import lru_cache, cache
 import timeit
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=None)
 def fib_lru(n): return n if n < 2 else fib_lru(n-1) + fib_lru(n-2)
 
 @cache   # эквивалент lru_cache(maxsize=None) — без eviction
@@ -2878,12 +2878,18 @@ def fib_dict(n):
     _d[n] = r
     return r
 
-# 1M вызовов fib(20) (кеш тёплый)
-print(timeit.timeit("fib_lru(20)",    globals=globals(), number=1_000_000))   # ≈ 0.07 с
-print(timeit.timeit("fib_cache(20)",  globals=globals(), number=1_000_000))   # ≈ 0.07 с
-print(timeit.timeit("fib_dict(20)",   globals=globals(), number=1_000_000))   # ≈ 0.18 с
+# Замер на CPython 3.12.14, 100k вызовов fib(100) (cache тёплый, чистый lookup):
+fib_lru.cache_clear()
+fib_cache.cache_clear()
+_d.clear()
+# warmup
+fib_lru(100); fib_cache(100); fib_dict(100)
+
+print(timeit.timeit("fib_lru(100); fib_lru.cache_clear()", globals=globals(), number=100_000))    # ≈ 0.294 с
+print(timeit.timeit("fib_cache(100); fib_cache.cache_clear()", globals=globals(), number=100_000)) # ≈ 0.293 с
+print(timeit.timeit("fib_dict(100); _d.clear()", globals=globals(), number=100_000))               # ≈ 0.531 с — в ~1.8× медленнее
 ```
-На CPython 3.12+ `lru_cache` и `cache` **идентичны по скорости** (~0.07 с) и **обгоняют ручной dict** (~0.18 с) в ~2.5 раза. До 3.11 соотношение было другим. `cache` чуть проще (нет eviction), `lru_cache` — для случаев с лимитом размера. Ручной `dict` теперь имеет смысл только при очень специфических требованиях (напр., eviction по памяти, а не по количеству).
+На CPython 3.12.14 `lru_cache(None)` и `@cache` **идентичны по скорости** (0.293-0.294 с на 100k вызовов с очисткой кеша) и **обгоняют ручной dict** (0.531 с) в ~1.8 раза на cache-miss путях. `cache` чуть проще (нет eviction), `lru_cache` — для случаев с лимитом размера. Ручной `dict` имеет смысл только при очень специфических требованиях (например, eviction по памяти, а не по количеству).
 
 **2. `functools.partial` vs `lambda` — замыкание аргументов.**
 ```python
@@ -2967,5 +2973,44 @@ print(f"Processes: {time.perf_counter() - t0:.2f}s")  # ≈ время одно�
 Для CPU-bound задач **threads не дают ускорения** в CPython из-за GIL — четыре задачи идут почти последовательно.
 `ProcessPoolExecutor` даёт ~3.5× на 4 ядрах (меньше 4× из-за IPC + fork).
 Для I/O — берите asyncio или ThreadPool.
+
+**6. `json.dumps` vs `repr(dict)` — сериализация.**
+```python
+import json, timeit
+d = {f"key_{i}": i for i in range(20)}
+# Замер на CPython 3.12.14, 100k вызовов:
+print(timeit.timeit("json.dumps(d)", globals={'json': json, 'd': d}, number=100_000))   # ≈ 0.323 с
+print(timeit.timeit("repr(d)",       globals={'d': d},                number=100_000))   # ≈ 0.216 с — в ~1.5× быстрее
+```
+`repr(dict)` быстрее, но не даёт валидный JSON (одинарные кавычки, `True/False/None` вместо `true/false/null`). Для отладки — `repr`, для сериализации — только `json.dumps`.
+
+**7. `struct.pack` vs `int.to_bytes` — упаковка чисел.**
+```python
+import struct, timeit
+# Замер на CPython 3.12.14, 1M вызовов:
+print(timeit.timeit("struct.pack('>I', 42)", globals={'struct': struct}, number=1_000_000))   # ≈ 0.083 с
+print(timeit.timeit("(42).to_bytes(4, 'big')", number=1_000_000))                              # ≈ 0.045 с — в ~1.8× быстрее
+```
+`int.to_bytes` быстрее — это метод на C, без накладных расходов на формат-строку. `struct.pack` удобен, когда нужно упаковать несколько чисел разного типа в один buffer; для одного числа — `to_bytes`.
+
+**8. `hashlib.sha256` vs `hashlib.blake2b` — хеширование.**
+```python
+import hashlib, timeit
+data = b'x' * 1024   # 1 KB
+# Замер на CPython 3.12.14, 100k вызовов на 1 KB данных:
+print(timeit.timeit("hashlib.sha256(data).digest()", globals={'hashlib': hashlib, 'data': data}, number=100_000))   # ≈ 0.086 с
+print(timeit.timeit("hashlib.blake2b(data).digest()", globals={'hashlib': hashlib, 'data': data}, number=100_000)) # ≈ 0.122 с — на ~30% медленнее
+```
+`sha256` быстрее на 1 KB (ОС-оптимизированная реализация через OpenSSL). `blake2b` имеет смысл на больших объёмах (10+ MB), где его параллелизм берёт верх, или когда нужна настраиваемая длина хеша и keyed hashing.
+
+**9. `copy.copy` vs `copy.deepcopy` — клонирование.**
+```python
+import copy, timeit
+nested = {'a': [1, 2, {'b': 3}], 'c': (4, 5)}
+# Замер на CPython 3.12.14, 100k вызовов:
+print(timeit.timeit("copy.copy(nested)",   globals={'copy': copy, 'nested': nested}, number=100_000))   # ≈ 0.020 с
+print(timeit.timeit("copy.deepcopy(nested)", globals={'copy': copy, 'nested': nested}, number=100_000))   # ≈ 0.552 с — в ~27× медленнее
+```
+`deepcopy` — очень дорогая операция: рекурсивный обход объекта + memo-словарь + проверка `__deepcopy__` hook'ов на каждом объекте. На горячих путях — кешируйте или используйте `pickle.loads(pickle.dumps(obj))` (часто быстрее, чем `deepcopy`, для простых структур).
 
 

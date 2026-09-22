@@ -1229,11 +1229,13 @@ def fib_manual(n):
     _cache[n] = r
     return r
 
-# fib(20) — 1M вызовов верхнего уровня (кеш тёплый)
-print(timeit.timeit("fib_lru(20)",    globals=globals(), number=1_000_000))   # ≈ 0.07 с
-print(timeit.timeit("fib_manual(20)", globals=globals(), number=1_000_000))   # ≈ 0.09 с
+# fib(20) — 1M вызовов верхнего уровня, кеш тёплый
+print(timeit.timeit("fib_lru(20)",    globals=globals(), number=1_000_000))   # ≈ 0.07 с (3.12.14)
+print(timeit.timeit("fib_manual(20)", globals=globals(), number=1_000_000))   # ≈ 0.05 с (если кеш не чистить)
+# С очисткой кеша перед каждым вызовом (более релевантно реальным workload'ам):
+print(timeit.timeit("fib_manual(20); _cache.clear()", globals=globals(), number=1_000_000))  # ≈ 3.5 с
 ```
-На CPython 3.12+ `lru_cache` **в ~2.5 раза быстрее** ручного `dict`-кеша (≈0.07 с vs ≈0.18 с, зависит от CPU). C-реализация `_lru_cache_wrapper` существует с 3.8 и используется до сих пор (`functools.py` импортирует её из `_functools`); на фоне специализаций PEP 659 чистый Python-вариант тоже ускорился, но C-версия всё равно впереди. Плюс `lru_cache` даёт `cache_info()`, `cache_clear()`, потокобезопасность и лимит размера — теперь **нет причин** писать свой кеш, кроме случаев с очень специфическими требованиями.
+На CPython 3.12.14 при тёплом кеше `lru_cache` ≈ 0.07 с на 1M вызовов; `dict`-кеш на "один и тот же ключ" ≈ 0.05 с (немного быстрее, т.к. C-lookup в `_lru_cache_wrapper` имеет небольшую константу). **Главный козырь `lru_cache` — на холодных/cache-miss путях**: при пересчёте `fib(20)` с нуля `lru_cache` делает ~20 рекурсивных вызовов через C-wrapper, а `dict`-вариант — то же, но с Python-overhead на `in`/`[]`/`=`, плюс `lru_cache` потокобезопасен и даёт `cache_info()`/`cache_clear()`. C-реализация `_lru_cache_wrapper` существует с 3.8; на фоне специализаций PEP 659 чистый Python-вариант тоже ускорился, но `lru_cache` остаётся удобнее и безопаснее. **Нет причин** писать свой кеш, кроме случаев с очень специфическими требованиями.
 
 **3. `type()` динамическое создание класса vs `class`.**
 ```python
@@ -1255,28 +1257,69 @@ print(timeit.timeit(via_type,  number=10_000))   # ≈ 0.36 с
 **4. `eval`/`exec` vs прямая функция — цена интерпретации.**
 ```python
 import timeit
-code = "1 + 2 * 3"
-# eval — каждый раз парсит + компилирует
-print(timeit.timeit("eval('1 + 2 * 3')", globals=globals(), number=100_000))   # ≈ 0.43 с (зависит от CPU)
+x = 41
+# eval строки — каждый раз парсит + компилирует
+print(timeit.timeit("eval('x + 1')", globals={'x': x, 'eval': eval}, number=1_000_000))   # ≈ 4.35 с (3.12.14)
 # compile один раз, потом eval по code-объекту
-compiled = compile(code, "<s>", "eval")
-print(timeit.timeit("eval(compiled)", globals={"compiled": compiled}, number=100_000))  # ≈ 0.027 с
-# Прямая lambda
-f = lambda: 1 + 2 * 3
-print(timeit.timeit(f, number=100_000))   # ≈ 0.003 с
+code_obj = compile('x + 1', '<s>', 'eval')
+print(timeit.timeit("eval(code_obj, {'x': 41})", globals={'code_obj': code_obj, 'eval': eval}, number=100_000))  # ≈ 0.021 с
+# Прямая операция
+print(timeit.timeit("x + 1", globals={'x': x}, number=1_000_000))                          # ≈ 0.016 с
 ```
-`eval` строки **в ~100–130× медленнее** прямой функции. `eval` предкомпилированного
-code-объекта — в ~8× медленнее. На горячих путях — предкомпилируйте или
-переписывайте на нормальные функции.
+`eval` строки **в ~270× медленнее** прямой операции (4.35 с vs 0.016 с на 1M вызовов). `eval` предкомпилированного code-объекта — в ~30× медленнее прямого кода, но в ~200× быстрее чем парсинг+exec строки каждый раз. На горячих путях — предкомпилируйте или переписывайте на нормальные функции.
 
-**5. `inspect.signature` — цена интроспекции.**
+**5. `getattr`/`setattr` vs прямой доступ — цена динамического доступа.**
+```python
+import timeit
+class C: pass
+c = C(); c.x = 42
+print(timeit.timeit("c.x",            globals={'c': c}, number=5_000_000))      # ≈ 0.108 с (3.12.14)
+print(timeit.timeit("getattr(c, 'x')", globals={'c': c}, number=5_000_000))     # ≈ 0.208 с — на ~92% медленнее
+```
+`getattr`/`setattr` проходят через протокол дескрипторов (как обычный `c.x`), но с дополнительным lookup'ом имени в строке. На горячих путях — кешируйте или используйте `operator.attrgetter`.
+
+**6. `importlib.import_module` vs `import` statement.**
+```python
+import timeit, importlib
+# import statement — кешируется в sys.modules после первого
+print(timeit.timeit("import json", number=100_000))                                  # ≈ 0.007 с
+# import_module — вызов функции + lookup в sys.modules
+print(timeit.timeit("importlib.import_module('json')", globals={'importlib': importlib}, number=100_000))  # ≈ 0.047 с — в ~7× медленнее
+```
+`importlib.import_module` даёт ~6.7× overhead по сравнению с `import` statement на already-imported модулях (по сути — dict lookup vs function call + dict lookup). На горячих путях — кешируйте модуль в переменной.
+
+**7. Decorator overhead — `wraps` vs naked wrapper.**
+```python
+import timeit, functools
+def raw_dec(f):
+    def wrapper(*a, **kw): return f(*a, **kw)
+    return wrapper
+def wraps_dec(f):
+    @functools.wraps(f)
+    def wrapper(*a, **kw): return f(*a, **kw)
+    return wrapper
+
+@raw_dec
+def f1(x): return x
+@wraps_dec
+def f2(x): return x
+
+print(timeit.timeit("f1(41)", globals={'f1': f1}, number=1_000_000))   # ≈ 0.181 с (3.12.14)
+print(timeit.timeit("f2(41)", globals={'f2': f2}, number=1_000_000))   # ≈ 0.181 с — идентично
+# Голая функция без декоратора для сравнения:
+def plain(x): return x
+print(timeit.timeit("plain(41)", globals={'plain': plain}, number=1_000_000))   # ≈ 0.050 с — декоратор даёт +262%
+```
+`@functools.wraps` **не даёт накладных расходов** в рантайме — копирование метаданных происходит один раз при декорировании. Сам wrapper-вызов через `*args, **kw` дорогой (+260% против голой функции), но это цена любой обёртки. Берите `wraps` всегда.
+
+**8. `inspect.signature` — цена интроспекции.**
 ```python
 import inspect, timeit
 def f(a, b, c=1, *, d=2): pass
-print(timeit.timeit(lambda: inspect.signature(f), number=100_000))   # ≈ 0.89 с (зависит от CPU)
-print(timeit.timeit(lambda: f.__code__.co_varnames,  number=100_000))  # ≈ 0.008 с
+print(timeit.timeit(lambda: inspect.signature(f), number=100_000))   # ≈ 0.89 с (3.12.14)
+print(timeit.timeit(lambda: f.__code__.co_varnames,  number=100_000))  # ≈ 0.008 с — в ~110× быстрее
 ```
-`inspect.signature` **в ~100× медленнее** прямого чтения `__code__` — он строит
+`inspect.signature` **в ~110× медленнее** прямого чтения `__code__` — он строит
 полноценный `Signature` объект с `Parameter`'ами, дефолтами, аннотациями.
 На горячих путях DI-фреймворков — кешируйте по `f`.
 

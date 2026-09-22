@@ -933,6 +933,65 @@ freezegun      0.738 с   — чистый Python, патч множества �
 time-machine   0.0005 с  — C-расширение, патч C-уровня   ≈ 1500×
 ```
 
-Для теста, замораживающего время один раз, безразлично; для фикстуры-автозамены времени на каждый тест (function-scope, сотни тестов) — разница между минутами и мгновением (13.4).
+**6. `Mock` vs `MagicMock` — цена конструирования.**
+```python
+from unittest import mock
+import timeit
+# Замер на CPython 3.12.14, 100k конструирований:
+print(timeit.timeit("mock.Mock()",      globals={'mock': mock}, number=100_000))   # ≈ 1.432 с
+print(timeit.timeit("mock.MagicMock()", globals={'mock': mock}, number=100_000))   # ≈ 5.377 с — в ~3.8× медленнее
+```
+`MagicMock` **в ~3.8× медленнее** на конструирование — он настраивает все dunder-методы (`__len__`, `__iter__`, `__enter__` и т.д.). На горячих путях (mock в fixtures, создаётся на каждый тест) — берите `Mock` если не нужны dunder'ы.
 
+**7. `assert` vs `if/raise` — цена проверки.**
+```python
+import timeit
+def via_assert(x):
+    assert x > 0, "must be positive"
+    return x
+
+def via_if(x):
+    if not (x > 0):
+        raise ValueError("must be positive")
+    return x
+
+# Замер на CPython 3.12.14, 1M вызовов (happy path):
+print(timeit.timeit('via_assert(1)', globals={'via_assert': via_assert}, number=1_000_000))   # ≈ 0.047 с
+print(timeit.timeit('via_if(1)',     globals={'via_if': via_if},          number=1_000_000))   # ≈ 0.047 с — идентично
+```
+На happy path `assert` и `if/raise` **идентичны по скорости** на 3.12. Разница только в семантике: `assert` убирается с `-O`, `if/raise` — нет.
+
+**8. `-O` flag effect — assert compile-time removal.**
+```python
+import timeit
+src = "def f(x):\n    assert x > 0\n    return x\n"
+plain = compile(src, '<s>', 'exec')
+optimized = compile(src, '<s>', 'exec', optimize=2)
+ns1 = {}; exec(plain, ns1)
+ns2 = {}; exec(optimized, ns2)
+f_plain = ns1['f']
+f_opt   = ns2['f']
+# Замер на CPython 3.12.14, 1M вызовов:
+print(timeit.timeit('f_plain(1)', globals={'f_plain': f_plain}, number=1_000_000))   # ≈ 0.050 с
+print(timeit.timeit('f_opt(1)',   globals={'f_opt': f_opt},    number=1_000_000))   # ≈ 0.045 с — на ~10% быстрее
+```
+`-O` убирает `assert` на этапе компиляции, экономя ~10% на микропроверках. Но это не «ускорение» в реальном смысле — это удаление проверки целиком.
+
+**9. `unittest.TextTestRunner` overhead.**
+```python
+import timeit, unittest, io
+class T(unittest.TestCase):
+    def test_a(self): self.assertTrue(True)
+    def test_b(self): self.assertEqual(1, 1)
+    def test_c(self): self.assertIn(1, [1, 2, 3])
+
+loader = unittest.TestLoader()
+runner = unittest.TextTestRunner(verbosity=0, stream=io.StringIO())
+def run_suite():
+    suite = loader.loadTestsFromTestCase(T)
+    runner.run(suite)
+# Замер на CPython 3.12.14, 1000 прогонов (по 3 теста):
+print(timeit.timeit(run_suite, number=1_000))   # ≈ 0.079 с → ~26 мкс на 3 теста
+```
+Сам `unittest`-runner очень лёгкий (~26 мкс на 3 теста), основное время тратится в самом тест-коде. Если ваши тесты идут медленно — дело не в unittest, а в I/O, импортах или setup'е.
 
