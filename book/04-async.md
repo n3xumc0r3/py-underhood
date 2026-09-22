@@ -33,7 +33,7 @@ async def async_fetch_all():
 
 ⚠️ **Кооперативная многозадачность**: в `asyncio` задача выполняется до тех пор, пока сама добровольно не отдаст управление через `await`. Если внутри корутины вызвать синхронную операцию (`time.sleep(5)`, `requests.get()`, долгий CPU-расчёт), она **блокирует поток event loop**: ни одна другая готовая корутина не получит управления, пока синхронный вызов не завершится, — для остальных задач цикл «замер», хотя формально ничего не сломалось.
 
-⚠️ **Физика event loop**: цикл не опрашивает сокеты непрерывно. Через модуль `selectors` он делегирует наблюдение системным мультиплексорам I/O — `epoll` (Linux), `kqueue` (macOS/BSD), `IOCP` (Windows). Когда все корутины ждут I/O, поток засыпает в `epoll_wait()` с **0% CPU**.
+⚠️ **Физика event loop**: цикл не опрашивает сокеты непрерывно. Через модуль `selectors` он делегирует наблюдение системным мультиплексорам I/O — `epoll` (Linux), `kqueue` (macOS/BSD), `IOCP` (Windows). Когда все корутины ждут I/O, поток засыпает в мультиплексоре I/O (`epoll_wait` на Linux и его аналогах на других платформах) с **0% CPU**.
 
 ## 4.2. `async def`, `await` — синтаксис и семантика { #4.2 }
 
@@ -75,9 +75,9 @@ asyncio.run(main())   # создаёт event loop, запускает main, за
 
 ⚠️ **Нельзя вызывать `asyncio.run` внутри уже запущенного event loop** — будет `RuntimeError`. Если вы внутри Jupyter или уже в asyncio — используйте `await main()` напрямую.
 
-Старый API (не рекомендуется):
+Старый API (deprecated с 3.10, в будущем удалится; в 3.12 при отсутствии запущенного loop выдаёт `DeprecationWarning: There is no current event loop`):
 ```python
-loop = asyncio.get_event_loop()
+loop = asyncio.get_event_loop()       # ⚠️ deprecated
 loop.run_until_complete(main())
 loop.close()
 ```
@@ -430,7 +430,7 @@ async def main():
 | Вызов долгой C-функции (напр. `numpy.linalg.svd` на большом массиве) | `multiprocessing` **или** `threading` | C-расширения отпускают GIL, потоки работают |
 | CPU-bound + I/O-bound смешанный | `multiprocessing` для CPU + `asyncio` для I/O | каждый работает в своей зоне |
 | Legacy sync-код, который нужно ускорить | `ThreadPoolExecutor` для I/O, `ProcessPool` для CPU | минимальные изменения в коде |
-| WebSocket-сервер на 10000 подключений | `asyncio` (websockets/aiohttp) | потоки не масштабируются до 10k (stack ~8MB × 10k = 80GB) |
+| WebSocket-сервер на 10000 подключений | `asyncio` (websockets/aiohttp) | потоки не масштабируются до 10k (8 MB виртуального стека на поток × 10k = 80 GB **виртуального** адресного пространства + ~1–2 GB реальной RAM на kernel-структуры; asyncio уходит в десятки МБ) |
 | Долгий background-task в sync-приложении | `threading.Thread(daemon=True)` | проще, чем поднимать event loop ради одной задачи |
 
 **Эмпирические пороги** (на CPython 3.12):
@@ -547,7 +547,7 @@ async def main():
 | 2015 | **curio** — первый фреймворк со строгими правилами отмены и «kernel»-подходом | Dave Beazley |
 | 2017 | **trio** — nursery, «зонтик» отмены, `MultiError` (предок `ExceptionGroup`) | Nathaniel Smith |
 | 2019+ | **anyio** — API структурированной конкурентности поверх asyncio **и** trio одним кодом | Alex Grönholm |
-| 2022 | **asyncio.TaskGroup** (3.11) — прямой порт nursery в стандартную библиотеку; `ExceptionGroup`/`except*` — порт `MultiError` | CPython |
+| 2022 | **asyncio.TaskGroup** (3.11) — прямой порт nursery в стандартную библиотеку; `ExceptionGroup`/`except*` (PEP 654, Python 3.11) — вдохновлены `MultiError` из trio, но реализованы на уровне языка | CPython |
 
 Соответствие понятий один в один:
 
@@ -557,7 +557,7 @@ async def main():
 | Рождение задачи | `nursery.start_soon(fn)` | `tg.create_task(fn)` |
 | Ошибка одной → отмена всех | поведение nursery | поведение TaskGroup (см. выше) |
 | Сбор исключений | `ExceptionGroup` (до trio 0.22 — `MultiError`) | `ExceptionGroup` + `except*` (5.16) |
-| Запуск с подтверждением готовности | `nursery.start()` | в TaskGroup прямого аналога нет (`create_task` + `await` — не то же самое) |
+| Запуск с подтверждением готовности | `nursery.start()` | в TaskGroup на 3.12 прямого аналога нет (`create_task` + `await` — не то же самое); в 3.13 добавлен `TaskGroup.start(coro)` |
 
 **anyio** стоит упомянуть отдельно: до выхода 3.11 он был единственным способом писать структурированный код, работающий и на asyncio, и на trio. На anyio построены Starlette и FastAPI — их `anyio.create_task_group()` выглядит как TaskGroup, но живёт в обоих мирах. Если код должен портировать между рантаймами — писать на anyio с самого начала.
 

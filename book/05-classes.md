@@ -224,7 +224,7 @@ print(D().f())   # "B" — D не имеет f, ищем в B — есть
 2. **Потомок раньше предка**: `B` раньше `A` (т.к. `B(A)`).
 3. **Монотонность**: порядок в дочерних классах не может противоречить порядку в базовых.
 
-Контрпример к BFS требует класс, который **не** наследует общий предок: `class A: pass; class B(A): pass; class C: pass; class D(B, C)` — MRO даёт `[D, B, A, C, object]`: `A` (дедушка через `B`) стоит **раньше** `C` (прямого родителя). При BFS было бы `[D, B, C, A, object]` (прогон: `['D2','B2','A2','C2','object']`). А в ромбе выше (`C` тоже наследует `A`) C3 и BFS дают одинаковый `[D, B, C, A, object]`.
+Контрпример к BFS требует класс, который **не** наследует общий предок: `class A: pass; class B(A): pass; class C: pass; class D(B, C)` — MRO даёт `[D, B, A, C, object]`: `A` (дедушка через `B`) стоит **раньше** `C` (прямого родителя). При BFS было бы `[D, B, C, A, object]`. А в ромбе выше (`C` тоже наследует `A`) C3 и BFS дают одинаковый `[D, B, C, A, object]`.
 
 Если C3 не может построить консистентный порядок — `TypeError: Cannot create a consistent method resolution order`.
 
@@ -355,7 +355,17 @@ print(Service.log_level)   # DEBUG
 
 ⚠️ **`super()` в `@classmethod` работает** — интерпретатор видит `cls` и компилирует как `super(CurrentClass, cls)`.
 
-⚠️ **Связка `@classmethod @property` удалена в Python 3.13** (deprecated с 3.11): на 3.12 `MyClass.name` ещё возвращает значение свойства (`'Python'`), но в 3.13 chained classmethod-дескрипторы больше не поддерживаются — паттерн не работает вовсе. Для свойств уровня класса используйте `@property` в **метаклассе**:
+⚠️ **Связка `@classmethod @property` удалена в Python 3.13**: в 3.11 появился `DeprecationWarning`, в 3.12 его убрали из-за жалоб на совместимость, в 3.13 chained classmethod-дескрипторы больше не поддерживаются — паттерн не работает вовсе. Например:
+
+```python
+class MyClass:          # 3.12 — работает, на 3.13+ — TypeError при инстанцировании
+    @classmethod
+    @property
+    def name(cls):
+        return 'Python'
+```
+
+Для свойств уровня класса используйте `@property` в **метаклассе**:
 ```python
 class Meta(type):
     @property
@@ -482,7 +492,7 @@ class C(A, B):       # ❌ TypeError!
 | Линейное наследование: `B(A)` со своими slots | ✅ | layout продолжается — B добавляет свои slots после A'овских |
 | Подкласс без slots наследует slot-класс | ✅ | но `__dict__` появится — экономии нет |
 | Два slot-класса без общего предка — множественно | ❌ | у каждого свой layout, конфликт |
-| Два slot-класса с общим slot-предком | ⚠️ только один непустой | если у обоих непустые slots — `TypeError: multiple bases have instance lay-out conflict`, даже с общим предком; работает `D(E1, E3)`, где у `E3.__slots__ = ()` |
+| Два slot-класса с общим slot-предком | ⚠️ только один непустой | если у обоих непустые slots — `TypeError: multiple bases have instance lay-out conflict`, даже с общим предком; работает множественное наследование, если у одного из баз `__slots__ = ()` пуст |
 | Mixin с методами, но без slots + slot-класс | ✅ | mixin не добавляет layout, slot-класс диктует структуру |
 | Обычный класс (с `__dict__`) + slot-класс | ✅ | `__dict__` «съедает» конфликт — но slot'ы всё равно работают |
 
@@ -1055,11 +1065,11 @@ class Point(NamedTuple):
 p = Point(1.0, 2.0)
 print(p.x, p.label)   # 1.0 'origin'
 
-# Можно наследовать с дефолтами:
+# Можно добавлять методы и дефолты:
 class Vector(NamedTuple):
     x: float
     y: float
-    
+
     def magnitude(self):
         return (self.x ** 2 + self.y ** 2) ** 0.5
 
@@ -1213,7 +1223,7 @@ def f(x: int):
     print("only if x >= 0")
 ```
 
-`Never` (Python 3.11+) — то же понятие «нижнего типа» под более общим именем. `NoReturn` при этом **не** удалён и не помечен deprecated (проверьте: `typing.NoReturn is typing.Never` → `False` — это отдельные объекты); докстринг 3.12 лишь рекомендует `Never` для bottom-типа, а чекеры считают их эквивалентными.
+`Never` (Python 3.11+) — то же понятие «нижнего типа» под более общим именем. `NoReturn` при этом **не** удалён и не помечен deprecated (проверьте: `typing.NoReturn is typing.Never` → `False` — это отдельные объекты); докстринг (с 3.11) рекомендует `Never` для bottom-типа, а чекеры считают их эквивалентными.
 
 ### `Any` vs `object` { #5.12-any }
 
@@ -1819,7 +1829,7 @@ except* TypeError as eg:
 # Если остались необработанные — пробрасываются как ExceptionGroup
 ```
 
-`except*` (со звёздочкой) — новый синтаксис для ExceptionGroup. В отличие от `except`, который ловит **одно** исключение, `except*` ловит **все исключения** указанного типа из группы. Необработанные исключения остаются в новой (или исходной) группе и проверяются против следующего `except*` блока; если ни один не подошёл — пробрасываются наверх как `ExceptionGroup`.
+`except*` (со звёздочкой) — новый синтаксис для ExceptionGroup. В отличие от `except`, который ловит **одно** исключение, `except*` ловит **все исключения** указанного типа из группы. После каждого `except*` блока из исходной группы удаляются обработанные исключения; оставшиеся формируют новую (возможно пустую) группу, которая проверяется против следующего `except*`. После всех блоков непустая остаточная группа пробрасывается наверх как `ExceptionGroup`.
 
 ```python
 async def main():
@@ -2071,9 +2081,13 @@ class Hex:
 # - a[obj]            ← __getitem__ с __index__
 # - a[i:j:k]          ← slice — все три через __index__
 # - bin(obj), hex(obj), oct(obj)
-# - (⚠️ byteorder в int.from_bytes обязан быть строкой 'big'/'little' —
-#    TypeError: from_bytes() argument 'byteorder' must be str, not H)
 # - array('i', ...) при определении размера
+# - math.floor/ceil/trunc, divmod, %, int() (через __int__, не __index__)
+# - bitwise ops (obj << n, obj >> n, obj & mask) и др.
+#
+# ⚠️ Аргумент byteorder в int.from_bytes, напротив, НЕ принимает объект с __index__ —
+#    он обязан быть строкой 'big'/'little'; int.from_bytes(b'\x00\x01', H) падает с
+#    TypeError: from_bytes() argument 'byteorder' must be str, not H
 ```
 
 ⚠️ **`__int__` vs `__index__`** — разные протоколы:
@@ -2295,8 +2309,8 @@ class Article:
 
 a = Article("Python", ("x", "y"))
 d = {a: 1}
-a2 = Article("Python", ("x", "y", "z"))   # новый объект — другой хеш
-print(d.get(a2))   # None — хотя "a" и "a2" по логике одна статья
+a2 = Article("Python", ("x", "y", "z"))   # новый объект — другой хеш (tuple-поле отличается)
+print(d.get(a2))   # None — frozen-объекты с разным tuple-полем — это разные ключи dict
 ```
 
 **Правило**: для настоящей иммутабельности все поля должны быть иммутабельными типами (`int`, `str`, `tuple`, `frozenset`, другие `frozen` dataclass'ы). Если есть `list`/`dict`/`set` — frozen защищает только от `a.x = ...`, но не от `a.x.append(...)`. Для мутируемых полей используйте `tuple`/`frozenset`/`MappingProxyType` либо клонируйте при каждом изменении.

@@ -153,7 +153,7 @@ print(inspect.signature(add))   # (*args, **kwargs) — потеряли сиг�
 from functools import wraps
 
 def log(func):
-    @wraps(func)   # копирует __module__, __name__, __qualname__, __doc__, __dict__ и ставит __wrapped__
+    @wraps(func)   # через WRAPPER_ASSIGNMENTS копирует __module__, __name__, __qualname__, __doc__, __annotations__, __type_params__ (3.12+); через WRAPPER_UPDATES обновляет __dict__; ставит __wrapped__
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
     return wrapper
@@ -233,10 +233,10 @@ names = ()
 #   Python 3.6-3.7:  15 параметров (нет posonlyargcount; есть lnotab)
 #   Python 3.8-3.10: 16 параметров (добавлен posonlyargcount; есть lnotab)
 #   Python 3.11+:    18 параметров (добавлены qualname и exceptiontable; lnotab → linetable)
+#                    из 18 параметров freevars и cellvars опциональны (дефолт ()),
+#                    поэтому в большинстве вызовов хватает 16 позиционных аргументов.
 #
-# Рабочий вызов на 3.12 (16 позиционных аргументов — проверено, возвращает 42):
 # На практике ручная сборка CodeType почти никогда не нужна — см. ниже
-# шаблон с `__code__ = template.__code__`.
 my_runtime_func = types.FunctionType(
     types.CodeType(
         0,            # argcount
@@ -279,7 +279,7 @@ print(another_func())   # 42 — теперь another_func ведёт себя �
 
 ```python
 # compile(source, filename, mode) — компилирует строку в code object
-# mode: 'exec' (модуль), 'eval' (выражение), 'single' (один оператор REPL)
+# mode: 'exec' (модуль), 'eval' (выражение), 'single' (один интерактивный оператор REPL; может быть составным — if/for/while; результат выражений печатается)
 
 code_obj = compile("print('hello')", "<string>", "exec")
 exec(code_obj)   # "hello"
@@ -321,7 +321,7 @@ print(my_locals['result'])   # 30
 result = eval("a + b", {'a': 1, 'b': 2})   # 3
 ```
 
-⚠️ **Безопасность**: `eval`/`exec` с пользовательским вводом — это **RCE** (Remote Code Execution). Никогда не делайте `eval(user_input)` в продакшене.
+⚠️ **Безопасность**: `eval`/`exec` с пользовательским вводом — это **ACE** (Arbitrary Code Execution; при сетевом вводе — RCE). Никогда не делайте `eval(user_input)` в продакшене.
 
 ⚠️ **`eval` — это не калькулятор.** Распространённая и **очень опасная** ошибка — использовать `eval` для вычисления математических выражений от пользователя, думая, что «это же просто числа»:
 
@@ -335,8 +335,7 @@ print(result)
 # __import__('os').system('echo hacked')         ← выполнение произвольной команды
 # open('/etc/passwd').read()                  ← чтение системных файлов
 # __import__('subprocess').check_output('whoami', shell=True)
-# (lambda: (yield (g := (x for x in ().__class__.__base__.__subclasses__()))))()
-#   ← обход песочницы через __subclasses__() (см. Приложение B.5)
+# ().__class__.__base__.__subclasses__()       ← обход песочницы через __subclasses__() (см. Приложение B.5)
 ```
 
 `eval` исполняет **любое** Python-выражение, не только арифметику. Строка `__import__('os').system('...')` — это валидное Python-выражение, оно вычислится и вернёт код завершения процесса. `eval` не делает различия между `2 + 2` и `os.system('echo hacked')` — для него это оба «выражения».
@@ -346,8 +345,8 @@ print(result)
 ```python
 # Пытались защититься — пустой builtins:
 eval(user_input, {"__builtins__": {}}, {})
-# Злоумышленник всё равно обойдёт через __subclasses__ (см. Приложение B.5):
-# ().__class__.__base__.__subclasses__()  ← не требует builtins
+# Простой escape-вектор через __subclasses__():
+# ().__class__.__base__.__subclasses__()   ← не требует builtins
 ```
 
 **Правильная альтернатива** — специализированный AST-walker (пример `safe_eval_math` выше), который сам решает, какие узлы разрешить. Для разбора **только литералов** (без арифметики и вызовов) — `ast.literal_eval` (числа, строки, кортежи, списки, dict):
@@ -430,7 +429,7 @@ result = locals()[func_name](10)   # то же, что calculate_score(10)
 print(result)   # 20
 ```
 
-⚠️ В CPython `locals()` возвращает **копию** локальных переменных. Изменения через `locals()['x'] = ...` **не** сохраняются обратно. В `globals()` изменения сохраняются (это сам словарь модуля).
+⚠️ Внутри функции `locals()` возвращает **снимок** локальных переменных, не синхронизированный с реальными локалами — изменения `locals()['x'] = ...` не сохраняются. На уровне модуля `locals()` совпадает с `globals()` (это один и тот же словарь модуля; `locals() is globals() → True`), поэтому изменения через `globals()['x'] = ...` или `locals()['x'] = ...` на модуле сохраняются.
 
 ## 7.9. `sys.modules` и `__import__` { #7.9 }
 

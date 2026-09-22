@@ -153,7 +153,7 @@ with (
     f.write("Данные во временном файле")
 ```
 
-⚠️ **Статический `with A, B` vs динамический `ExitStack`**: `with (*managers):` — `SyntaxError`. Для переменного числа ресурсов — `contextlib.ExitStack` (см. 2.4).
+⚠️ **Статический `with A, B` vs динамический `ExitStack`**: распаковать список менеджеров прямо в `with` нельзя — интерпретатор не примет `with *managers:` или `with (*managers):` (это `SyntaxError`, распаковка в `with`-заголовке появилась только в 3.10 для `with a as x, b as y`-формы, но не для произвольных итерируемых). Для переменного числа ресурсов — `contextlib.ExitStack` (см. 2.4).
 
 ## 2.6. Подавление ошибок через `__exit__` { #2.6 }
 
@@ -274,6 +274,7 @@ with closing(Connection("example.com")) as conn:
 ### `aclosing` (Python 3.10+) — для async-генераторов { #2.8-aclosing }
 
 ```python
+import asyncio
 from contextlib import aclosing
 
 async def stream():
@@ -291,7 +292,7 @@ async def main():
             if x == 2:
                 break   # выходим из with — gen.aclose() вызовется
 
-asyncio.run(main())   # запуск примера (определён выше, но не вызван)
+asyncio.run(main())   # запускаем event loop; main() определена выше
 # Выведет: 1, 2, cleanup
 ```
 
@@ -416,5 +417,5 @@ def use_suppress():
 # use_suppress≈ 0.116 с / 1M вызовов
 ```
 `suppress` в ~2–2.5 раза медленнее из-за накладных расходов на контекстный менеджер.
-Берите его для **читаемости**, а не для скорости.
+Берите его для **читаемости**, а не для скорости
 

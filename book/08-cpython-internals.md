@@ -86,7 +86,7 @@ b = pickle.loads(pickle.dumps(256))
 print(a is b)   # True — из кэша
 ```
 
-`-5` и `256` — границы кэша. Определены в исходниках CPython как `NSMALLNEGINTS = 5` и `NSMALLPOSINTS = 257` (256 + 1 для нуля). Ищите в `Objects/longobject.c` и `Include/internal/pycore_global_objects.h` (с 3.11 малые инты — глобальные immortal-объекты `_Py_small_ints`; в 3.8–3.10 жили в `pycore_interp.h`).
+`-5` и `256` — границы кэша. Определены в исходниках CPython как `NSMALLNEGINTS = 5` и `NSMALLPOSINTS = 257` (256 + 1 для нуля). Ищите определения в `Include/internal/pycore_global_objects.h` (где заданы `_Py_small_ints` и макросы границ); реализация доступа — в `Objects/longobject.c` (с 3.11 малые инты — глобальные immortal-объекты `_Py_small_ints`; в 3.8–3.10 жили в `pycore_interp.h`).
 
 ## 8.3. Замыкания и `__closure__`/cell objects { #8.3 }
 
@@ -252,7 +252,7 @@ gc.set_threshold(1000, 15, 15)
 
 # Вручную запустить
 gc.collect()              # все поколения
-gc.collect(2)             # полная сборка (как и без аргумента; прогон: находит свежий цикл в старом поколении); только поколение 0 — gc.collect(0)
+gc.collect(2)             # полная сборка (поколения 0, 1, 2; эквивалентно gc.collect() без аргумента); gc.collect(1) — поколения 0 и 1; gc.collect(0) — только поколение 0
 
 # Кто ссылается на объект
 obj = [1, 2, 3]
@@ -908,7 +908,7 @@ class Buggy:
     def __del__(self):
         raise ValueError("ups")
 
-Buggy()   # при уничтожении (по refcount — сразу на конце строки):
+Buggy()   # при уничтожении (по refcount — сразу после завершения выражения, не дожидаясь GC):
 # "UNRAISABLE in <function Buggy.__del__ at 0x...>: ValueError: ups"
 # (args.object — это bound __del__, не сам экземпляр)
 ```

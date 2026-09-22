@@ -15,7 +15,7 @@
 
 ## D.2. По Python internals (CPython, байт-код, фреймы, интернация) { #D.2 }
 
-9. **Anthony Shaw.** *CPython Internals: Your Guide to the Python 3 Interpreter.* (2021) — лучшая современная книга по CPython.
+9. **Anthony Shaw.** *CPython Internals: Your Guide to the Python 3 Interpreter.* (2021) — лучшая современная книга по CPython (база 3.8/3.9; по темам PEP 683 immortal, PEP 684 per-interp GIL и PEP 703 — обновляться по PEP-ам).
 10. **Philip Guo.** *Python Tutor* — визуализатор выполнения Python. https://pythontutor.com/
 11. **PEP 263** — *Defining Python Source Code Encodings*. https://peps.python.org/pep-0263/
 12. **PEP 484** — *Type Hints*. https://peps.python.org/pep-0484/
@@ -27,8 +27,8 @@
 18. **PEP 634** — *Structural Pattern Matching*. https://peps.python.org/pep-0634/
 19. **PEP 750** — *Template Strings (t-strings)*. Python 3.14+. https://peps.python.org/pep-0750/
 20. **PEP 8** — *Style Guide for Python Code*. https://peps.python.org/pep-0008/
-21. **Brett Slatkin.** *Effective Python: 90 Specific Ways to Write Better Python.* 2-е изд., 2019.
-22. **Luciano Ramalho.** *Fluent Python.* 2-е изд., 2022.
+21. **Brett Slatkin.** *Effective Python: 90 Specific Ways to Write Better Python.* 2-е изд., 2019/2020.
+22. **Luciano Ramalho.** *Fluent Python.* 2-е изд., 2022 (покрывает 3.10+ — `match/case`, `zip(strict=True)`, протоколы, дескрипторы, метаклассы).
 23. **David Beazley, Brian K. Jones.** *Python Cookbook* (3-е изд.).
 24. **Исходники CPython** на GitHub: https://github.com/python/cpython
     - `Python/ceval.c` — главный цикл интерпретатора

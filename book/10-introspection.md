@@ -25,7 +25,7 @@ print(sys.flags)
 | `no_user_site` | `-s` | Не добавлять `~/.local/lib/pythonX.Y/site-packages` в путь. |
 | `no_site` | `-S` | Не импортировать `site` при запуске. |
 | `ignore_environment` | `-E` | Игнорировать переменные окружения `PYTHON*`. |
-| `isolated` | `-I` | `-E + -s + no user site`. Максимальная изоляция. |
+| `isolated` | `-I` | `-E + -s + -P` (no user site, no script dir в `sys.path`, ignore `PYTHON*`). Максимальная изоляция. |
 | `verbose` | `-v` | Подробный лог импорта каждого модуля в stderr. |
 | `debug` | `-d` | Отладочный вывод парсера. С PEG-парсером (3.9+) практически ничего не печатает — legacy-поле. |
 | `inspect` / `interactive` | `-i` | Оба поля взводятся флагом `-i`: интерактивная сессия после выполнения скрипта/stdin (проверено: даже когда stdin — пайп). |
@@ -85,7 +85,7 @@ print(sys._xoptions)
 - `-X disable_remote_debug` — выключить remote-отладку PEP 768 (подключение кода к работающему процессу) (3.14+, env `PYTHON_DISABLE_REMOTE_DEBUG`)
 - 3.14+: `-X thread_inherit_context=0/1`, `-X context_aware_warnings=0/1`, `-X tlbc=0/1` — наследование contextvars в потоках, предупреждения с учётом контекста, счётчики tier-2 байт-кода (экспериментальные)
 - историческое: `-X showalloccount` удалена в 3.9, `-X oldparser` — в 3.10 (сейчас просто игнорируются)
-- неизвестные `-X` игнорируются молча (`-X path` не существует — просто попадёт в `sys._xoptions`)
+- неизвестные `-X` не интерпретируются CPython, но сохраняются в `sys._xoptions` (как `True` или строка после `=`); `-X path` не существует — просто попадёт в `sys._xoptions`
 
 ## 10.3. `os.environ` и `PYTHON*` переменные { #10.3 }
 
@@ -291,7 +291,7 @@ except FileNotFoundError:
 print(os.path.exists('/.dockerenv'))  # True для Docker
 ```
 
-`/proc/self/environ` часто **полезнее**, чем `os.environ` — даёт вообще всё окружение, не отфильтрованное.
+`/proc/self/environ` — снимок окружения **на момент старта процесса**: не реагирует на изменения `os.environ[...] = ...` (в отличие от `os.environ`, который синхронизирован с C-level `environ`), полезен для аудита «что было в env при запуске».
 
 ## 10.7. Audit hooks (PEP 578, Python 3.8+) { #10.7 }
 

@@ -51,7 +51,7 @@ cevag("Uryyb jbeyq")
 SyntaxError: encoding problem: rot_13
 ```
 
-Причина: `rot_13` — **текст-в-текст** кодек. Парсер CPython требует, чтобы `StreamReader` кодека принимал на вход **байты** и отдавал **текст** (str). `rot_13` принимает str и отдаёт str → парсер не может его использовать для исходного файла.
+Причина: `rot_13` — **текст-в-текст** кодек. Для чтения исходника CPython использует функцию `decode` из `CodecInfo` (а не `StreamReader` напрямую) — `decode` должен принимать **байты** и возвращать **str**. `rot_13` принимает str и отдаёт str → парсер не может его использовать для исходного файла (`codecs.lookup('rot_13').decode` ожидает str).
 
 ```python
 import codecs, io
@@ -184,7 +184,7 @@ CPython видит директиву `# -*- coding: my_rot13 -*-`, зовёт �
 1. **Кэш-lookup**: `_cache.get(encoding, _unknown)`.
 2. **Нормализация имени**: `normalize_encoding(encoding)` — заменяет все не-alphanumeric символы на `_`.
 3. **Поиск алиаса** в `_aliases` (`encodings.aliases`).
-4. **Импорт модуля**: `__import__('encodings.' + modname, fromlist=_import_tail, level=0)`.
+4. **Импорт модуля**: `__import__('encodings.' + modname, fromlist=['getregentry'], level=0)` — в `fromlist` указано имя функции, которую ищут в модуле (`getregentry()` возвращает `CodecInfo`).
 5. **Получение CodecInfo**: `mod.getregentry()` — должна вернуть `codecs.CodecInfo`.
 6. **Валидация**: проверка, что у `CodecInfo` есть callable `encode`, `decode` (и опционально `streamreader`, `streamwriter`).
 7. **Кэширование** и возврат.
