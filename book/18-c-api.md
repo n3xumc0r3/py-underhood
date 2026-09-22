@@ -121,7 +121,7 @@ ctypes.cast(arr, POINTER(c_double))              # явный каст, если
 `CFUNCTYPE` создаёт C-совместимый указатель на функцию из Python-замыкания — через тот же libffi-трамплин. Классика жанра: `qsort` из libc с Python-компаратором:
 
 ```python
-from ctypes import CFUNCTYPE, POINTER, c_int, CDLL
+from ctypes import CFUNCTYPE, POINTER, c_int, c_void_p, c_size_t, sizeof, CDLL
 
 CMP = CFUNCTYPE(c_int, POINTER(c_int), POINTER(c_int))   # int (*)(const void*, const void*)
 
@@ -130,11 +130,11 @@ def py_cmp(a, b):
 
 cmp_func = CMP(py_cmp)
 libc = CDLL(None)
-libc.qsort.argtypes = [c_void_p, ctypes.c_size_t, ctypes.c_size_t, CMP]
+libc.qsort.argtypes = [c_void_p, c_size_t, c_size_t, CMP]
 libc.qsort.restype = None
 
 data = (c_int * 6)(5, 3, 9, 1, 7, 2)
-libc.qsort(data, len(data), ctypes.sizeof(c_int), cmp_func)
+libc.qsort(data, len(data), sizeof(c_int), cmp_func)
 list(data)   # [1, 2, 3, 5, 7, 9]
 ```
 
@@ -280,6 +280,7 @@ sys.getrefcount(tmp)     # 2 — обычный объект: globals + врем
 ```c
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <structmember.h>     /* T_LONG, PyMemberDef, offsetof */
 
 static PyObject *
 fib_o(PyObject *self, PyObject *arg)          /* METH_O: один аргумент */

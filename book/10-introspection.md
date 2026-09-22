@@ -77,7 +77,7 @@ print(sys._xoptions)
 - `-X warn_default_encoding` — `EncodingWarning` на каждый `open()` без явного `encoding` (PEP 597, эквивалент `PYTHONWARNDEFAULTENCODING`)
 - `-X perf` — поддержка Linux perf-профайлера (3.12+, `PYTHONPERFSUPPORT`)
 - `-X perf_jit` — то же + DWARF-аннотации, чтобы perf показывал Python-вызовы через JIT (3.13+, `PYTHON_PERF_JIT_SUPPORT`)
-- `-X importtime=2` — дополнительно помечать уже загруженные модули словом `cached` в логе импортов (3.13+)
+- `-X importtime` — в 3.13+ дополнительно помечает уже загруженные модули словом `cached` в логе импортов
 - `-X cpu_count=N` — подменить `os.cpu_count()` / `os.process_cpu_count()` / `multiprocessing.cpu_count()` (3.13+, эквивалент `PYTHON_CPU_COUNT`)
 - `-X gil=0/1` — принудительно включить/выключить GIL в free-threaded сборках (3.13+; env `PYTHON_GIL`)
 - `-X presite=package.module` — импортировать модуль до `site` и до появления `__main__` (3.13+, env `PYTHON_PRESITE`)
@@ -333,7 +333,7 @@ open('/tmp/x', 'w').close()
 | `os.system` | shell-команда | `(command,)` |
 | `os.remove` / `os.rename` | удаление/переименование | `(path, dir_fd)` / `(src, dst, ...)` |
 | `sys._getframe` | доступ к чужим фреймам | `(depth,)` |
-| `pickle.load` | десериализация | `(file,)` |
+| `pickle.find_class` | десериализация объектов по ссылке на класс | `(module, name)` |
 | `sys.addaudithook` | установка нового хука | `(hook,)` |
 
 Для задач из 10.7 («что делает тестирующая система с моим файлом») самый частотный набор — `open`, `import`, `exec`, `compile`, `socket.*`, `subprocess.Popen`.
@@ -484,7 +484,7 @@ def logging_hook(event, args):
 sys.addaudithook(logging_hook)
 # Замедление ещё в 3–5× (зависит от логирования)
 ```
-Audit hook'и добавляют **~30%** к стоимости `exec`/`import`/`open`.
+Audit hook'и добавляют **~5–10%** к стоимости `exec`/`import` (больше — на `open`, меньше на syscall-доминированных операциях).
 На горячих путях I/O — накладные расходы минимальны (событий меньше).
 Используйте их только для аудита/безопасности, не для трассировки
 производительности — берите `sys.settrace` или `cProfile`.

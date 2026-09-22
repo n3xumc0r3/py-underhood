@@ -85,7 +85,7 @@ loop.close()
 **Debug-режим asyncio** — ловит блокирующий код и протечки:
 
 ```python
-asyncio.run(main(), debug=True)   # параметр debug (3.12+; там же loop_factory)
+asyncio.run(main(), debug=True)   # loop_factory добавлен в 3.12; debug доступен с 3.7
 ```
 
 ```bash
@@ -334,7 +334,7 @@ async def main():
 
 ## 4.10. Конкурентность vs параллелизм { #4.10 }
 
-**Параллелизм (parallelism)** — несколько задач **физически** выполняются одновременно (на разных ядрах CPU). В CPython даётся через `multiprocessing` (отдельные процессы — отдельные GIL'ы) или через C-расширения, которые отпускают GIL (`numpy`, `regex`, некоторые операции `hashlib`). `threading` **не** даёт параллелизма для pure-Python кода из-за GIL.
+**Параллелизм (parallelism)** — несколько задач **физически** выполняются одновременно (на разных ядрах CPU). В CPython даётся через `multiprocessing` (отдельные процессы — отдельные GIL'ы) или через C-расширения, которые отпускают GIL (`numpy`, `zlib`/`bz2`/`lzma`, некоторые операции `hashlib` через OpenSSL). `threading` **не** даёт параллелизма для pure-Python кода из-за GIL.
 
 **Конкурентность (concurrency)** — несколько задач **логически** выполняются одновременно (одна может приостановиться, пойти другая). Event loop в одном потоке — это конкурентность без параллелизма. `threading` — тоже конкурентность (потоки чередуются через переключения ОС), но не параллелизм для Python-кода.
 
@@ -460,9 +460,10 @@ async def main():
     ]
     
     # Результаты в порядке завершения, не в порядке создания
+    t0 = time.time()
     for coro in asyncio.as_completed(tasks):
         result = await coro
-        print(f"{time.time() - t0:.2f}: {result}")   # t0 = time.time() до запуска задач (иначе напечатается epoch ~1.7e9)
+        print(f"{time.time() - t0:.2f}: {result}")   # время от старта задач
 
 asyncio.run(main())
 # 0.50: Done fast after 0.5s

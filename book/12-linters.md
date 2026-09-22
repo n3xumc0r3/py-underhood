@@ -110,7 +110,7 @@ def sample():
 
 - **`pylint: disable=broad-except` (W0703)** — перехват всех ошибок через `except Exception:`.
 - **`pylint: disable=too-many-arguments` (R0913)** — слишком много аргументов (>5).
-- **`pylint: disable=missing-module-docstring`/`-class-docstring`/`-function-docstring` (C0114/C0115/C0116)** — нет docstring (старый код C0111 устарел с pylint 2.0).
+- **`pylint: disable=missing-module-docstring`/`-class-docstring`/`-function-docstring` (C0114/C0115/C0116)** — нет docstring (старый код C0111 был разделён на C0114/C0115/C0116 в pylint 2.6, август 2020).
 - **`pylint: disable=eval-used` (W0122)** — использование `eval`.
 - **`pylint: disable=too-few-public-methods` (R0903)** — слишком мало публичных методов.
 - **`pylint: disable=import-outside-toplevel` (C0415)** — импорт вне верхнего уровня.
@@ -318,7 +318,7 @@ result = may_return_none()  # pyright: ignore[reportOptionalMemberAccess]
 - mypy **не понимает** `# pyright: ignore` — для него это просто хвост комментария, ошибка mypy останется.
 - pyright **понимает** `# type: ignore`, но **список кодов в квадратных скобках игнорирует**: `# type: ignore[union-attr]` для pyright эквивалентен голому игнору — подавятся все ошибки строки, не только `union-attr`.
 - Если код проверяется обоими, на одной строке собирается зоопарк: `x  # type: ignore[union-attr]  # pyright: ignore[reportOptionalMemberAccess]`. Это некрасиво, но это честная цена двойного статического анализа — или аргумент выбрать один чекер.
-- Опцию pyright `enableTypeIgnoreComments` (почтение `# type: ignore`) пометили устаревшей — для pyright предпочтителен собственный `# pyright: ignore`.
+- У pyright есть опция `enableTypeIgnoreComments` для управления почтением `# type: ignore`; для более гранулярных подавлений pyright предпочитает собственный синтаксис `# pyright: ignore[reportOptionalMemberAccess]`.
 
 **ty (Astral, 2025).** Молодой тайпчекер от авторов ruff идёт тем же путём: `# ty: ignore[unresolved-attribute]` — подавление по имени правила; для совместимости понимает и `# type: ignore`. Экосистема кодов ещё нестабильна — в прод включать с осторожностью.
 

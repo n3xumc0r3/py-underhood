@@ -26,7 +26,7 @@ im.requires("aiohttp")[:3]         # ['aiohappyeyeballs>=2.5.0', 'aiosignal>=1.4
                                    #  'async-timeout<6.0,>=4.0; python_version < "3.11"']
 im.files("packaging")[:2]          # ['packaging-26.0.dist-info/INSTALLER', ...]
 
-im.version("no-such-pkg")          # PackageNotFoundError — НЕ ImportError!
+im.version("no-such-pkg")          # PackageNotFoundError (наследник ModuleNotFoundError → ImportError)
 
 # версия собственного пакета без ручного дублирования констант:
 __version__ = im.version(__package__)   # внутри своего же модуля
@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
 ## 14.8. Editable-установка: `.pth` и finder { #14.8 }
 
-`pip install -e .` не копирует код в site-packages — он делает так, чтобы `import` находил код **в исходниках проекта**. Механика не магическая и — что интереснее — у одного и того же setuptools их две; мы обе воспроизвели в чистом venv.
+`pip install -e .` не копирует код в site-packages — он делает так, чтобы `import` находил код **в исходниках проекта**. Механика не магическая и — что интереснее — у одного и того же setuptools их две; мы обе воспроизвели в чистом venv. Стандартизована editable-инсталляция в **PEP 660** (расширение PEP 517): бэкенд может предоставить hook `build_editable` рядом с `build_wheel`, и `pip` вызывает именно его для `pip install -e .`. До PEP 660 бэкенды решали задачу кто во что горазд — `setuptools` использовал `setup.py develop`, у других были свои трюки.
 
 **Случай 1: src-layout** (код в `src/demo_hood/`) — простая `.pth`-ссылка:
 
@@ -445,7 +445,7 @@ Requirement('pywin32==306; sys_platform == "win32"').marker.evaluate()  # False
 
 Отсюда разделение труда: `pyproject.toml` — декларация (диапазоны, маркеры, extras), `requirements.txt` — снимок окружения (по традиции жёстко закреплённые `==` версии; хеши — для репродьюсибл-установки, см. 11.32). Между ними стоит **lock-файл**: `pip freeze > requirements.txt`, `pip-tools` (`pip-compile`: резолвит и фиксирует весь транзитивный граф), `uv lock` (быстрый резолвер + `uv.lock`). Все решают одну задачу — детерминированная установка того, что декларативно задано диапазонами.
 
-⚠️ `python_version` в маркере — `major.minor` (`3.12`), а `python_full_version` — с патчем (`3.12.14`). Ограничения вида `python_version < "3.10"` для «не 3.9» ломаются на будущих 3.10-х патчах, а вот `python_full_version < "3.10"` — нет. Учитывайте, что именно вы фиксируете.
+⚠️ `python_version` в маркере — `major.minor` (`3.12`), а `python_full_version` — с патчем (`3.12.14`). Разница видна на equality-маркерах: `python_version == "3.9"` истинно для **любого** 3.9.x, а `python_full_version == "3.9"` — ложно для всех, кроме гипотетического релиза `3.9.0` без патча (PEP 440 такое не выпускает, но маркер его требует буквально). Для диапазонов `python_version < "3.10"` и `python_full_version < "3.10"` ведут себя одинаково (обе отсекают 3.10+ на любом патче), разница возникает только на `==`/`!=`. Учитывайте, что именно вы фиксируете.
 
 ## 14.10. entry points: console-скрипты и плагины { #14.10 }
 

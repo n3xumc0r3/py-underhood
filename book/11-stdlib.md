@@ -1147,8 +1147,9 @@ msk = ZoneInfo("Europe/Moscow")
 datetime(2010, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (MSK, зима)
 datetime(2010, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSD, летнее время действовало)
 datetime(2011, 7, 1, tzinfo=msk).utcoffset()   # 4:00 (MSK! — указ 2011: постоянное «лето»)
-datetime(2015, 1, 1, tzinfo=msk).utcoffset()   # 4:00 (ещё постоянное лето)
-datetime(2016, 1, 1, tzinfo=msk).utcoffset()   # 3:00 (с октября 2014 — постоянная зима)
+datetime(2014, 9, 1, tzinfo=msk).utcoffset()   # 4:00 (последний месяц «постоянного лета»)
+datetime(2014, 11, 1, tzinfo=msk).utcoffset()  # 3:00 (с 26 октября 2014 — постоянная «зима», UTC+3)
+datetime(2016, 1, 1, tzinfo=msk).utcoffset()   # 3:00
 ```
 
 `datetime.timezone` такое не умеет в принципе — у него одна фикс-величина на все времена.
@@ -2446,12 +2447,12 @@ def slow_function():
 
 # Профилирование в коде
 cProfile.run('slow_function()', sort='cumulative')
-#          4 function calls in 0.082 seconds
+#          4 function calls in 0.073 seconds
 #    Ordered by: cumulative time
 #    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-#         1    0.000    0.000    0.082    0.082 {built-in method builtins.exec}
-#         1    0.082    0.082    0.082    0.082 <string>:1(<module>)
-#         1    0.000    0.000    0.082    0.082 script.py:3(slow_function)
+#         1    0.000    0.000    0.073    0.073 {built-in method builtins.exec}
+#         1    0.000    0.000    0.073    0.073 <string>:1(<module>)
+#         1    0.073    0.073    0.073    0.073 script.py:3(slow_function)
 #         1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
 
 # Программный API с сохранением в файл

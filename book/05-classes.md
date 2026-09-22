@@ -29,7 +29,7 @@ print(p == Point(1.0, 2.0))    # True — сгенерирован __eq__
 | `eq` | `True` | Генерировать `__eq__` (сравнение по полям) |
 | `order` | `False` | Генерировать `__lt__`, `__le__`, `__gt__`, `__ge__` (для сортировки) |
 | `unsafe_hash` | `False` | Генерировать `__hash__` даже если `eq=True` (опасно — может нарушить инвариант) |
-| `frozen` | `False` | Immutable — присваивание полей запрещено, генерирует `__hash__` |
+| `frozen` | `False` | Immutable — присваивание полей запрещено, генерирует `__hash__` (при `eq=True` по умолчанию) |
 | `slots` | `False` (Python 3.10+) | Использовать `__slots__` — экономия памяти |
 | `kw_only` | `False` (Python 3.10+) | Все поля — keyword-only |
 
@@ -117,7 +117,15 @@ class Shape(ABC):
         return f"Shape with area={self.area()}, perimeter={self.perimeter()}"
 
 # shape = Shape()          # TypeError: Can't instantiate abstract class
-# shape = Circle(5)        # TypeError: не реализован perimeter
+
+# Класс, который реализовал только area, но забыл perimeter:
+class HalfCircle(Shape):
+    def __init__(self, r):
+        self.r = r
+    def area(self): return 1.57 * self.r ** 2
+    # perimeter не реализован → TypeError при инстанцировании
+
+# HalfCircle(5)             # TypeError: Can't instantiate abstract class HalfCircle without an implementation for abstract method 'perimeter'
 
 class Circle(Shape):
     def __init__(self, r):
@@ -208,7 +216,7 @@ print(D.__mro__)
 print(D().f())   # "B" — D не имеет f, ищем в B — есть
 ```
 
-Порядок: `D → B → C → A → object` (проверьте: `print(D.__mro__)` — ровно как в примере выше; C3 вытягивает `A` наверх только после того, как решён порядок между `B` и `C`).
+Порядок: `D → B → C → A → object` (проверьте: `print(D.__mro__)` — ровно как в примере выше; C3 ставит `A` **последним** (после `B` и `C`), потому что `A` находится в хвосте MRO и `B`, и `C` — его нельзя поставить, пока не размещены оба наследника).
 
 ⚠️ **C3-линеаризация — это НЕ поиск в ширину** (BFS). Распространённое заблуждение: «сначала все прямые родители, потом их предки». На самом деле алгоритм C3 гарантирует:
 
@@ -341,7 +349,7 @@ print(Service.log_level)   # DEBUG
 
 `super()` без аргументов внутри метода эквивалентен `super(CurrentClass, self)`. Возвращает прокси, который вызывает метод следующего класса в MRO.
 
-⚠️ **`super()` без аргументов использует скрытую closure-ячейку `__class__`** (PEP 3135). Компилятор автоматически внедряет её при обнаружении `super()` в теле метода. Если скопировать метод из одного класса в другой (`B.f = A.f`), `__class__` всё равно будет указывать на `A` — MRO будет рассчитан относительно `A`, а не `B`.
+⚠️ **`super()` без аргументов использует скрытую closure-ячейку `__class__`** (PEP 3135). Компилятор автоматически внедряет её при обнаружении `super()` в теле метода. Если скопировать метод из одного класса в другой (`C.f = B.f`, где `B` наследует `A`), `__class__` всё равно будет указывать на `B` — и при вызове `super()` Python попытается вычислить MRO относительно `B`. Но `self` (экземпляр `C`) не является экземпляром `B` — вызов упадёт с `TypeError: super(type, obj): obj must be an instance or subtype of type`.
 
 ⚠️ **`super()` в `@staticmethod` без аргументов запрещён** — `RuntimeError: super(): no arguments`. В статическом методе нет `self`/`cls`. Используйте `super(CurrentClass, target).method()` явно.
 
@@ -429,7 +437,7 @@ p.z = 3                       # AttributeError — 'Point' object has no attribu
 print(p.__dict__)             # AttributeError — у Point нет __dict__!
 ```
 
-**Экономия**: ~40-50% на экземпляр при миллионах объектов. Дополнительно: доступ к слотовым атрибутам быстрее, чем к `__dict__`.
+**Экономия**: ~40-50% на экземпляр при миллионах объектов. Дополнительно: на Python ≤3.11 доступ к слотовым атрибутам быстрее, чем к `__dict__` (на 3.12+ специализированные `LOAD_ATTR` сравняли их скорость — главный выигрыш slots теперь в памяти, не в скорости, см. бенчмарки в §5.17).
 
 **Нюансы:**
 
@@ -702,14 +710,14 @@ class Permission(IntFlag):
 perm = Permission.R | Permission.W
 print(perm)              # 6 — с 3.11 str(IntFlag) числовой; repr: <Permission.R|W: 6>
 print(Permission.R in perm)   # True — проверка
-print(perm & Permission.X)   # 0 — нет X (int-результат)
+print(perm & Permission.X)   # 0 — нет X (результат — IntFlag с нулевым значением; в 3.10 был int)
 
 # Итерация по флагам
 for p in Permission.R | Permission.W | Permission.X:
     print(p)
-# Permission.R
-# Permission.W
-# Permission.X
+# 4     ← Permission.R (с 3.11 str(IntFlag) возвращает число, repr сохраняет имя)
+# 2     ← Permission.W
+# 1     ← Permission.X
 ```
 
 ⚠️ `IntFlag` — это `int`, можно передавать в системные вызовы (`os.open(path, Permission.R | Permission.W)`).
@@ -877,7 +885,7 @@ def first(items: list[T]) -> T:
 print(first([1, 2, 3]))         # int → возвращает int
 print(first(["a", "b"]))        # str → возвращает str
 
-# С ограничением (bound)
+# С ограничением (constraints) — тип должен быть ровно int или float, не подтип
 Number = TypeVar('Number', int, float)   # только числа (constraints — тело проверяется mypy)
 
 def add(a: Number, b: Number) -> Number:
@@ -980,7 +988,7 @@ def handle(e: Event) -> None:
         print(e["key"])
 ```
 
-⚠️ В `Union` нельзя передавать **значения** — только типы: `Union[1, 2]` — синтаксическая ошибка для type checker'а; для «типа-значения» существует ровно один инструмент — `Literal[1, 2]`. (`Union[dict, dict]` при этом валиден — дубликаты типов в `Union` дедуплицируются до одного.) Discriminated unions в Python строятся
+⚠️ В `Union` нельзя передавать **значения** — только типы: `Union[1, 2]` — type-error у mypy/pyright (в runtime `Union[1, 2]` молча создаёт нерабочий объект `typing.Union[1, 2]`); для «типа-значения» существует ровно один инструмент — `Literal[1, 2]`. (`Union[dict, dict]` при этом валиден — дубликаты типов в `Union` дедуплицируются до одного.) Discriminated unions в Python строятся
 tолько через `TypedDict` + `Literal`-поле-дискриминатор.
 
 ### `@final` — нельзя наследовать/переопределять { #5.12-final }
@@ -1081,7 +1089,7 @@ first([1, 2, 3])   # OK
 
 ### `Annotated` (PEP 593) — аннотация с метаданными { #5.12-annotated }
 
-`Annotated[T, *metadata]` — тип `T` с дополнительными метаданными для фреймворков. В runtime = `T`, но фреймворки (Pydantic, FastAPI, SQLAlchemy) читают метаданные.
+`Annotated[T, *metadata]` — тип `T` с дополнительными метаданными для фреймворков. Для type-checker'а ведёт себя как `T`, но в runtime это отдельный объект `_AnnotatedAlias` (не равен `T`: `Annotated[int, 'x'] == int` → `False`). Фреймворки (Pydantic, FastAPI, SQLAlchemy) читают метаданные через `get_type_hints(..., include_extras=True)`.
 
 ```python
 from typing import Annotated
@@ -1116,7 +1124,7 @@ class User(Base):
 
 `Annotated` позволяет third-party фреймворкам расширять систему типов без модификации самого Python.
 
-⚠️ В runtime `Annotated[int, "label"]` — это `int` для аннотаций (`get_type_hints` вернёт `Annotated[...]`, метаданные читают фреймворки), но сам `Annotated[int, "label"]` в `isinstance` использовать нельзя — `TypeError: Subscripted generics cannot be used with class and instance checks`.
+⚠️ В runtime `Annotated[int, "label"]` — это отдельный объект `_AnnotatedAlias` (а не `int`). `get_type_hints(f)` по умолчанию **стрипает** метаданные и возвращает `int`; чтобы получить `Annotated[...]`, передайте `include_extras=True`. Сам `Annotated[int, "label"]` в `isinstance` использовать нельзя — `TypeError: Subscripted generics cannot be used with class and instance checks`.
 
 ### `Self` (PEP 673, Python 3.11+) { #5.12-self }
 
@@ -1180,9 +1188,9 @@ MAX_RETRIES = 5   # mypy ошибётся, в runtime — спокойно
 
 Также как `@final` декоратор (см. §5.12 выше).
 
-### `Literal` — конкретные значения { #5.12-literal-alias }
+### `Literal` — конкретные значения { #5.12-literal }
 
-Альтернативная точка входа: полный разбор `Literal` — выше, в §5.12 (раздел «`Literal` — конкретное значение как тип»). Раздел оставлен для навигации: `Literal["fast", "slow"]` ограничивает значение набором констант и служит дискриминатором в `TypedDict`-union (см. пример выше).
+Полный разбор `Literal` — выше, в разделе «`Literal` — конкретное значение как тип». `Literal["fast", "slow"]` ограничивает значение набором констант и служит дискриминатором в `TypedDict`-union (см. пример выше).
 
 ### `Never` и `NoReturn` — недостижимый код { #5.12-never }
 
@@ -1567,7 +1575,7 @@ Service("api", "example.com", 9000)              # TypeError — host/port kw-on
 
 ### `field(metadata=...)` — аннотации для third-party { #5.13-field }
 
-(См. §5.11 metadata.)
+Полный разбор `field(metadata=...)` — в §5.11, раздел `metadata=`.
 
 ### `@dataclass(match_args=True)` (Python 3.10+) { #5.13-dataclass }
 

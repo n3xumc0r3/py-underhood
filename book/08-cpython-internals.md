@@ -4,7 +4,7 @@
 
 ## 8.1. Интернация строк и `sys.intern` { #8.1 }
 
-CPython **автоматически** интернирует строки, которые выглядят как валидные идентификаторы (только латиница, цифры, `_`) — но только те, что появляются в исходном коде как литералы или формируются компилятором. **Runtime-конкатенация** (`"a" + "b"`) интернирования не делает — для неё нужно явное `sys.intern()`:
+CPython **автоматически** интернирует строки, которые выглядят как валидные идентификаторы (латиница, цифры, `_` и любые Unicode-буквы — как в определении Python-идентификатора, PEP 3131; `café`, `日本語` тоже подойдут) — но только те, что появляются в исходном коде как литералы или формируются компилятором. **Runtime-конкатенация** (`"a" + "b"`) интернирования не делает — для неё нужно явное `sys.intern()`:
 
 ```python
 a = "hello_world"   # валидный идентификатор
@@ -368,7 +368,7 @@ class Button:
 ⚠️ **Скрытые проблемы с паттерном через `__class__`**:
 
 - `isinstance(button, IdleState)` вернёт `True` после `__class__ = IdleState`, хотя `Button` не наследует `IdleState`. Это нарушает инварианты типов, mypy/pyright не знают об этом и могут дать неверные подсказки.
-- Если `IdleState` и `ActiveState` имеют разные `__slots__` — смена `__class__` упадёт с `TypeError: __class__ assignment only supported for mutable types or ModuleType subclasses`; при несовпадении layout — `TypeError: __class__ assignment: 'ActiveState' object layout differs from 'IdleState'` (обе ошибки сняты на 3.12).
+- Если `IdleState` и `ActiveState` имеют разные `__slots__` — смена `__class__` упадёт с `TypeError: __class__ assignment only supported for mutable types or ModuleType subclasses`; при несовпадении layout — `TypeError: __class__ assignment: 'ActiveState' object layout differs from 'IdleState'` (тексты сообщений — на 3.12; обе проверки по-прежнему в силе).
 - `pickle`/`copy`/`repr` таких объектов могут вести себя неожиданно — они смотрят на `type(obj)`, который теперь `IdleState`, а `__init__` у `Button` ожидает другие аргументы.
 - В реальном коде предпочитают **композицию** (`self.state = IdleState()` + `self.state.click(self)`) — она не ломает систему типов и работает с любым layout.
 

@@ -268,6 +268,7 @@
 - [11.15. `logging`](11-stdlib.md#11.15)
 - [11.16. `signal` и `atexit`](11-stdlib.md#11.16)
 - [11.17. `datetime`, `timedelta`, `timezone`](11-stdlib.md#11.17)
+- [11.18. `zoneinfo` — часовые пояса IANA](11-stdlib.md#11.18)
 - [11.19. `bisect` и `heapq`](11-stdlib.md#11.19)
 - [11.20. `csv`, `json`, `urllib.parse`](11-stdlib.md#11.20)
 - [11.21. `mmap`](11-stdlib.md#11.21)
@@ -282,7 +283,6 @@
 - [11.30. `argparse`, `configparser`, `subprocess`](11-stdlib.md#11.30)
 - [11.31. `timeit`, `bdb`, `profile`/`cProfile`, `code`/`codeop`](11-stdlib.md#11.31)
 - [11.32. `venv`, `pip`, `site`](11-stdlib.md#11.32)
-- [11.18. `zoneinfo` — часовые пояса IANA](11-stdlib.md#11.18)
 
 ### Часть XII. Линтеры и директивы в комментариях
 

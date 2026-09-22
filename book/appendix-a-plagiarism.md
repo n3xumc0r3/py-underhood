@@ -66,7 +66,7 @@ similarity(src, renamed_everywhere(src))  # 0.03  — переименовани
 
 **JPlag** (KIT) — главный аналог MOSS. Подробно разбирает токенизацию и AST-сравнение. Статья: Prechelt et al., *Finding Plagiarisms among a Set of Programs with JPlag.* JUCS 2002. https://www.jucs.org/jucs_8_11/finding_plagiarisms_among_a
 
-**Dolos** (KU Leuven) — современный инструмент, использует token + AST-гибрид. https://dolos.ugent.be/. Статья: Maertens et al., *Dolos: Language-agnostic Plagiarism Detection in Source Code.* 2022.
+**Dolos** (Ghent University / UGent) — современный инструмент, использует token + AST-гибрид. https://dolos.ugent.be/. Статья: Maertens et al., *Dolos: Language-agnostic Plagiarism Detection in Source Code.* 2022.
 
 **Codequiry** — коммерческий MOSS-replacement, проверяет против GitHub и веба. Помимо плагиата — детектор AI-кода (см. A.6).
 
