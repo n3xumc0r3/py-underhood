@@ -48,12 +48,20 @@
   --py-fg-muted: #8b949e;
   --py-border: #30363d;
 
+  /* Material-переменные — переопределяем и для тёмной темы,
+     иначе Material подставляет свой accent: light green (салатовый) */
+  --md-primary-fg-color: var(--py-fg);
+  --md-primary-bg-color: var(--py-bg);
+  --md-primary-fg-color--dark: var(--py-fg);
   --md-default-bg-color: var(--py-bg);
   --md-default-fg-color: var(--py-fg);
-  --md-typeset-color: var(--py-fg);
+  --md-accent-fg-color: var(--py-accent);
+  --md-accent-fg-color--transparent: rgba(16, 185, 129, 0.15);
   --md-code-bg-color: var(--py-bg-soft);
   --md-code-fg-color: var(--py-fg);
   --md-code-default-fg-color: var(--py-fg-muted);
+  --md-typeset-a-color: var(--py-accent);
+  --md-typeset-color: var(--py-fg);
 }
 
 /* =========================================================================
