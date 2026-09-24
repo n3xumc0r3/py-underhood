@@ -42,21 +42,25 @@
 }
 
 [data-md-color-scheme="slate"] {
+  /* В тёмной теме весь зелёный → салатовый (light green) */
+  --py-accent: #00e676;             /* Material light-green A400 */
+  --py-accent-hover: #00c853;       /* Material light-green A700 */
+  --py-accent-fg: #000000;          /* на салатовом фоне чёрный текст читается лучше */
+
   --py-bg: #0d1117;                /* GitHub dark */
   --py-bg-soft: #161b22;
   --py-fg: #e6edf3;
   --py-fg-muted: #8b949e;
   --py-border: #30363d;
 
-  /* Material-переменные — переопределяем и для тёмной темы,
-     иначе Material подставляет свой accent: light green (салатовый) */
+  /* Material-переменные — переопределяем и для тёмной темы */
   --md-primary-fg-color: var(--py-fg);
   --md-primary-bg-color: var(--py-bg);
   --md-primary-fg-color--dark: var(--py-fg);
   --md-default-bg-color: var(--py-bg);
   --md-default-fg-color: var(--py-fg);
   --md-accent-fg-color: var(--py-accent);
-  --md-accent-fg-color--transparent: rgba(16, 185, 129, 0.15);
+  --md-accent-fg-color--transparent: rgba(0, 230, 118, 0.15);
   --md-code-bg-color: var(--py-bg-soft);
   --md-code-fg-color: var(--py-fg);
   --md-code-default-fg-color: var(--py-fg-muted);
