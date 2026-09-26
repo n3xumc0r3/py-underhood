@@ -42,9 +42,9 @@
 }
 
 [data-md-color-scheme="slate"] {
-  /* В тёмной теме весь зелёный → салатовый (light green) */
-  --py-accent: #00e676;             /* Material light-green A400 */
-  --py-accent-hover: #00c853;       /* Material light-green A700 */
+  /* В тёмной теме весь зелёный → салатовый (Material "light green" accent) */
+  --py-accent: #63de17;             /* Material light-green accent */
+  --py-accent-hover: #4caf50;       /* Material green-500, чуть темнее */
   --py-accent-fg: #000000;          /* на салатовом фоне чёрный текст читается лучше */
 
   --py-bg: #0d1117;                /* GitHub dark */
@@ -60,7 +60,7 @@
   --md-default-bg-color: var(--py-bg);
   --md-default-fg-color: var(--py-fg);
   --md-accent-fg-color: var(--py-accent);
-  --md-accent-fg-color--transparent: rgba(0, 230, 118, 0.15);
+  --md-accent-fg-color--transparent: rgba(99, 222, 23, 0.15);
   --md-code-bg-color: var(--py-bg-soft);
   --md-code-fg-color: var(--py-fg);
   --md-code-default-fg-color: var(--py-fg-muted);
