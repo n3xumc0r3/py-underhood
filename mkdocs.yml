@@ -141,8 +141,8 @@ nav:
   - 'Часть XVII. Не только CPython: кто ещё исполняет Python': 17-implementations.md
   - 'Часть XVIII. C-расширения и C API: из Python в C и обратно': 18-c-api.md
   - 'Приложения':
-      - 'A. Системы обнаружения плагиата': appendix-a-plagiarism.md
-      - 'B. Взаимодействие с системами проверки кода': appendix-b-code-checkers.md
-      - 'C. Code golf': appendix-c-code-golf.md
-      - 'D. Анатомия случайности': appendix-d-randomness.md
-      - 'E. Где почитать': appendix-e-references.md
+      - 'B. Системы обнаружения плагиата': appendix-b-plagiarism.md
+      - 'C. Взаимодействие с системами проверки кода': appendix-c-code-checkers.md
+      - 'D. Code golf': appendix-d-code-golf.md
+      - 'E. Анатомия случайности': appendix-e-randomness.md
+      - 'A. Где почитать': appendix-a-references.md

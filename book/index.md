@@ -55,15 +55,15 @@
 
 [Часть XVIII](18-c-api.md) — C-расширения и C API: ctypes, cffi, PyObject, свой модуль и тип, GIL, встраивание
 
-[Приложение A](appendix-a-plagiarism.md) — системы обнаружения плагиата
+[Приложение B](appendix-b-plagiarism.md) — системы обнаружения плагиата
 
-[Приложение B](appendix-b-code-checkers.md) — взаимодействие с системами проверки кода
+[Приложение C](appendix-c-code-checkers.md) — взаимодействие с системами проверки кода
 
-[Приложение C](appendix-c-code-golf.md) — code golf
+[Приложение D](appendix-d-code-golf.md) — code golf
 
-[Приложение D](appendix-d-randomness.md) — анатомия случайности: от Вихря Мерсенна до /dev/urandom
+[Приложение E](appendix-e-randomness.md) — анатомия случайности: от Вихря Мерсенна до /dev/urandom
 
-[Приложение E](appendix-e-references.md) — справочная литература
+[Приложение A](appendix-a-references.md) — справочная литература
 
 ---
 
@@ -386,11 +386,11 @@
 
 ### Приложения
 
-- [Приложение A. Системы обнаружения плагиата](appendix-a-plagiarism.md)
-- [Приложение B. Взаимодействие с системами проверки кода](appendix-b-code-checkers.md)
-- [Приложение C. Code golf — Python на минималках](appendix-c-code-golf.md)
-- [Приложение D. Анатомия случайности](appendix-d-randomness.md)
-- [Приложение E. Где почитать](appendix-e-references.md)
+- [Приложение B. Системы обнаружения плагиата](appendix-b-plagiarism.md)
+- [Приложение C. Взаимодействие с системами проверки кода](appendix-c-code-checkers.md)
+- [Приложение D. Code golf — Python на минималках](appendix-d-code-golf.md)
+- [Приложение E. Анатомия случайности](appendix-e-randomness.md)
+- [Приложение A. Где почитать](appendix-a-references.md)
 
 ---
 
