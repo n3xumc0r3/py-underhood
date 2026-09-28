@@ -2,7 +2,7 @@
 
 > Единой книги, которая покрывает **все** обсуждаемые приёмы, не существует — материал на стыке трёх разных областей: (1) systems for plagiarism detection, (2) Python/CPython internals, (3) security-oriented coding / obfuscation.
 
-## B.1. По системам обнаружения плагиата { #B.1 }
+## A.1. По системам обнаружения плагиата { #A.1 }
 
 1. **Saul Schleimer, Daniel S. Wilkerson, Alex Aiken.** *Winnowing: Local Algorithms for Document Fingerprinting.* ACM SIGMOD 2003. PDF: https://theory.stanford.edu/~aiken/publications/papers/sigmod03.pdf · ACM DL: https://dl.acm.org/doi/10.1145/872757.872770
 2. **Alex Aiken.** *MOSS: Measure of Software Similarity.* https://theory.stanford.edu/~aiken/moss/
@@ -13,7 +13,7 @@
 7. **Codequiry**: https://codequiry.com/ — документация, блог про AI-code detection.
 8. **Patrick Juola.** *Authorship Attribution.* Foundations and Trends in Information Retrieval, 2008.
 
-## B.2. По Python internals (CPython, байт-код, фреймы, интернация) { #B.2 }
+## A.2. По Python internals (CPython, байт-код, фреймы, интернация) { #A.2 }
 
 9. **Anthony Shaw.** *CPython Internals: Your Guide to the Python 3 Interpreter.* (2021) — лучшая современная книга по CPython (база 3.8/3.9; по темам PEP 683 immortal, PEP 684 per-interp GIL и PEP 703 — обновляться по PEP-ам).
 10. **Philip Guo.** *Python Tutor* — визуализатор выполнения Python. https://pythontutor.com/
@@ -52,7 +52,7 @@
 35. **PEP 20** — *The Zen of Python*. https://peps.python.org/pep-0020/
 36. **PEP 401** — *Barry's FLUFL* (April Fools). https://peps.python.org/pep-0401/
 
-## B.3. По метапрограммированию и обфускации Python { #B.3 }
+## A.3. По метапрограммированию и обфускации Python { #A.3 }
 
 37. **Naomi Ceder.** *The Quick Python Book* (3-е изд.).
 38. **Doug Hellmann.** *The Python 3 Standard Library by Example*.
@@ -82,7 +82,7 @@
 62. **Документация Python → `string.Template`**: https://docs.python.org/3/library/string.html#template-strings
 63. **Документация Python → `__future__`**: https://docs.python.org/3/library/__future__.html
 
-## B.4. По обходу фильтров и security (общий контекст) { #B.4 }
+## A.4. По обходу фильтров и security (общий контекст) { #A.4 }
 
 64. **OWASP Cheat Sheet — Code Obfuscation**.
 65. **Christian Collberg, Clark Thomborson, Douglas Low.** *A Taxonomy of Obfuscating Transformations.* 1997.
@@ -94,25 +94,25 @@
 71. **OWASP — Command Injection** (про `shell=True` в subprocess): https://owasp.org/www-community/attacks/Command_Injection
 72. **Документация pre-commit**: https://pre-commit.com/ — конфиг и хуки из 12.10.
 
-## B.5. По асинхронности и структурированной конкурентности { #B.5 }
+## A.5. По асинхронности и структурированной конкурентности { #A.5 }
 
 73. **Nathaniel Smith.** *Notes on structured concurrency, or: go statement considered harmful* (2018) — статья-первоисточник концепции nursery: https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/
 74. **trio** — фреймворк, где nursery придуман и доведён до предела: https://github.com/python-trio/trio
 75. **curio** — предшественник trio, первый фреймворк со строгими правилами отмены: https://github.com/dabeaz/curio
 76. **anyio** — единый API поверх asyncio и trio; на нём стоят Starlette и FastAPI: https://github.com/agronholm/anyio
 
-## B.6. Code golf: платформы и диалекты { #B.6 }
+## A.6. Code golf: платформы и диалекты { #A.6 }
 
 77. **code.golf** — активный сайт с таблицей лидеров и разборами решений на Python 3: https://code.golf/
 78. **Tips for golfing in Python** — коллективный тред-шпаргалка на codegolf.SE (аналог D.19, но живой и с обсуждением): https://codegolf.stackexchange.com/questions/54/tips-for-golfing-in-python
 79. **Pyth** — отдельный язык, компилируемый в Python, специально для гольфа: https://github.com/isaacg1/pyth
 
-## B.7. Pyjails и демо песочниц { #B.7 }
+## A.7. Pyjails и демо песочниц { #A.7 }
 
 80. **Ned Batchelder.** *Tarpit* (PyCon 2012) — каноническая демонстрация того, что «песочница» на CPython невозможна в принципе; 10 минут, делающие Приложение C этически осмысленным: http://nedbatchelder.com/blog/201211/tarpit_at_pycon_2012.html
 81. **Сборник pyjails** — репозитории с разборами побегов из python-песочниц (активное CTF-направление; по запросу «pyjail» на GitHub — десятки таких): https://github.com/saladandonionfries/pyjails
 
-## B.8. Блоги для регулярного чтения { #B.8 }
+## A.8. Блоги для регулярного чтения { #A.8 }
 
 82. **realpython.com** — крупные туториалы с реальной глубиной, часто с бенчмарками.
 83. **snarky.ca** — Brett Cannon, бывший core-dev CPython: разборы PEP и internals по первоисточникам.
@@ -120,7 +120,7 @@
 85. **hynek.me** — Hynek Schlawack: async, attrs, структурная обработка данных, production-практики.
 86. **bitecode.dev** — серия «Python tricks you didn't know about» — ближе всего по формату к Части I этого конспекта.
 
-## B.9. Что закрывает каждую тему { #B.9 }
+## A.9. Что закрывает каждую тему { #A.9 }
 
 | Тема | Что почитать |
 |------|--------------|
@@ -193,7 +193,7 @@
 | `python -m`, флаги запуска (`-S`, `-s`, `-E`, `-B`, `-u`) | docs Python → Command line (№50) |
 | Интроспекция окружения тестирующих систем | нет единого источника; разрозненные статьи на Habr, medium |
 
-## B.10. Если выбирать одну книгу { #B.10 }
+## A.10. Если выбирать одну книгу { #A.10 }
 
 - **Anthony Shaw, *CPython Internals*** (№9) — лучшее по internals: интернация, кэш чисел, фреймы, байт-код, `compile`, AST, объектная модель. Обфускацию и системы плагиата не покрывает.
 - **Effective Python** Бретта Слаткина (№21) — практический взгляд «грабли + антипаттерны». Многие «грабли», которые превращены в оружие, у него разобраны как «что не надо делать».
