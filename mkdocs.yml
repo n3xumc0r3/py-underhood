@@ -67,6 +67,10 @@ markdown_extensions:
       permalink: "#"
       toc_depth: 3
   - pymdownx.details
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: n3xumc0r3
+      repo: py-underhood
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -141,8 +145,8 @@ nav:
   - 'Часть XVII. Не только CPython: кто ещё исполняет Python': 17-implementations.md
   - 'Часть XVIII. C-расширения и C API: из Python в C и обратно': 18-c-api.md
   - 'Приложения':
+      - 'A. Где почитать': appendix-a-references.md
       - 'B. Системы обнаружения плагиата': appendix-b-plagiarism.md
       - 'C. Взаимодействие с системами проверки кода': appendix-c-code-checkers.md
       - 'D. Code golf': appendix-d-code-golf.md
       - 'E. Анатомия случайности': appendix-e-randomness.md
-      - 'A. Где почитать': appendix-a-references.md
