@@ -109,8 +109,8 @@
 
 ## A.7. Pyjails и демо песочниц { #A.7 }
 
-80. **Ned Batchelder.** *Tarpit* (PyCon 2012) — каноническая демонстрация того, что «песочница» на CPython невозможна в принципе; 10 минут, делающие Приложение C этически осмысленным: http://nedbatchelder.com/blog/201211/tarpit_at_pycon_2012.html
-81. **Сборник pyjails** — репозитории с разборами побегов из python-песочниц (активное CTF-направление; по запросу «pyjail» на GitHub — десятки таких): https://github.com/saladandonionfries/pyjails
+80. **Ned Batchelder.** *Tarpit* (PyCon 2012) — каноническая демонстрация того, что «идеальной песочницы» на CPython не существует в принципе. Оригинальный пост на nedbatchelder.com сейчас недоступен; видео доклада и слайды ищутся по запросу «Ned Batchelder tarpit PyCon 2012» на pyvideo.org и YouTube.
+81. **Pyjail-ресурсы** — коллекции приёмов побега из python-песочниц (активное CTF-направление): https://github.com/jailctf/pyjailbreaker (wiki + payload generator, ★148), https://github.com/Macr0phag3/parselmouth (автоматизированный bypass-фреймворк, ★103), https://github.com/salvatore-abello/python-ctf-cheatsheet (cheatsheet, ★97)
 
 ## A.8. Блоги для регулярного чтения { #A.8 }
 
