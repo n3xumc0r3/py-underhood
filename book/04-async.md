@@ -1,6 +1,6 @@
 # Часть IV. Асинхронность
 
-> `async def` выглядит как обычная функция с лишним ключевым словом, но под капотом это генератор (Часть III) плюс цикл событий — один поток, который гоняет тысячи задач по очереди, пока те ждут I/O. Часть разбирает event loop руками (4.1), потом API asyncio — от `run` и `gather` до `TaskGroup`, отмен и таймаутов — и заканчивает выбором между threads, asyncio и multiprocessing (4.11), включая debug-режим asyncio (4.3).
+> `async def` выглядит как обычная функция с лишним ключевым словом, но под капотом это генератор (Часть III) плюс цикл событий — один поток, который выполняет тысячи задач по очереди, пока те ждут I/O. Часть разбирает устройство event loop (4.1), потом API asyncio — от `run` и `gather` до `TaskGroup`, отмен и таймаутов — и заканчивает выбором между threads, asyncio и multiprocessing (4.11), включая debug-режим asyncio (4.3).
 
 ## 4.1. Что такое event loop { #4.1 }
 
@@ -75,7 +75,7 @@ asyncio.run(main())   # создаёт event loop, запускает main, за
 
 ⚠️ **Нельзя вызывать `asyncio.run` внутри уже запущенного event loop** — будет `RuntimeError`. Если вы внутри Jupyter или уже в asyncio — используйте `await main()` напрямую.
 
-Старый API (deprecated с 3.10, в будущем удалится; в 3.12 при отсутствии запущенного loop выдаёт `DeprecationWarning: There is no current event loop`):
+Старый API (deprecated с 3.12, в 3.14 при отсутствии текущего loop уже RuntimeError; при отсутствии запущенного loop выдаёт `DeprecationWarning: There is no current event loop`):
 ```python
 loop = asyncio.get_event_loop()       # ⚠️ deprecated
 loop.run_until_complete(main())
@@ -557,13 +557,13 @@ async def main():
 | Рождение задачи | `nursery.start_soon(fn)` | `tg.create_task(fn)` |
 | Ошибка одной → отмена всех | поведение nursery | поведение TaskGroup (см. выше) |
 | Сбор исключений | `ExceptionGroup` (до trio 0.22 — `MultiError`) | `ExceptionGroup` + `except*` (5.16) |
-| Запуск с подтверждением готовности | `nursery.start()` | в TaskGroup на 3.12 прямого аналога нет (`create_task` + `await` — не то же самое); в 3.13 добавлен `TaskGroup.start(coro)` |
+| Запуск с подтверждением готовности | `nursery.start()` | в TaskGroup прямого аналога нет (`create_task` + `await` — не то же самое); `start()` с `task_status.started()` есть в trio и anyio, но в stdlib asyncio его по-прежнему нет |
 
 **anyio** стоит упомянуть отдельно: до выхода 3.11 он был единственным способом писать структурированный код, работающий и на asyncio, и на trio. На anyio построены Starlette и FastAPI — их `anyio.create_task_group()` выглядит как TaskGroup, но живёт в обоих мирах. Если код должен портировать между рантаймами — писать на anyio с самого начала.
 
 Что изменилось в мышлении с 3.11: раньше `create_task` — это «пускай крутится в фоне, соберём потом», и «потом» означало ручной `gather` с ручной отменой при ошибке (см. сравнение выше). Теперь вложенность задач в рантайме повторяет вложенность блоков кода — профилировщик, трейс и стек задач читаются как исходник. Одиночные `asyncio.create_task()` без владельца остаются легальным способом запустить фоновую работу (4.5) — но теперь это осознанное исключение, а не дефолт.
 
-→ **см. также:** 5.16 — `ExceptionGroup` и `except*`; 4.15 — механика отмены, которую TaskGroup запускает автоматически; 4.5 — когда одиночный `create_task` уместен. Ссылки на curio/trio/anyio и статью-первоисточник — в Приложении D.
+→ **см. также:** 5.16 — `ExceptionGroup` и `except*`; 4.15 — механика отмены, которую TaskGroup запускает автоматически; 4.5 — когда одиночный `create_task` уместен. Ссылки на curio/trio/anyio и статью-первоисточник — в Приложении A.
 
 ## 4.14. `asyncio.timeout` (Python 3.11+) и `asyncio.shield` { #4.14 }
 
@@ -925,7 +925,7 @@ async def sequential():
 async def concurrent():
     return await asyncio.gather(*(fetch(i) for i in range(100)))
 # Замер на CPython 3.12.14, 50 прогонов:
-# sequential: ≈ 5.42 с (100 × ~10 мс каждый await)
+# sequential: ≈ 5.42 с (100 × ~1 мс каждый await + накладные расходы loop)
 # concurrent: ≈ 0.10 с — **~54× ускорение** (event loop держит все 100 параллельно)
 ```
 Если все задачи I/O-связаны — `gather` даёт **почти линейное** ускорение по числу задач
@@ -941,10 +941,9 @@ async def via_taskgroup():
     return [t.result() for t in tasks]
 # Замер на CPython 3.12.14, 1000 прогонов:
 # via_gather:     ≈ 2.02 с
-# via_taskgroup:  ≈ 2.26 с — на ~12% медленнее (create_task overhead)
+# via_taskgroup:  ≈ 1.9–2.3 с — сопоставимо с gather (в наших прогонах от −5% до +12% в зависимости от машины)
 ```
-`TaskGroup` добавляет ~10–15% накладных расходов из-за `create_task` + учёт задач в группе,
-но даёт автоматическую отмену при ошибке и `ExceptionGroup`. На новом коде —
+`TaskGroup` добавляет накладные расходы (`create_task` + учёт задач в группе), но на практике они сопоставимы с `gather` — разница в пределах погрешности машины и не является аргументом против него: автоматическая отмена при ошибке и `ExceptionGroup` перевешивают. На новом коде —
 предпочтителен (см. 4.13).
 
 **3. `as_completed` vs `gather` — когда важен порядок прихода.**
@@ -954,8 +953,8 @@ async def via_as_completed():
     for coro in asyncio.as_completed([fetch(i) for i in range(10)]):
         results.append(await coro)
     return results
-# Если задачи разной длительности — as_completed начинает отдавать результаты
-# раньше (первый — через 0.1 с), gather — только все вместе через 0.1 с.
+# Если задачи разной длительности (0.1/0.5/1.0 с) — as_completed отдаёт первый
+# результат через 0.1 с, gather — все вместе только через 1.0 с.
 ```
 Скорость обработки «последней задачи» одинакова, но **latency до первого
 результата** у `as_completed` в N раз ниже. Полезно для UI/стриминга.
@@ -966,13 +965,13 @@ async def via_as_completed():
 N = 10_000_000
 # Синхронно
 def cpu_sync():
-    return sum(i*i for i in range(N))                              # ≈ 1.5 с
+    return sum(i*i for i in range(N))                              # ≈ 0.7–1.5 с (сильно зависит от машины)
 # Thread (4 потока)
 from concurrent.futures import ThreadPoolExecutor
 def cpu_threads():
     with ThreadPoolExecutor(4) as ex:
         return sum(ex.map(lambda chunk: sum(i*i for i in chunk),
-                          [range(N//4*i, N//4*(i+1)) for i in range(4)]))  # ≈ 1.6 с
+                          [range(N//4*i, N//4*(i+1)) for i in range(4)]))  # ≈ столько же или чуть медленнее (GIL)
 # ProcessPool (4 процесса)
 from concurrent.futures import ProcessPoolExecutor
 
@@ -1010,5 +1009,5 @@ async def noop(): return 42
 # asyncio + httpx:  ≈ 0.08 с  (60× ускорение, минимум накладных расходов)
 ```
 Для I/O asyncio **масштабируется лучше** потоков: корутины дешевле
-(~2 КБ на корутину против ~8 МБ стека на поток), нет переключения контекста ядром.
+(менее килобайта на простую корутину против ~8 МБ стека на поток), нет переключения контекста ядром.
 
