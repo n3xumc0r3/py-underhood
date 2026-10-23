@@ -31,7 +31,7 @@ print(next(gen))            # "После 3" + StopIteration
 
 Когда функция доходит до конца (или `return`), генератор поднимает `StopIteration`.
 
-⚠️ **PEP 479 (Python 3.7+): запрет `raise StopIteration` внутри генератора**. Любой необработанный `StopIteration`, вылетающий из тела генератора, CPython **принудительно трансформирует в `RuntimeError: generator raised StopIteration`**. Это защита от скрытого прерывания цикла `for` при случайном вызове `next(empty_iterator)` внутри генератора. Единственный корректный способ остановить генератор — `return` (или `return value`).
+⚠️ **PEP 479 (Python 3.7+): запрет `raise StopIteration` внутри генератора**. Любой необработанный `StopIteration`, вылетающий из тела генератора, CPython **принудительно трансформирует в `RuntimeError: generator raised StopIteration`**. Это защита от скрытого прерывания цикла `for` при случайном вызове `next(empty_iterator)` внутри генератора. Единственный корректный способ завершить генератор изнутри — `return` (или `return value`).
 
 **`return value` в генераторе** — значение сохраняется в `StopIteration.value`:
 ```python
@@ -172,7 +172,7 @@ print(acc.send(20))  # 30
 print(acc.send(5))   # 35
 ```
 
-⚠️ **Первый вызов обязан быть `next()`**, а не `send()` — генератор ещё не дошёл до `yield` и нечего получать значение. Альтернатива: `acc.send(None)` для первого «пинка».
+⚠️ **Первый вызов обязан быть `next()`** (или `send(None)`) — `send` с не-None значением до старта даст `TypeError: can't send non-None value to a just-started generator`: генератор ещё не дошёл до первого `yield`, и принимать значение некуда.
 
 ### `throw(exc_type)` — вбросить исключение внутрь { #3.4-throw }
 
@@ -284,7 +284,7 @@ list(starmap(pow, [(2, 3), (3, 2), (10, 3)]))   # [8, 9, 1000]
 # accumulate() — кумулятивные значения
 list(accumulate([1, 2, 3, 4]))           # [1, 3, 6, 10] — суммы
 list(accumulate([1, 2, 3, 4], max))      # [1, 2, 3, 4] — кумулятивный max
-from operator import mul                    # если ещё не импортирован (ниже используется itemgetter)
+from operator import mul                    # если ещё не импортирован
 list(accumulate([1, 2, 3, 4], mul))      # [1, 2, 6, 24] — факториалы
 
 # groupby() — группирует подряд идущие одинаковые элементы
@@ -351,8 +351,8 @@ with open('huge.bin', 'rb') as f:
 
 - Обработка больших файлов, не влезающих в RAM.
 - Бесконечные последовательности (фибоначчи, поток событий).
-- Stream processing — данные приходят порциями.
-- Lazy evaluation — вычисления только когда нужны.
+- Потоковая обработка — данные приходят порциями.
+- Ленивые вычисления — расчёт только когда нужен результат.
 
 ## 3.8. `itertools.pairwise`, `batched` (Python 3.10+/3.12+) { #3.8 }
 
@@ -415,7 +415,7 @@ list(padded_batched([1, 2, 3, 4, 5, 6, 7], 3))
 # [(1, 2, 3), (4, 5, 6), (7, None, None)]
 ```
 
-## 3.9. `collections` — Counter, defaultdict, deque, ChainMap, OrderedDict, namedtuple { #3.9 }
+## 3.9. `collections` и `set` — Counter, defaultdict, deque, ChainMap, OrderedDict, namedtuple { #3.9 }
 
 ### `Counter` — счётчик элементов { #3.9-counter }
 
@@ -480,7 +480,7 @@ s |= {2, 3}                     # s = {1, 2, 3} — update (union)
 s &= {2, 3}                     # s = {2, 3}    — intersection_update
 s -= {2}                        # s = {3}       — difference_update
 s ^= {3, 4}                     # s = {4}       — symmetric_difference_update
-# Методы-эквиваленты:
+# Методы-эквиваленты (update-семейство принимает любой iterable, операторы — только set):
 s.update(other)                 # = s |= other
 s.intersection_update(other)    # = s &= other
 s.difference_update(other)      # = s -= other
@@ -493,15 +493,15 @@ s.symmetric_difference_update(other)  # = s ^= other
 s = {1, 2, 3}
 s.add(4)          # {1, 2, 3, 4}
 s.remove(4)       # {1, 2, 3} — KeyError если нет
-s.discard(99)     # {1, 2, 3} — НЕ падает если нет (remove с default)
-s.pop()           # удаляет и возвращает случайный элемент (KeyError если пусто)
+s.discard(99)     # {1, 2, 3} — НЕ падает если нет (remove, но без KeyError)
+s.pop()           # удаляет и возвращает произвольный элемент (KeyError если пусто)
 s.clear()         # {} — очистить
 s.copy()          # shallow copy
 ```
 
 ⚠️ **`remove` vs `discard`**: `s.remove(x)` падает с `KeyError`, если `x` нет. `s.discard(x)` — тихо пропускает. Используйте `discard`, когда не уверены в наличии.
 
-⚠️ **`pop()` удаляет случайный элемент** — set неупорядочен, нельзя выбрать конкретный. Для упорядоченного удаления — используйте `s.remove(min(s))` (`sorted(s)` нужен только если нужен полный порядок обхода).
+⚠️ **`pop()` удаляет произвольный элемент** — set неупорядочен, нельзя выбрать конкретный. Для упорядоченного удаления — используйте `s.remove(min(s))` (`sorted(s)` нужен только если нужен полный порядок обхода).
 
 **frozenset** — immutable-версия set. Не поддерживает `add`/`remove`/`update` и т.д., но поддерживает все read-only операции (`|`, `&`, `-`, `^`, `in`, `issubset`, ...). Главное применение — как **ключ dict** или элемент другого set:
 
@@ -676,7 +676,7 @@ async def main():
 
     print(await gen.__anext__())     # 0 — «next» через await
     print(await gen.asend(None))     # 1 — тройка send/throw/close из 3.4 в async-мире
-    async for x in gen:              # хвост доедает async for
+    async for x in gen:              # остаток добирает async for
         print(x)                     # 2
 
     # await gen.__anext__()          # StopAsyncIteration — асинхронный аналог StopIteration
@@ -695,7 +695,7 @@ asyncio.run(main())
 | `StopIteration` | `StopAsyncIteration` | сигнал конца |
 | `for x in g` | `async for x in g` | сахар над протоколом |
 
-Тройка `asend`/`athrow`/`aclose` работает как зеркальный близнец из 3.4 — включая глотание исключения, вброшенного внутрь `try`:
+Тройка `asend`/`athrow`/`aclose` работает как зеркальный аналог из 3.4 — включая глотание исключения, вброшенного внутрь `try`:
 
 ```python
 async def stubborn():
@@ -727,7 +727,7 @@ async def bad():
 # await bad() → RuntimeError: coroutine raised StopIteration
 ```
 
-Классическая ловушка: `next()` на **обычном** итераторе внутри async-функции. `next(d)` на исчерпанном dict-итераторе бросает `StopIteration` — и он, всплывая через `await`, станет `RuntimeError` без исходного стека. В async-коде исчерпание проверяют через `for`/защитные конструкции, а не ловят `StopIteration`.
+Классическая ловушка: `next()` на **обычном** итераторе внутри async-функции. `next(d)` на исчерпанном dict-итераторе бросает `StopIteration` — и он, всплывая через `await`, станет `RuntimeError: coroutine raised StopIteration`. Исходный traceback не пропадает: `StopIteration` остаётся привязанной как `__cause__` (блок «The above exception was the direct cause of the following exception»), но строка самого `RuntimeError` указывает на `await`, а не на вызвавший `next()` — без учёта цепочки легко смотреть не туда. В async-коде исчерпание проверяют через `for`/защитные конструкции, а не ловят `StopIteration`.
 
 **Async comprehensions** — генераторные выражения из 3.2 с одним отличием в синтаксисе (`async for`, опционально `await` внутри):
 
@@ -740,9 +740,9 @@ async def main():
 
 Проверки «это корутина или футура?» (`asyncio.iscoroutine`/`isfuture`) — в 4.16; отдельного предиката для async-генераторов в asyncio нет — используют `inspect.isasyncgen`.
 
-Почему генераторы и async-генераторы живут в разных частях: здесь — протокол (он полностью выводится из 3.1–3.4), в Части IV — поведение под event loop: кто и когда дергает `__anext__`, что происходит с async-генератором при отмене задачи и закрытии loop, `aclosing` для гарантированной очистки.
+Почему генераторы и async-генераторы живут в разных частях: здесь — протокол (он полностью выводится из 3.1–3.4), в Части IV — поведение под event loop: кто и когда вызывает `__anext__`, что происходит с async-генератором при отмене задачи и закрытии loop, `aclosing` для гарантированной очистки.
 
-→ **см. также:** 3.1 — протокол итерации; 3.4 — `send`/`throw`/`close`; 4.8 — async-генераторы под event loop; 4.16 — `iscoroutine`/`isfuture`; async-dunder'ы (`__aiter__`/`__anext__`/`__aenter__`/`__aexit__`) — в 4.8–4.9.
+> **→ см. также:** 3.1 — протокол итерации; 3.4 — `send`/`throw`/`close`; 4.8 — async-генераторы под event loop; 4.16 — `iscoroutine`/`isfuture`; async-dunder'ы (`__aiter__`/`__anext__`/`__aenter__`/`__aexit__`) — в 4.8–4.9.
 
 ---
 
@@ -767,7 +767,7 @@ import timeit
 print(timeit.timeit("sum(x**2 for x in range(1_000_000))",     number=10))  # ≈ 0.68 с — генератор
 print(timeit.timeit("sum([x**2 for x in range(1_000_000)])",   number=10))  # ≈ 0.78 с — listcomp
 ```
-Замер на CPython 3.12.14: генератор **на ~13% быстрее** listcomp в `sum()` — это переворачивает старую рекомендацию (раньше listcomp был быстрее). Причина: специализирующий адаптивный интерпретатор (PEP 659; PEP 657 — это трейсбеки, к скорости отношения не имеет) снизил накладные расходы генератора. Генератор также **экономит память** — не аллоцирует список.
+Замер на CPython 3.12.14: генератор **на ~5–15% быстрее** listcomp в `sum()` (в наших прогонах 1.05–1.15×) — это переворачивает старую рекомендацию (раньше listcomp был быстрее). Причина: специализирующий адаптивный интерпретатор (PEP 659) снизил накладные расходы генератора. Генератор также **экономит память** — не аллоцирует список.
 
 **3. `itertools.batched` (3.12+) vs ручной `iter`+`tuple`.**
 ```python
@@ -794,7 +794,7 @@ data = list(range(10_000))
 print(timeit.timeit("list(pairwise(data))", globals={"pairwise": pairwise, "data": data}, number=10_000))   # ≈ 6.29 с
 print(timeit.timeit("list(zip(data, data[1:]))", globals={"data": data}, number=10_000))                    # ≈ 6.73 с
 ```
-`pairwise` быстрее на ~6–7% — реализован на C и не создаёт копию через slice `data[1:]`. На длинных списках также экономит память (slice аллоцирует новый список).
+`pairwise` быстрее на ~5–7% — реализован на C и не создаёт копию через slice `data[1:]`. На длинных списках также экономит память (slice аллоцирует новый список).
 
 **5. Ленивые вычисления — реальная экономия на раннем выходе.**
 ```python
@@ -807,8 +807,8 @@ def eager():
 def lazy():
     return next((x for x in (i**2 for i in range(N)) if x > 100), None)
 import timeit
-print(timeit.timeit(eager, number=1))   # ≈ 1.8 с
-print(timeit.timeit(lazy,  number=1))   # ≈ 0.00002 с (90 000× быстрее)
+print(timeit.timeit(eager, number=1))   # ≈ 0.7–1.8 с (сильно зависит от машины)
+print(timeit.timeit(lazy,  number=1))   # ≈ 10–20 мкс — в десятки тысяч раз быстрее
 ```
 Это **самый сильный** аргумент за генераторы: при раннем выходе
 (`any`, `all`, `next`, `break`) они экономят не память, а время.
