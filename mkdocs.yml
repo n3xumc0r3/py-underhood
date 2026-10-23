@@ -68,9 +68,7 @@ markdown_extensions:
       toc_depth: 3
   - pymdownx.details
   - pymdownx.magiclink:
-      repo_url_shorthand: true
-      user: n3xumc0r3
-      repo: py-underhood
+      repo_url_shorthand: false
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
