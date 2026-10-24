@@ -131,22 +131,34 @@ class Property:
         self.fset = fset
         self.fdel = fdel
         self.__doc__ = doc
+        self._name = None
+
+    def __set_name__(self, owner, name):
+        # настоящее property тоже хранит имя атрибута (с 3.8) —
+        # оно попадает в сообщения об ошибках ниже
+        self._name = name
     
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
         if self.fget is None:
-            raise AttributeError("unreadable attribute")
+            raise AttributeError(
+                f"property '{self._name}' of "
+                f"'{type(instance).__name__}' object has no getter")
         return self.fget(instance)
     
     def __set__(self, instance, value):
         if self.fset is None:
-            raise AttributeError("can't set attribute")
+            raise AttributeError(
+                f"property '{self._name}' of "
+                f"'{type(instance).__name__}' object has no setter")
         self.fset(instance, value)
     
     def __delete__(self, instance):
         if self.fdel is None:
-            raise AttributeError("can't delete attribute")
+            raise AttributeError(
+                f"property '{self._name}' of "
+                f"'{type(instance).__name__}' object has no deleter")
         self.fdel(instance)
     
     def getter(self, fget):
@@ -156,6 +168,8 @@ class Property:
     def deleter(self, fdel):
         return type(self)(self.fget, self.fset, fdel, self.__doc__)
 ```
+
+Настоящий `property` хранит имя атрибута в `_name` — его записывает тот самый `__set_name__` (6.3, с Python 3.8), и именно оно попадает в сообщения об ошибках вида `property 'area' of 'Circle' object has no setter` (пример ниже). Реинкарнация делает то же самое.
 
 Поэтому `@property` + `@x.setter` работают как декораторы:
 
@@ -501,7 +515,7 @@ Base.tags.default = "injected"
 print(Child().tags)               # injected — подкласс унаследовал изменённое поле
 ```
 
-Имя при этом не перезаписывается (`name = "tags"` в обоих классах), но изменяемое состояние (`default`, кэши внутри поля) становится общим. Отсюда и защита от повторной привязки в начале примера: привязать то же поле ко **второму** классу нельзя — Django на этом месте поднимает check-ошибку `fields.E006` (wrapped в `SystemCheckError` при migrate). Честное решение — клонировать поля в подклассах через `__init_subclass__` (см. 6.8) или не хранить изменяемое состояние в дескрипторе вовсе.
+Имя при этом не перезаписывается (`name = "tags"` в обоих классах), но изменяемое состояние (`default`, кэши внутри поля) становится общим. Защита от повторной привязки в начале примера — **наша самодельная предосторожность**, а не правило Django: повторную привязку одного объекта поля ко второму классу Django **не запрещает** — поле молча перепривязывается (`field.model` становится второй моделью), и системные проверки (`run_checks()`) ничего не находят. Оба класса продолжают делить один объект поля со всем его изменяемым состоянием — то есть эффект из примера выше в Django воспроизводится один в один. Честное решение — клонировать поля в подклассах через `__init_subclass__` (см. 6.8), как Django и поступает при наследовании от конкретной модели — `ModelBase.__new__` выдаёт каждому подклассу **новые** объекты полей, — или не хранить изменяемое состояние в дескрипторе вовсе.
 
 **Бонус: поле как кусок SQL.** Раз доступ через класс возвращает объект поля, магические методы поля превращаются в построитель запросов:
 
@@ -570,8 +584,9 @@ class Model:
             for name, obj in vars(parent).items():
                 if isinstance(obj, Column) and name not in vars(cls):
                     clone = copy.copy(obj)
-                    clone.name = None           # сброс перед повторной привязкой
-                    setattr(cls, name, clone)   # вызовет __set_name__ у клона
+                    clone.name = None              # сброс — иначе защита из 6.7 честно сработает
+                    clone.__set_name__(cls, name)  # перепривязка к подклассу — ВРУЧНУЮ
+                    setattr(cls, name, clone)      # просто кладёт клон в cls.__dict__
 
 class Base(Model):
     tags = TextColumn(default="")
@@ -582,7 +597,7 @@ class Child(Base):
 print(Base.tags is Child.tags)    # False — теперь у каждого свои
 ```
 
-`setattr(cls, name, clone)` внутри `__init_subclass__` снова вызывает `__set_name__` у клона — перед этим нужно сбросить `name`, иначе защита от повторной привязки из 6.7 честно сработает на уже привязанном клоне. Именно на этом месте Django поднимает `FieldError`, если поле привязывают ко второму классу без клонирования: `contribute_to_class` у него делает ту же работу, что наш `__init_subclass__`.
+⚠️ Тонкость: `setattr(cls, name, clone)` **не** вызывает `__set_name__`. Этот хук дёргает только `type.__new__` — и только для атрибутов, лежавших в теле `class`-statement'а на момент создания класса; `__init_subclass__` выполняется уже **после**. Поэтому `setattr` просто кладёт клон в `cls.__dict__`, и перепривязывать его к подклассу нужно **вручную** — `clone.__set_name__(cls, name)`. Сброс `clone.name = None` перед этим обязателен: клон — копия уже привязанного поля родителя, без сброса защита из 6.7 честно поднимет `TypeError`. Django в аналогичной ситуации на `__set_name__` не полагается вовсе: его метакласс откладывает поля из тела класса в сторону, создаёт класс, а имена проставляет им вручную (`set_attributes_from_name`).
 
 **Реестр плагинов.** Второй стандартный сценарий — само-регистрация подклассов:
 
@@ -702,7 +717,7 @@ D().f()        # no self — лямбда вызвана без аргумент
 - **обычные дескрипторы** (валидация из 6.7 при адаптации) — если пишут не в `__dict__`, а в слот;
 - **методы** — живут на классе (6.9).
 
-Что ломается: всё, что кэширует через `instance.__dict__` — `cached_property` и самодельные non-data-кэши из 6.6. Исключение `AttributeError` при первой записи — это `__dict__`-затенение, упёршееся в отсутствие словаря.
+Что ломается: всё, что кэширует через `instance.__dict__` — `cached_property` и самодельные non-data-кэши из 6.6. На **первом доступе** `cached_property` поднимает `TypeError: No '__dict__' attribute on 'X' instance to cache 'Y' property.` — его `__get__` ловит `AttributeError` от отсутствующего `__dict__` и перебрасывает как `TypeError` с человекочитаемым сообщением. Самодельные кэши из 6.6 упадут раньше и проще — обычным `AttributeError` при обращении к отсутствующему `__dict__`.
 
 **Паттерн 1: выделенный слот под кэш.** Простой и чаще всего правильный:
 
@@ -753,7 +768,7 @@ class Vector:
         return (self.x ** 2 + self.y ** 2) ** 0.5
 ```
 
-Несоответствие между `self.slot` и списком `__slots__` обнаружится не сразу, а при первом обращении (`AttributeError: 'Vector' object has no attribute '_norm'`) — проверяйте тестом.
+Несоответствие между `self.slot` и списком `__slots__` обнаружится не сразу, а при первом обращении — при записи в несуществующий слот: `AttributeError: 'Vector' object has no attribute '_norm'` (на 3.13+ сообщение длиннее: `... and no __dict__ for setting new attributes` — словаря для «атрибутов на лету» у slots-класса нет). Проверяйте тестом.
 
 **Паттерн 3: `functools.lru_cache` на методе.** Работает на slots-классах, потому что кэш живёт на обёртке функции, а не на экземпляре. Но у него два подводных камня:
 
@@ -778,7 +793,7 @@ class Point:
 | Механизм | На `__slots__` | Комментарий |
 |---|---|---|
 | `@property` | работает | кэш руками через слот |
-| `cached_property` | падает | нужен `instance.__dict__` |
+| `cached_property` | падает (`TypeError`) | нужен `instance.__dict__`; падает на первом доступе |
 | `SlotCached` (выше) | работает | слот обязан быть объявлен |
 | `lru_cache` на методе | работает | кэш держит экземпляры, `self` должен быть hashable |
 | `'__dict__'` в `__slots__` | работает | но съедает всю экономию — тогда зачем слоты |
@@ -790,6 +805,8 @@ class Point:
 ---
 
 ### Бенчмарки к Части VI { #6.11-benchmarki }
+
+Числа ниже сняты на одной конкретной машине (CPython 3.12.14). На другом CPU или другой версии Python абсолюты смещаются в разы, устойчивы только **соотношения** между вариантами — сверяйтесь с ними, а не с секундами.
 
 **1. `@property` vs прямой атрибут vs дескриптор.**
 ```python
@@ -819,7 +836,7 @@ t_plain  = timeit.timeit('pl.x', globals={'pl': pl}, number=5_000_000)          
 t_prop   = timeit.timeit('vp.x', globals={'vp': vp}, number=5_000_000)            # ≈ 0.232 с
 t_desc   = timeit.timeit('dc.d', globals={'dc': dc}, number=5_000_000)            # ≈ 0.409 с
 ```
-`@property` даёт **+100% overhead**, пользовательский дескриптор — **+253%** (на 3.12.14). На горячих путях (миллионы операций) — храните значение в обычном атрибуте, валидацию делайте в `__init__`.
+`@property` даёт **+100–125% overhead**, пользовательский дескриптор — **+250–360%** (на 3.12.14 — +100% и +253%; на другой машине с 3.12.15 — +124% и +270%; точные проценты зависят от CPU и версии Python). На горячих путях (миллионы операций) — храните значение в обычном атрибуте, валидацию делайте в `__init__`.
 
 **2. `functools.cached_property` vs ручной memoization vs `@property`.**
 ```python
