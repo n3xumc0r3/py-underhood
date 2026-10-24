@@ -4,7 +4,7 @@
 
 ## 8.1. Интернация строк и `sys.intern` { #8.1 }
 
-CPython **автоматически** интернирует строки, которые выглядят как валидные идентификаторы (латиница, цифры, `_` и любые Unicode-буквы — как в определении Python-идентификатора, PEP 3131; `café`, `日本語` тоже подойдут) — но только те, что появляются в исходном коде как литералы или формируются компилятором. **Runtime-конкатенация** (`"a" + "b"`) интернирования не делает — для неё нужно явное `sys.intern()`:
+CPython **автоматически** интернирует строки, которые выглядят как **ASCII**-идентификаторы (латиница, цифры, `_`) — но только те, что появляются в исходном коде как литералы или формируются компилятором. Не-ASCII идентификаторы (`café`, `привет`, `日本語`) валидны по PEP 3131, но компилятор их **не** интернирует: между разными код-объектами это разные объекты, и `is` по ним работать не обязан. **Runtime-конкатенация** (`"a" + "b"`) интернирования не делает — для неё нужно явное `sys.intern()`:
 
 ```python
 a = "hello_world"   # валидный идентификатор
@@ -311,6 +311,8 @@ def analyze(func):
 print(analyze(f))
 # {'args': 2, 'locals': ('x', 'y', 'z'), 'constants': (None,), 
 #  'globals_used': (), 'filename': '<stdin>', 'lineno': 1}
+# ('<stdin>' — потому что код в примере скомпилирован из строки; при запуске
+#  файла co_filename будет путём к нему)
 ```
 
 ## 8.8. Динамическая смена `__class__` { #8.8 }
@@ -407,7 +409,7 @@ dis.dis("x = 1; y = x + 2")
 
 # Показать байт-код без красивого форматирования
 print(f.__code__.co_code.hex())
-# 97007c0064017a0500005300 — hex (RESUME; LOAD_FAST; LOAD_CONST; BINARY_OP с CACHE; RETURN_VALUE)
+# 97007c0064017a0500005300 — hex (3.12; RESUME; LOAD_FAST; LOAD_CONST; BINARY_OP с CACHE; RETURN_VALUE)
 
 # Получить программно — список инструкций
 for instr in dis.Bytecode(f):
@@ -415,11 +417,11 @@ for instr in dis.Bytecode(f):
 # RESUME 0
 # LOAD_FAST x
 # LOAD_CONST 2
-# BINARY_OP *
+# BINARY_OP 5
 # RETURN_VALUE None
 ```
 
-`dis.Bytecode(f)` возвращает итератор инструкций — удобно для программного анализа.
+`dis.Bytecode(f)` возвращает итератор инструкций — удобно для программного анализа. У `argval` семантика «сырой аргумент инструкции»: для `BINARY_OP` это числовой oparg, а человекочитаемый символ операции живёт в `argrepr` — `dis.dis` печатает `BINARY_OP 5 (*)`.
 
 ## 8.10. Recursion limit и `RecursionError` { #8.10 }
 
@@ -803,7 +805,7 @@ import types
 # int | str — это UnionType, не typing.Union
 print(isinstance(int | str, types.UnionType))   # True
 
-# typing.Union[int, str] — это typing._SpecialForm, НЕ types.UnionType
+# typing.Union[int, str] — это typing._UnionGenericAlias, НЕ types.UnionType
 from typing import Union
 print(isinstance(Union[int, str], types.UnionType))   # False
 
@@ -910,7 +912,7 @@ class Buggy:
 
 Buggy()   # при уничтожении (по refcount — сразу после завершения выражения, не дожидаясь GC):
 # "UNRAISABLE in <function Buggy.__del__ at 0x...>: ValueError: ups"
-# (args.object — это bound __del__, не сам экземпляр)
+# (args.object — это сама функция __del__, не bound method и не экземпляр)
 ```
 
 Зачем: по умолчанию Python печатает такие исключения в stderr, что засоряет логи. Через hook можно их подавить, залогировать, или превратить в alert.
@@ -938,6 +940,8 @@ for thread_id, frame in sys._current_frames().items():
 
 ### Бенчмарки к Части VIII { #8.15-benchmarki }
 
+Числа ниже сняты на одной конкретной машине (CPython 3.12.14). На другом CPU или другой версии Python абсолюты смещаются; устойчивы **соотношения** между вариантами — сверяйтесь с ними, а не с секундами.
+
 **1. `sys.intern` — влияет ли на скорость lookup'а в dict по строковым ключам.**
 ```python
 import sys, timeit
@@ -955,10 +959,10 @@ def lookup_plain():
     for k in lookup_new: _ = d[k]
 def lookup_intern():
     for k in lookup_new_intern: _ = d_intern[k]
-print(timeit.timeit(lookup_plain,  number=10))   # ≈ 0.0125 с (зависит от CPU)
-print(timeit.timeit(lookup_intern, number=10))   # ≈ 0.0064 с — без выигрыша, даже чуть медленнее
+print(timeit.timeit(lookup_plain,  number=10))   # ≈ 0.006 с (зависит от CPU)
+print(timeit.timeit(lookup_intern, number=10))   # ≈ 0.005–0.006 с — разницы нет (в пределах шума)
 ```
-На 3.12 честный замер показывает **нулевую или отрицательную разницу**:
+На 3.12 честный замер показывает **нулевую или минимальную (в пределах ±10% шума) разницу**:
 intern не ускоряет dict-lookup — быстрый путь по hash/length уже встроен,
 а identity-сравнение у dict и так первое. Реальные выгоды `sys.intern` —
 память (дедупликация равных строк) и быстрые `is`-сравнения в вашем коде,
@@ -1058,7 +1062,7 @@ import timeit
 print(timeit.timeit("a == b", globals={'a': 5, 'b': 5}, number=5_000_000))      # ≈ 0.079 с — быстрый путь
 print(timeit.timeit("a == b", globals={'a': 1000, 'b': 1000}, number=5_000_000)) # ≈ 0.153 с — на ~94% медленнее
 ```
-`5 == 5` идёт по fast-path (одинаковые объекты из кэша — `is`-сравнение внутри `__eq__`), а `1000 == 1000` — через полноценное `int.__eq__`. Разница в 2× на чистом сравнении. Для арифметики разницы нет.
+`5 == 5` быстрее в ~2× не из-за `is`-сравнения (в обоих замерах сравнивается один и тот же объект — константы дедуплицированы), а потому что 5 — малый immortal-инт из кэша (PEP 683): refcount-операции с ним вырождены в no-op, а сам объект всегда «горячий». 1000 — обычный инт со счётчиком ссылок. Для арифметики разницы нет.
 
 **8. `dis.dis` overhead — цена дизассемблирования.**
 ```python
