@@ -58,11 +58,17 @@ def hash_string(s):
 
 ```python
 @lru_cache(typed=True)
-def f(x):
-    return x * 2
+def f(x, y):
+    return x * 2 + y
 
-f(1)      # int 1 → 2
-f(1.0)    # float 1.0 → 2.0 (без typed=True — попадёт в кэш, вернёт int 2)
+f(1, 2)     # 4
+f(1.0, 2)   # 4.0 — отдельная запись в кэше: typed=True различает int/float
+
+# Без typed=True оба вызова дали бы ОДИН ключ (1, 2) — слияние.
+# ⚠️ Нюанс: при ОДНОМ позиционном аргументе CPython и без typed различает
+# int и float — точный int/str хешируется как голый скаляр (fast path в
+# _functoolsmodule.c:828–841), а float — как кортеж (1.0,). Так что
+# слияние 1/1.0 без typed — это про вызовы с 2+ аргументами.
 ```
 
 **Интроспекция кэша:**
@@ -264,8 +270,9 @@ del obj   # вызовет cleanup('x.txt')
 # ⚠️ Ловушка: finalize держит args СИЛЬНО. Передача самого obj аргументом
 # (weakref.finalize(obj, cleanup, obj)) удерживает объект — при del obj
 # cleanup НЕ вызовется немедленно (он будет отложен до выхода из процесса
-# через atexit-хук weakref.finalize._shutdown). Передавайте вместо объекта
-# его данные (obj.name, путь).
+# через atexit-хук finalize._exitfunc — каждый finalize() регистрирует свой
+# при создании; _shutdown — лишь модульный флаг, который хук проверяет).
+# Передавайте вместо объекта его данные (obj.name, путь).
 ```
 
 ## 11.5. `copy`/`deepcopy` { #11.5 }
@@ -356,7 +363,7 @@ $ python3 -W error::ResourceWarning -W once::SyntaxWarning script.py   # фил�
 $ PYTHONWARNINGS="ignore::DeprecationWarning" python3 script.py        # то же через окружение
 ```
 
-Формат записи — `action::category::module::lineno` — в точности аргументы `warnings.filterwarnings`. Фильтры применяются по порядку, **последний совпавший побеждает**, поэтому `-W` перекрывает `PYTHONWARNINGS` (его фильтры добавляются позже):
+Формат записи — `action::category::module::lineno` — в точности аргументы `warnings.filterwarnings`. Фильтры применяются по порядку списка, **первый совпавший побеждает** (до остальных дело не доходит); `filterwarnings()` и `-W` вставляют новые фильтры в **начало** списка. Поэтому `-W` перекрывает `PYTHONWARNINGS`: его фильтры при старте оказываются впереди (добавлены позже — стоят раньше):
 
 ```bash
 $ PYTHONWARNINGS=ignore python3 -W error::DeprecationWarning -c "import warnings; warnings.warn('old', DeprecationWarning)"
@@ -2116,7 +2123,7 @@ math.exp(1)       # e
 math.pow(2, 10)   # 1024.0
 math.sqrt(16)     # 4.0
 math.isqrt(15)    # 3 — целочисленный корень (точно)
-math.cbrt(27)     # 3.0 — кубический корень (Python 3.11+)
+math.cbrt(27)     # ≈ 3.0 (на glibc реально 3.0000000000000004 — точное округление libm не гарантирует) — кубический корень (Python 3.11+)
 
 # Целочисленная арифметика (малоизвестные, Python 3.8+)
 math.prod([1, 2, 3, 4])   # 24 — произведение (заменяет functools.reduce(operator.mul))
@@ -2762,7 +2769,8 @@ import os; os.system("echo hacked")
 
 ```python
 import site
-site.ENABLE_USER_SITE   # True по умолчанию, False если PYTHONNOUSERSITE=1
+site.ENABLE_USER_SITE   # True по умолчанию; False при PYTHONNOUSERSITE=1,
+                        # флаге -s и внутри venv (там user-site отключается сам)
 ```
 
 ```bash
@@ -2824,7 +2832,8 @@ $ python3 script.py        # argv[0] = 'script.py' — как набрано в 
 $ python3 /tmp/script.py   # argv[0] = '/tmp/script.py'
 $ python3 -c "..."         # argv[0] = '-c'
 $ python3 -m modname       # argv[0] = полный путь к найденному модулю (…/modname.py)
-$ echo "..." | python3     # argv[0] = '-' — код из stdin (явная форма: python3 -)
+$ echo "..." | python3     # argv[0] = '' — код из stdin (пустая строка, не '-')
+$ python3 -                # argv[0] = '-' — явная форма чтения из stdin
 ```
 
 ### Сводная таблица: флаги запуска Python { #11.32-svodnaya }
@@ -2878,7 +2887,8 @@ def fib_dict(n):
     _d[n] = r
     return r
 
-# Замер на CPython 3.12.14, 100k вызовов fib(100) (cache тёплый, чистый lookup):
+# Замер на CPython 3.12.14, 100k вызовов fib(100) (кэш очищается каждую
+# итерацию — это замер холодного вычисления, не тёплого lookup):
 fib_lru.cache_clear()
 fib_cache.cache_clear()
 _d.clear()
@@ -2887,9 +2897,9 @@ fib_lru(100); fib_cache(100); fib_dict(100)
 
 print(timeit.timeit("fib_lru(100); fib_lru.cache_clear()", globals=globals(), number=100_000))    # ≈ 0.294 с
 print(timeit.timeit("fib_cache(100); fib_cache.cache_clear()", globals=globals(), number=100_000)) # ≈ 0.293 с
-print(timeit.timeit("fib_dict(100); _d.clear()", globals=globals(), number=100_000))               # ≈ 0.531 с — в ~1.8× медленнее
+print(timeit.timeit("fib_dict(100); _d.clear()", globals=globals(), number=100_000))               # ≈ 0.531 с — в ~1.1–1.8× медленнее (машинозависимо)
 ```
-На CPython 3.12.14 `lru_cache(None)` и `@cache` **идентичны по скорости** (0.293-0.294 с на 100k вызовов с очисткой кеша) и **обгоняют ручной dict** (0.531 с) в ~1.8 раза на cache-miss путях. `cache` чуть проще (нет eviction), `lru_cache` — для случаев с лимитом размера. Ручной `dict` имеет смысл только при очень специфических требованиях (например, eviction по памяти, а не по количеству).
+На CPython 3.12.14 `lru_cache(None)` и `@cache` **идентичны по скорости** (0.293-0.294 с на 100k вызовов с очисткой кеша) и **обгоняют ручной dict** (0.531 с) в ~1.1–1.8 раза на cache-miss путях — отношение машинозависимо: на быстром CPU холодное вычисление fib дешёвое и разница между C-реализацией lru и dict заметнее, на медленном — тонет в общем времени вычисления. `cache` чуть проще (нет eviction), `lru_cache` — для случаев с лимитом размера. Ручной `dict` имеет смысл только при очень специфических требованиях (например, eviction по памяти, а не по количеству).
 
 **2. `functools.partial` vs `lambda` — замыкание аргументов.**
 ```python
