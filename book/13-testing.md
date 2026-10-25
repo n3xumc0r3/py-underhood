@@ -19,7 +19,8 @@ dis.dis(f)
 
 #   3           2 LOAD_FAST                0 (x)
 #               4 LOAD_CONST               1 (0)
-#               6 COMPARE_OP              68 (>)    # 68 = индекс `>` в таблице сравнений
+#               6 COMPARE_OP              68 (>)    # 68 = (4 << 4) | маска приведения:
+#                                                   индекс `>` — в старших битах, маска — в младших
 #              10 POP_JUMP_IF_TRUE         7 (to 26)   # если условие ИСТИННО —
 #                                                         прыгаем мимо raise-блока
 #              12 LOAD_ASSERTION_ERROR                 # иначе готовим исключение
@@ -317,7 +318,7 @@ with mock.patch("time.time", return_value=1_577_880_000):
 
 Работает только для имён, которые вызываются **через атрибут модуля** (`time.time()`), и только для питоновского уровня: C-расширения, вызывающие `time()` напрямую из C, мок не увидят.
 
-Уровень два — `freezegun` (чистый Python): обходит десятки модулей (`datetime`, `time`, `calendar`…) и патчит их атрибуты. Замораживается всё, включая `time.monotonic`, а `time.sleep` становится **no-op**:
+Уровень два — `freezegun` (чистый Python): обходит десятки модулей (`datetime`, `time`, `calendar`…) и патчит их атрибуты. Замораживается всё, что код видит как время: `datetime`, `time.time`, `monotonic`, `perf_counter`. `time.sleep` freezegun не трогает — он **реально ждёт**: замороженный `monotonic` делает дельту нулевой, но процесс спит; именно поэтому `asyncio.sleep()` внутри заморозки виснет, и freezegun отдаёт event loop'ам настоящий `monotonic`:
 
 ```python
 import time, datetime
@@ -328,7 +329,7 @@ with freeze_time("2020-01-01 12:00:00"):
     print(int(time.time()))               # 1577880000
     t0 = time.monotonic(); time.sleep(3); t1 = time.monotonic()
     print(round(t1 - t0, 1), datetime.datetime.now())
-    # 0.0 2020-01-01 12:00:00 — sleep ничего не ждал и время не сдвинул
+    # 0.0 2020-01-01 12:00:00 — monotonic заморожен, а сам sleep реально спал
 print(datetime.datetime.now())            # настоящее время
 ```
 
@@ -349,7 +350,7 @@ with time_machine.travel(datetime.datetime(2020, 1, 1), tick=True):
     # 0.2 — время течёт от заданной точки
 ```
 
-Выбор: точечные проверки — `patch`; «остановить всё время» для интеграционных тестов — `freezegun` (дороже на входе/выходе, но тащит за собой `datetime` и сдвигает время при `sleep`-ах сторонних библиотек через свои настройки); частая заморозка в перфоманс-чувствительных тестах — `time-machine` (≈1500× быстрее freezegun на входе/выходе — бенчмарк в конце части).
+Выбор: точечные проверки — `patch`; «остановить всё время» для интеграционных тестов — `freezegun` (дороже на входе/выходе, но тащит за собой `datetime` и все остальные модули времени); частая заморозка в перфоманс-чувствительных тестах — `time-machine` (≈1500× быстрее freezegun на входе/выходе — бенчмарк в конце части).
 
 Часовые пояса подменяются окружением: `os.environ["TZ"] = "UTC"; time.tzset()` — POSIX-only (на Windows `tzset` нет), поэтому в кросс-платформенных тестах это делают через `monkeypatch`/`patch.dict` (2.4, 13.3) и пропускают тест на Windows (`@unittest.skipIf(sys.platform == "win32", ...)`).
 
@@ -530,9 +531,10 @@ EVENTS : ['setup:one', 'setup:two']        # setup по зависимостям
 
 ### Плагины и кэш { #13.6-plaginy }
 
-Вся внешняя логика pytest — хуки. Заголовок сессии показывает, что реально подгружено (в нашем прогоне выше: `plugins: time-machine-3.5.1` — плагин time-machine объявил себя через entry points и загрузился **автоматически**, без конфига). Система хуков — `pluggy`, та же библиотека, что питает хуки в setuptools; точка расширения — entry points группы `pytest11` (7.9) или `conftest.py`. Кэш сессии — каталог `.pytest_cache` (последние провалы для `--lf`, nodeids); его можно отключить флагом `-p no:cacheprovider` — `-p` загружает/блокирует плагины по имени, и кэш — тоже плагин.
+Вся внешняя логика pytest — хуки. Заголовок сессии показывает, что реально подгружено (в нашем прогоне выше: `plugins: time-machine-3.5.1` — плагин time-machine объявил себя через entry points и загрузился **автоматически**, без конфига). Система хуков — `pluggy` (хук-фреймворк проекта pytest, на нём же стоят tox и devpi); точка расширения — entry points группы `pytest11` (7.9) или `conftest.py`. Кэш сессии — каталог `.pytest_cache` (последние провалы для `--lf`, nodeids); его можно отключить флагом `-p no:cacheprovider` — `-p` загружает/блокирует плагины по имени, и кэш — тоже плагин.
 
 ⚠️ Порядок импорта при сборе не случайность, а контракты: `conftest.py`-файлы импортируются до тестовых модулей, а сам pytest предлагает три import-режима (`--import-mode=prepend|append|importlib`, дефолт `prepend`). В `prepend` каталог теста вставляется в `sys.path[0]` — отсюда классические «два файла с одинаковым именем не собираются вместе»: pytest видит один и тот же модуль. Лечится `__init__.py`-пакетами или `--import-mode=importlib`.
+
 ## 13.7. `coverage.py`: измерение покрытия { #13.7 }
 
 Coverage отвечает на вопрос «какие строки исполнились», и это тоже интерпретаторный крючок: чтобы узнать, на каких строках побежал код, нужно получать line-события трейсера (13.8). `coverage.py` — эталонная реализация, под капотом которой два переключаемых движка (ниже).
@@ -552,7 +554,9 @@ def skip_me():  # pragma: no cover
 ```
 
 ```text
-$ coverage run use.py          # use.py: from mod import classify; print(classify(4))
+$ coverage run use.py          # use.py (две строки):
+                               # from mod import classify
+                               # print(classify(4))
 even
 $ coverage report -m
 Name     Stmts   Miss  Cover   Missing
@@ -597,8 +601,8 @@ print(sorted(r[0] for r in con.execute(
 
 Движки трассировки переключаются переменной окружения `COVERAGE_CORE`:
 
-- `ctrace` (по умолчанию на 3.12, начиная с coverage.py 7.10) — C-трассировщик `CTracer`, собственной механикой повторяющий `sys.settrace` (13.8), но целиком в C: события line/call/return снимаются с минимальной питоновской обвязки;
-- `sysmon` — `sys.monitoring` (PEP 669, 13.9): `COVERAGE_CORE=sysmon coverage run …`; неверное значение бракуется сразу: `Unknown core value: 'bogus'`.
+- `ctrace` (дефолт на 3.12 во всех версиях coverage) — C-трассировщик `CTracer`, собственной механикой повторяющий `sys.settrace` (13.8), но целиком в C: события line/call/return снимаются с минимальной питоновской обвязки;
+- `sysmon` — `sys.monitoring` (PEP 669, 13.9), опция с coverage.py 7.10, дефолт — только на 3.14+: `COVERAGE_CORE=sysmon coverage run …`; неверное значение бракуется сразу: `Unknown core value: 'bogus'`.
 
 ⚠️ Движки дают одинаковые данные, но не идентичную скорость: на нашем workload'е ctrace замедлил запуск в 4.3 раза, sysmon — в 3.4 (бенчмарк в конце части). Порог перехода на sysmon — 3.12+ и тип нагрузки: чем больше line-событий, тем заметнее преимущество monitoring-механики.
 
@@ -797,7 +801,7 @@ Result: SUCCESS
 | Флаг | Что делает |
 |---|---|
 | `-j N` | параллельный запуск в N процессов — suite большой, так и в CPython CI гоняют |
-| `-m ШАБЛОН` | фильтр тестов по имени (`-m test_dict` → только тесты с dict в имени) |
+| `-m ШАБЛОН` | фильтр отдельных тест-кейсов глоб-шаблоном по полному id (`test.test_dict.DictTest.test_copy`); шаблон полномерный: `'*dict*'` со звёздочками; модули задаются позиционными аргументами |
 | `-u all` / `-u сетевые` | какие **ресурсы** разрешить: сеть, аудио, большие файлы; по умолчанию часть выключена |
 | `-r` (`--randomize`) + `--randseed=N` | рандомизация порядка тестов (ловля скрытых зависимостей между тестами); `--randseed` фиксирует зерно для воспроизводимости |
 | `--list-tests` | не запускать, только показать, что будет запускаться |
@@ -815,10 +819,11 @@ print(hasattr(sys, "gettotalrefcount"))
 
 На debug-сборке `-R 3:3` означает «три прогрева и три контрольных прогона»: сначала несколько раз подряд исполняется тест (сборка мусора и прогрев кэшей — 8.6), затем замеряется `sys.gettotalrefcount()` после каждого прогона; рост счётчика от прогона к прогону печатается как leaked references, и regrtest возвращает провал. Отсюда же термин «refleak test» в changelog'ах CPython: правки перед релизом прогоняют именно на debug-сборке с `-R`, потому что утечка рефлаков в stdlib — это утечка памяти во всех приложениях на CPython.
 
-Второй слой — `test.support` (и подмодули `os_helper`, `import_helper`, `script_helper`, `warnings_helper`): утилиты, которыми пользуются тесты CPython, доступные и вам:
+Второй слой — `test.support` (с подмодулями `os_helper`, `import_helper`, `script_helper`, `warnings_helper`): утилиты, которыми пользуются тесты CPython, доступные и вам:
 
 ```python
-from test import support, os_helper
+from test import support
+from test.support import os_helper
 print(hasattr(support, "captured_stdout"),      # перехват stdout как контекст-менеджер
       hasattr(support, "run_in_subinterp"),     # код в суб-интерпретаторе
       hasattr(os_helper, "temp_dir"))           # временные каталоги с уборкой
@@ -991,7 +996,7 @@ def run_suite():
     suite = loader.loadTestsFromTestCase(T)
     runner.run(suite)
 # Замер на CPython 3.12.14, 1000 прогонов (по 3 теста):
-print(timeit.timeit(run_suite, number=1_000))   # ≈ 0.079 с → ~26 мкс на 3 теста
+print(timeit.timeit(run_suite, number=1_000))   # ≈ 0.079 с → ~79 мкс на прогон из 3 тестов (~26 мкс на тест)
 ```
-Сам `unittest`-runner очень лёгкий (~26 мкс на 3 теста), основное время тратится в самом тест-коде. Если ваши тесты идут медленно — дело не в unittest, а в I/O, импортах или setup'е.
+Сам `unittest`-runner очень лёгкий (~79 мкс на прогон из 3 тестов), основное время тратится в самом тест-коде. Если ваши тесты идут медленно — дело не в unittest, а в I/O, импортах или setup'е.
 
