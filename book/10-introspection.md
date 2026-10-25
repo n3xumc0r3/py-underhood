@@ -86,6 +86,7 @@ print(sys._xoptions)
 - 3.14+: `-X thread_inherit_context=0/1`, `-X context_aware_warnings=0/1`, `-X tlbc=0/1` — наследование contextvars в потоках, предупреждения с учётом контекста, счётчики tier-2 байт-кода (экспериментальные)
 - историческое: `-X showalloccount` удалена в 3.9, `-X oldparser` — в 3.10 (сейчас просто игнорируются)
 - неизвестные `-X` не интерпретируются CPython, но сохраняются в `sys._xoptions` (как `True` или строка после `=`); `-X path` не существует — просто попадёт в `sys._xoptions`
+- ⚠️ опции с пометкой `3.13+`/`3.14+` выше ведут себя на ранних версиях точно так же: молча сохраняются в `sys._xoptions`, но **эффекта не дают**. На 3.12 `-X cpu_count=8` покажет `sys._xoptions['cpu_count'] == '8'`, но `os.cpu_count()` не изменится — сработала ли опция, проверяйте по соответствующему полю `sys.flags`/`os.*`, а не по отсутствию ошибки
 
 ## 10.3. `os.environ` и `PYTHON*` переменные { #10.3 }
 
@@ -147,7 +148,7 @@ print(interesting)
 - `PYTHON_FROZEN_MODULES` — эквивалент `-X frozen_modules=on/off`.
 - `PYTHONMALLOCSTATS` — печатать статистику pymalloc в stderr при выходе (работает в паре с `PYTHONMALLOC`).
 - `PYTHONWARNDEFAULTENCODING` — эквивалент `-X warn_default_encoding`: `EncodingWarning` на `open()` без явного `encoding` (PEP 597; см. 9.1).
-- `PYTHONUSERBASE` — база user-site вместо `~/.local` (см. 11.10).
+- `PYTHONUSERBASE` — база user-site вместо `~/.local` (см. 11.32).
 - `PYTHONPERFSUPPORT` / `PYTHON_PERF_JIT_SUPPORT` — эквиваленты `-X perf` / `-X perf_jit` (профилирование Linux perf).
 - `PYTHONCASEOK` — только Windows: импортировать модули без учёта регистра имени файла (на POSIX регистр всегда значим).
 - `PYTHONEXECUTABLE` — только macOS/framework-сборки: подменить значение `sys.executable` при старте.
@@ -202,7 +203,7 @@ print(socket.gethostname())   # имя хоста
 print(socket.getfqdn())        # полное доменное имя
 ```
 
-Если `os.getppid()` возвращает 1 — скорее всего, процесс запущен в Docker-контейнере (init PID=1). Если `os.getuid()` возвращает 0 — мы root (песочница слабая или её нет).
+Если `os.getppid()` возвращает 1 — наш родитель init-процесс системы: на bare-metal Linux с systemd это обычно `systemd` (не признак контейнера!), в Docker/K8s — entrypoint процесса. Более надёжные проверки на контейнер — в §10.6 (`/.dockerenv`, `/proc/1/cgroup`). Если `os.getuid()` возвращает 0 — мы root (песочница слабая или её нет).
 
 ## 10.5. `resource.getrlimit` — лимиты ресурсов { #10.5 }
 
