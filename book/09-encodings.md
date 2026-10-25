@@ -18,6 +18,8 @@
 
 ⚠️ Должна быть **в первой или второй строке** файла, иначе игнорируется. Вторая строка разрешена, потому что первая может быть занята shebang'ом: `#!/usr/bin/env python3`.
 
+⚠️ Директива **обязана быть внутри комментария** (`# coding: ...`) — голое `coding: cp1251` (без `#`) парсер игнорирует, и не-UTF-8 файл падает с `SyntaxError: Non-UTF-8 code ... but no encoding declared` (требование в `Parser/tokenizer.c:179–180`: *«Coding spec must be in a comment, and that comment must be the only statement on the source code line»*).
+
 ⚠️ **`# coding` влияет ТОЛЬКО на парсер CPython** (как декодировать байты `.py`-файла в токены). На рантайм-вызовы `open("data.txt")` эта директива **не влияет** — они используют системную локаль ОС (`cp1251` на Windows). Для глобального UTF-8 в I/O — флаг `-X utf8` / `PYTHONUTF8=1` (см. Часть X).
 
 ⚠️ **В Python 3 директива `# -*- coding: utf-8 -*-` избыточна** — UTF-8 и так дефолт с Python 3.0. Нужна только при сохранении файла в другой кодировке (cp1251, koi8-r).
@@ -91,9 +93,9 @@ reader.read()
 'А'.encode('utf-8').decode('cp437')  # '╨É'
 ```
 
-**Трюк с азиатскими кодировками (`hz`, `big5`)**: если писать код на английском, но сохранить файл в `hz`, MOSS при чтении как UTF-8 увидит смесь латиницы и иероглифов.
+**Трюк с азиатскими кодировками (`hz`, `big5`, `shift_jis`)**: ASCII-код переживает сохранение в `hz` или `big5` **байт-в-байт** — `hz` эскейпит только не-ASCII фрагментами `~{...~}` (внутри — многобайтная GB2312), а `big5` оставляет ASCII как есть. Поэтому «смесь латиницы и иероглифов» при чтении как UTF-8 возникает, **только если исходный текст уже содержал не-ASCII** (русские комментарии, китайские строки): при сохранении в сырую многобайтную кодировку (`gbk`/`big5`/`shift_jis`) эти байты превращаются в мусор для UTF-8-читателя. Чистый английский код таким трюком испортить нельзя.
 
-## 9.4. Скрипт для проверки всех кодировок { #9.4 }
+## 9.4. Скрипт для проверки кодировок, доступных через алиасы { #9.4 }
 
 ```python
 import codecs
@@ -116,7 +118,7 @@ for enc in all_encodings:
         print(f"{enc:<25} | ❌ Недоступна на этой ОС")
 ```
 
-Тест «может ли `StreamReader` прожевать сырые байты»:
+Тест «может ли `StreamReader` прожевать сырые байты» (продолжение предыдущего блока — `info` текущая итерация цикла выше; для standalone-запуска добавьте `info = codecs.lookup('utf-8')`):
 
 ```python
 import io
@@ -124,6 +126,8 @@ fake_stream = io.BytesIO(b"print")
 reader = info.streamreader(fake_stream)
 reader.read()  # если не падает — кодек подходит для исходного кода
 ```
+
+Примечание: `set(encodings.aliases.aliases.values())` даёт 98 канонических имён, а модулей в пакете `encodings/` — 121; 22 кодека (`cp1006`, `cp720`, `cp737`, `cp856`, `cp874`, `cp875`, `charmap`, ...) не имеют алиаса и в таблицу не попадут, хотя по каноническому имени остаются lookup-оспособными (search_function падает обратно на `norm_encoding`).
 
 ## 9.5. Свой кодек через `codecs.register()` { #9.5 }
 
@@ -133,7 +137,7 @@ reader.read()  # если не падает — кодек подходит дл
 import codecs
 
 def custom_decode(input_bytes, errors='strict'):
-    text = input_bytes.decode('utf-8')
+    text = str(input_bytes, 'utf-8')          # bytes ИЛИ memoryview — парсер передаёт memoryview
     decrypted_text = codecs.encode(text, 'rot_13')   # встроенный текстовый rot_13
     return (decrypted_text, len(input_bytes))
 
@@ -184,9 +188,9 @@ CPython видит директиву `# -*- coding: my_rot13 -*-`, зовёт �
 1. **Кэш-lookup**: `_cache.get(encoding, _unknown)`.
 2. **Нормализация имени**: `normalize_encoding(encoding)` — заменяет все не-alphanumeric символы на `_`.
 3. **Поиск алиаса** в `_aliases` (`encodings.aliases`).
-4. **Импорт модуля**: `__import__('encodings.' + modname, fromlist=['getregentry'], level=0)` — в `fromlist` указано имя функции, которую ищут в модуле (`getregentry()` возвращает `CodecInfo`).
+4. **Импорт модуля**: `__import__('encodings.' + modname, fromlist=['*'], level=0)` — `fromlist` тут ни при чём (это константа `_import_tail = ['*']`, она лишь заставляет `__import__` вернуть сам модуль `encodings.<modname>`, а не пакет `encodings`); `getregentry()` — отдельный шаг (см. п. 5).
 5. **Получение CodecInfo**: `mod.getregentry()` — должна вернуть `codecs.CodecInfo`.
-6. **Валидация**: проверка, что у `CodecInfo` есть callable `encode`, `decode` (и опционально `streamreader`, `streamwriter`).
+6. **Валидация**: если `getregentry()` вернул готовый `codecs.CodecInfo` — принимается как есть (это и есть случай 9.5). Блок callable-проверок `encode`/`decode`/опциональных `streamreader`/`streamwriter` существует, но только для **легаси-кортежа** из 4–7 элементов (`if not 4 <= len(entry) <= 7: raise CodecRegistryError(...)`); кортеж затем оборачивается в `CodecInfo(*entry)`.
 7. **Кэширование** и возврат.
 
 Чтобы зарегистрировать свой кодек и попасть в этот реестр, можно:
@@ -201,15 +205,17 @@ CPython видит директиву `# -*- coding: my_rot13 -*-`, зовёт �
 # 3. search_function проверяет _cache, normalize_encoding, _aliases
 # 4. Не находит → проверяет codecs.register-registered functions
 # 5. Наш find_my_codec("my_rot13") возвращает my_codec_info
-# 6. CPython вызывает streamreader(file_bytes) и читает декодированный текст
+# 6. CPython вызывает stateless decode (путь импорта, см. 9.5); на пути запуска файла (`python3 secret_lab.py`) используется incrementaldecoder через TextIOWrapper, а не зарегистрированный streamreader
 ```
 
 ### Бенчмарки к Части IX { #9.6-benchmarki }
 
+Числа ниже сняты на одной конкретной машине (Intel Xeon Granite Rapids, 2 vCPU, KVM-VM; CPython 3.12.15). На другом CPU или другой версии Python абсолюты смещаются в разы, устойчивы только **соотношения** между вариантами — сверяйтесь с ними, а не с секундами.
+
 **1. Декодирование 1 MB текста в разных кодировках.**
 ```python
 import timeit
-data_utf8    = "Привет, мир! " * 50_000   # ~0.9 MB UTF-8
+data_utf8    = "Привет, мир! " * 50_000   # ~1.1 MB UTF-8 (22 байта/повтор × 50 000)
 data_utf16   = data_utf8.encode("utf-16-le")
 data_utf8_b  = data_utf8.encode("utf-8")
 data_cp1251  = data_utf8.encode("cp1251")
@@ -227,7 +233,7 @@ print(timeit.timeit(lambda: data_utf16.decode("utf-16-le"), number=100))  # ≈ 
 import timeit
 data = ("Привет, мир! " * 50_000).encode("utf-8")
 # Добавим немного мусора
-data_corrupted = data + b"ÿþý"
+data_corrupted = data + b"\xff\xfe\xfd"
 # decode(..., errors="strict") здесь УПАДЁТ с UnicodeDecodeError прямо внутри timeit — поэтому закомментировано:
 # print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="strict"),  number=100))
 print(timeit.timeit(lambda: data_corrupted.decode("utf-8", errors="replace"), number=100))   # ≈ 0.13 с
@@ -276,10 +282,11 @@ print(timeit.timeit(lambda: data[::-1].encode("utf-8"), number=10))  # ≈ 0.012
 # Файл с coding: cp1251
 # Файл с coding: rot_13 (упадёт на SyntaxError)
 ```
-Чтение coding-директивы добавляет **~5–10 мкс** к парсингу файла
-(поиск regex по первым двум строкам). На импорте 1000 модулей — суммарно
-5–10 мс, пренебрежимо мало. Содержимое кодировки важнее: UTF-8-файл с ASCII-содержимым
-парсится с той же скоростью, что cp1251-файл с тем же содержимым.
+Чтение coding-директивы добавляет **~0.2–0.6 мкс** к парсингу файла
+(поиск regex по первым двум строкам; замер `compile(bytes)` с cookie и без на 3.12.15:
+0.18 мкс для utf-8-cookie, 0.64 мкс для cp1251-cookie). На импорте 1000 модулей —
+суммарно <1 мс, пренебрежимо мало. Содержимое кодировки важнее: UTF-8-файл с
+ASCII-содержимым парсится с той же скоростью, что cp1251-файл с тем же содержимым.
 
 **5. `safe_decode` с `errors="replace"` vs ручной decode-or-fallback.**
 ```python
@@ -294,10 +301,12 @@ def safe_decode_slow(data, encoding="utf-8"):
 # safe_decode_fast ≈ 0.12 с / 100 итераций по 1 MB
 # safe_decode_slow ≈ 0.12 с / 100 (try почти бесплатен, когда нет исключений)
 # На грязных данных (10% битых байтов):
-# safe_decode_fast ≈ 0.13 с (всегда strategy replace)
-# safe_decode_slow ≈ 0.30 с (каждый блок с ошибкой — создание исключения, traceback)
+# safe_decode_fast ≈ 0.26 с (дорогой replace-декод 100 000 битых мест)
+# safe_decode_slow ≈ 0.27 с (тот же replace + двойная работа: упавший strict + полный replace; try/except добавляет лишь ~5%, потому что исключение создаётся один раз на вызов — strict падает на первом же битом байте)
 ```
-Если ожидаете **много ошибок** — сразу `errors="replace"`. Если ошибки **редки** —
-try/except почти бесплатен и сохраняет качество декодирования в нормальном случае.
+Если ожидаете **много ошибок** — сразу `errors="replace"`. Медленный вариант платит
+за **двойную работу** при падении (упавший strict-декод + полный replace-декод), а не
+за «цену исключений». Если ошибки **редки** — try/except почти бесплатен и сохраняет
+качество декодирования в нормальном случае.
 
 
