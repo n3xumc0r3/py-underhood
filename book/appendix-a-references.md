@@ -15,7 +15,7 @@
 
 ## A.2. По Python internals (CPython, байт-код, фреймы, интернация) { #A.2 }
 
-9. **Anthony Shaw.** *CPython Internals: Your Guide to the Python 3 Interpreter.* (2021) — лучшая современная книга по CPython (база 3.8/3.9; по темам PEP 683 immortal, PEP 684 per-interp GIL и PEP 703 — обновляться по PEP-ам).
+9. **Anthony Shaw.** *CPython Internals: Your Guide to the Python 3 Interpreter.* (2021) — лучшая современная книга по CPython (база 3.9; по темам PEP 683 immortal, PEP 684 per-interp GIL и PEP 703 — обновляться по PEP-ам).
 10. **Philip Guo.** *Python Tutor* — визуализатор выполнения Python. https://pythontutor.com/
 11. **PEP 263** — *Defining Python Source Code Encodings*. https://peps.python.org/pep-0263/
 12. **PEP 484** — *Type Hints*. https://peps.python.org/pep-0484/
@@ -35,10 +35,10 @@
     - `Objects/unicodeobject.c` — интернация строк
     - `Objects/longobject.c` — кэш малых чисел
     - `Objects/object.c` + `Objects/typeobject.c` — реализация `__eq__`/`__hash__`/`__repr__` для `object` (сами слоты dunder'ов — в `typeobject.c`) — база для понимания дескрипторов и `__class__` lookup (Часть VI)
-    - `Objects/descrobject.c` — реализация дескрипторов (`property`, `classmethod`, `staticmethod`)
+    - `Objects/descrobject.c` — реализация дескрипторов (`property`, getset/member-дескрипторы); `classmethod`/`staticmethod` — в `Objects/funcobject.c`, рядом с `function.__get__`
     - `Objects/funcobject.c` — `function.__get__`: почему методы привязываются (6.9)
     - `Python/bltinmodule.c` — `globals`, `locals`, `__import__`
-    - `Python/frame.c` — реализация `PyFrame_LocalsToFast`
+    - `Objects/frameobject.c` — реализация `PyFrame_LocalsToFast`
 25. **PEP 448** — *Additional Unpacking Generalizations* (`[*a, *b]`, `{**d1, **d2}`). https://peps.python.org/pep-0448/
 26. **PEP 465** — *A dedicated infix operator for matrix multiplication* (`@`). https://peps.python.org/pep-0465/
 27. **PEP 570** — *Python Positional-Only Parameters* (`/`). https://peps.python.org/pep-0570/
@@ -50,7 +50,7 @@
 33. **Patrick Viafore.** *Robust Python: Type Checking with Mypy.* 2021.
 34. **PEP 257** — *Docstring Conventions*. https://peps.python.org/pep-0257/
 35. **PEP 20** — *The Zen of Python*. https://peps.python.org/pep-0020/
-36. **PEP 401** — *Barry's FLUFL* (April Fools). https://peps.python.org/pep-0401/
+36. **PEP 401** — *Barry as FLUFL* (April Fools). https://peps.python.org/pep-0401/
 
 ## A.3. По метапрограммированию и обфускации Python { #A.3 }
 
@@ -109,8 +109,8 @@
 
 ## A.7. Pyjails и демо песочниц { #A.7 }
 
-80. **Ned Batchelder.** *Tarpit* (PyCon 2012) — каноническая демонстрация того, что «идеальной песочницы» на CPython не существует в принципе. Оригинальный пост на nedbatchelder.com сейчас недоступен; видео доклада и слайды ищутся по запросу «Ned Batchelder tarpit PyCon 2012» на pyvideo.org и YouTube.
-81. **Pyjail-ресурсы** — коллекции приёмов побега из python-песочниц (активное CTF-направление): https://github.com/jailctf/pyjailbreaker (wiki + payload generator, ★148), https://github.com/Macr0phag3/parselmouth (автоматизированный bypass-фреймворк, ★103), https://github.com/salvatore-abello/python-ctf-cheatsheet (cheatsheet, ★97)
+80. **Ned Batchelder.** *Eval really is dangerous* (2012) — канонический разбор того, почему «идеальной песочницы» вокруг `eval` не существует: даже с пустым `__builtins__` обход через `().__class__.__base__.__subclasses__()`. https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html
+81. **Pyjail-ресурсы** — коллекции приёмов побега из python-песочниц (активное CTF-направление): https://github.com/jailctf/pyjailbreaker (wiki + payload generator, ★148), https://github.com/Macr0phag3/parselmouth (автоматизированный bypass-фреймворк, ★103), https://github.com/salvatore-abello/python-ctf-cheatsheet (cheatsheet, ★98)
 
 ## A.8. Блоги для регулярного чтения { #A.8 }
 
@@ -136,7 +136,7 @@
 | `setattr`/`getattr`/`builtins` | Python Cookbook (№23) |
 | `sys.modules`, `__import__` | docs `sys` (№40), Doug Hellmann (№38) |
 | `sys._getframe`, `f_locals`, `f_code` | docs `sys` (№40), CPython Internals (№9) |
-| `ctypes.pythonapi.PyFrame_LocalsToFast` | docs `ctypes`, CPython source `Python/frame.c` (№24) |
+| `ctypes.pythonapi.PyFrame_LocalsToFast` | docs `ctypes`, CPython source `Objects/frameobject.c` (№24) |
 | Интернация строк, кэш чисел | CPython Internals (№9), Effective Python (№21) |
 | `is` vs `==`, truthiness, `hash()` | Effective Python (№21), Fluent Python (№22), docs `sys` (№40) |
 | `hash()`, `PYTHONHASHSEED` | docs `sys` (№40), CPython Internals (№9) |
