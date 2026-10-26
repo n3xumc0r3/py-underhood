@@ -75,7 +75,7 @@ print(next(g), next(g), next(g))   # 0 1 2
 
 ```python
 # List comprehension — материализует сразу
-squares_list = [x**2 for x in range(1_000_000)]   # ~8 MB в памяти
+squares_list = [x**2 for x in range(1_000_000)]   # ~8 МБ в памяти
 
 # Generator expression — ленивый
 squares_gen = (x**2 for x in range(1_000_000))    # ~200 байт (только состояние, sys.getsizeof на 3.12)
@@ -754,7 +754,7 @@ import sys
 N = 1_000_000
 lst = [x**2 for x in range(N)]
 gen = (x**2 for x in range(N))
-print(sys.getsizeof(lst))   # 8 448 728 байт (≈8.4 MB)
+print(sys.getsizeof(lst))   # 8 448 728 байт (≈8.4 МБ)
 print(sys.getsizeof(gen))   # ~200 байт (только состояние генератора)
 ```
 Разница в **~42 000×** по памяти. Но `sum(lst)` и `sum(gen)` дают **одинаковый**

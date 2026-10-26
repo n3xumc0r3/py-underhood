@@ -2206,7 +2206,7 @@ ns = [NoSlots(i, i)   for i in range(n)]   # 100 000 объектов
 ws = [WithSlots(i, i) for i in range(n)]
 print(sys.getsizeof(ns[0]) + sys.getsizeof(ns[0].__dict__))  # 48 + 296 = 344 байта/объект
 print(sys.getsizeof(ws[0]))                                  # 56 байт/объект
-# На 1M по getsizeof: ~344 MB vs ~56 MB — экономия ≈84%.
+# На 1M по getsizeof: ~344 МБ vs ~56 МБ — экономия ≈84%.
 # Нюанс 3.12: instance-__dict__ хранится inline и не материализуется до
 # обращения — фактическая разница по tracemalloc меньше (см. бенчмарк 8.15).
 ```

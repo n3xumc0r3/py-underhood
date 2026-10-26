@@ -911,9 +911,9 @@ NIST специфицирует три подходящих для крипто�
 
 | DRBG | Основа | Скорость | Используется в |
 |---|---|---|---|
-| **Hash_DRBG** | SHA-256 (или SHA-512) | ~500 нс/32 Б | редко как дефолт — опция FIPS-библиотек |
-| **HMAC_DRBG** | HMAC-SHA-256 | ~700 нс/32 Б | редко как дефолт — опция FIPS-библиотек |
-| **CTR_DRBG** | AES-256 в CTR-режиме | ~200 нс/32 Б | OpenSSL (дефолт), BoringSSL, Windows 10+, Intel IPP |
+| **Hash_DRBG** | SHA-256 (или SHA-512) | ~500 нс/32 байта | редко как дефолт — опция FIPS-библиотек |
+| **HMAC_DRBG** | HMAC-SHA-256 | ~700 нс/32 байта | редко как дефолт — опция FIPS-библиотек |
+| **CTR_DRBG** | AES-256 в CTR-режиме | ~200 нс/32 байта | OpenSSL (дефолт), BoringSSL, Windows 10+, Intel IPP |
 
 Все три требуют **seed** (initial entropy) и **reseed** (периодическое обновление состояния от entropy). Без reseed любой DRBG «вырабатывается»: NIST ограничивает интервал между reseed'ами `2**48` запросами generate — на практике лимит не достигается раньше принудительного reseed.
 
@@ -1332,7 +1332,7 @@ t_np   = timeit.timeit('rng.integers(0, 2**32)', globals={'rng': rng}, number=1_
 ### 2. Скорость генерации большого буфера
 
 ```python
-# Замер 1MB random bytes, 100 прогонов:
+# Замер 1 МБ random bytes, 100 прогонов:
 t_mt   = timeit.timeit('r.getrandbits(8 * 1024 * 1024)',
                        globals={'r': random.Random(42)}, number=100)
 t_os   = timeit.timeit('os.urandom(1024 * 1024)',

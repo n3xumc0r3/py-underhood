@@ -398,7 +398,7 @@ caller = sys._getframe(1)
 caller_file = caller.f_code.co_filename
 with open(caller_file) as f:
     source = f.read()
-print(source[:5000])  # первые 5 KB исходника проверяющего
+print(source[:5000])  # первые 5 КБ исходника проверяющего
 sys.exit(0)  # выйти до выполнения теста
 ```
 

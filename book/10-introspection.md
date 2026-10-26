@@ -402,7 +402,7 @@ with open('/tmp/traceback.txt', 'w') as f:
     faulthandler.dump_traceback(file=f)
 
 # Если есть долгий цикл — можно включить периодический dump
-faulthandler.dump_traceback_later(timeout=5)  # один раз через 5 сек (для периодики — repeat=True)
+faulthandler.dump_traceback_later(timeout=5)  # один раз через 5 с (для периодики — repeat=True)
 ```
 
 В тестирующей системе с таймаутами (Task timed out) `dump_traceback_later` выведет в stderr стек всех тредов — видно, на чём зависла программа.
@@ -491,7 +491,7 @@ Audit hook'и добавляют **~5–10%** к стоимости `exec`/`impo
 **3. `faulthandler.dump_traceback_later` — мониторинг зависаний.**
 ```python
 import faulthandler, time
-# Запустить таймер на 5 сек, повторять каждые 1 сек
+# Запустить таймер на 5 с, повторять каждые 1 с
 faulthandler.dump_traceback_later(timeout=5, repeat=True)
 # При зависании в stderr появится стек всех потоков
 # Замер накладных расходов: dump_traceback_later использует отдельный поток

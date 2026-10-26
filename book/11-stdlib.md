@@ -913,7 +913,7 @@ logger.addHandler(console_handler)
 from logging.handlers import RotatingFileHandler
 
 handler = RotatingFileHandler('app.log', maxBytes=10*1024*1024, backupCount=5)
-# Создаст app.log, app.log.1, app.log.2, ... при достижении 10 MB
+# Создаст app.log, app.log.1, app.log.2, ... при достижении 10 МБ
 ```
 
 **TimedRotatingFileHandler** — по времени:
@@ -1563,8 +1563,8 @@ with open('huge.log', 'rb') as f:
 mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 
 # Способ 1: seek + read (как у file)
-mm.seek(1024 * 1024 * 100)   # перейти на 100 MB
-chunk = mm.read(4096)        # прочитать 4 KB
+mm.seek(1024 * 1024 * 100)   # перейти на 100 МБ
+chunk = mm.read(4096)        # прочитать 4 КБ
 
 # Способ 2: срезы (как у bytes) — короче
 chunk = mm[1024*1024*100 : 1024*1024*100 + 4096]
@@ -1586,7 +1586,7 @@ import mmap, os
 # Создать общий файл (или /dev/shm для in-memory)
 shared_path = '/tmp/shared.bin'
 with open(shared_path, 'w+b') as f:
-    f.write(b'\x00' * 4096)   # 4 KB общий регион
+    f.write(b'\x00' * 4096)   # 4 КБ общий регион
     f.flush()
     
     # Префикс MAP_SHARED (по умолчанию на Unix, но явно для переносимости):
@@ -1625,7 +1625,7 @@ def worker(shm_name):
 
 if __name__ == '__main__':
     with SharedMemoryManager() as smm:
-        # Создать сегмент 1 KB (авто-удалится при выходе из with)
+        # Создать сегмент 1 КБ (авто-удалится при выходе из with)
         shm = smm.SharedMemory(size=1024)
         shm.buf[:5] = b'HELLO'
         
@@ -3006,12 +3006,12 @@ print(timeit.timeit("(42).to_bytes(4, 'big')", number=1_000_000))               
 **8. `hashlib.sha256` vs `hashlib.blake2b` — хеширование.**
 ```python
 import hashlib, timeit
-data = b'x' * 1024   # 1 KB
-# Замер на CPython 3.12.14, 100k вызовов на 1 KB данных:
+data = b'x' * 1024   # 1 КБ
+# Замер на CPython 3.12.14, 100k вызовов на 1 КБ данных:
 print(timeit.timeit("hashlib.sha256(data).digest()", globals={'hashlib': hashlib, 'data': data}, number=100_000))   # ≈ 0.086 с
 print(timeit.timeit("hashlib.blake2b(data).digest()", globals={'hashlib': hashlib, 'data': data}, number=100_000)) # ≈ 0.122 с — на ~30% медленнее
 ```
-`sha256` быстрее на 1 KB (ОС-оптимизированная реализация через OpenSSL). `blake2b` имеет смысл на больших объёмах (10+ MB), где его параллелизм берёт верх, или когда нужна настраиваемая длина хеша и keyed hashing.
+`sha256` быстрее на 1 КБ (ОС-оптимизированная реализация через OpenSSL). `blake2b` имеет смысл на больших объёмах (10+ МБ), где его параллелизм берёт верх, или когда нужна настраиваемая длина хеша и keyed hashing.
 
 **9. `copy.copy` vs `copy.deepcopy` — клонирование.**
 ```python

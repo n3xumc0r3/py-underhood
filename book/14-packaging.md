@@ -190,7 +190,7 @@ python -m build --sdist             # только sdist
 
 # pip умеет и сам: собрать wheel без установки
 python -m pip wheel . --no-deps --no-build-isolation -w dist/
-# → demo_pkg_hood-0.1.0-py3-none-any.whl (в нашем прогоне: 1.72 c, см. бенчмарки)
+# → demo_pkg_hood-0.1.0-py3-none-any.whl (в нашем прогоне: 1.72 с, см. бенчмарки)
 ```
 
 ⚠️ `--no-build-isolation` — не «ускоритель», а способ использовать **уже установленный** setuptools (без сети). Требование `requires = ["setuptools>=77"]` при этом никем не проверяется: если в окружении старый setuptools — сборка сломается с невнятной ошибкой глубоко в бэкенде.

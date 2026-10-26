@@ -212,10 +212,10 @@ CPython видит директиву `# -*- coding: my_rot13 -*-`, зовёт �
 
 Числа ниже сняты на одной конкретной машине (Intel Xeon Granite Rapids, 2 vCPU, KVM-VM; CPython 3.12.15). На другом CPU или другой версии Python абсолюты смещаются в разы, устойчивы только **соотношения** между вариантами — сверяйтесь с ними, а не с секундами.
 
-**1. Декодирование 1 MB текста в разных кодировках.**
+**1. Декодирование 1 МБ текста в разных кодировках.**
 ```python
 import timeit
-data_utf8    = "Привет, мир! " * 50_000   # ~1.1 MB UTF-8 (22 байта/повтор × 50 000)
+data_utf8    = "Привет, мир! " * 50_000   # ~1.1 МБ UTF-8 (22 байта/повтор × 50 000)
 data_utf16   = data_utf8.encode("utf-16-le")
 data_utf8_b  = data_utf8.encode("utf-8")
 data_cp1251  = data_utf8.encode("cp1251")
@@ -298,7 +298,7 @@ def safe_decode_slow(data, encoding="utf-8"):
     except UnicodeDecodeError:
         return data.decode(encoding, errors="replace")
 # На чистых данных (без ошибок):
-# safe_decode_fast ≈ 0.12 с / 100 итераций по 1 MB
+# safe_decode_fast ≈ 0.12 с / 100 итераций по 1 МБ
 # safe_decode_slow ≈ 0.12 с / 100 (try почти бесплатен, когда нет исключений)
 # На грязных данных (10% битых байтов):
 # safe_decode_fast ≈ 0.26 с (дорогой replace-декод 100 000 битых мест)

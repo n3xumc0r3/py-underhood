@@ -14,19 +14,19 @@
 ```python
 # Синхронно: одна задача блокирует всё, пока ждёт ответа сервера
 def sync_fetch_all():
-    r1 = requests.get(url1)   # ждём 0.5 сек
-    r2 = requests.get(url2)   # ждём 0.5 сек
-    r3 = requests.get(url3)   # ждём 0.5 сек
-    # Итого: 1.5 сек
+    r1 = requests.get(url1)   # ждём 0.5 с
+    r2 = requests.get(url2)   # ждём 0.5 с
+    r3 = requests.get(url3)   # ждём 0.5 с
+    # Итого: 1.5 с
 
 # Асинхронно: ждём все три «одновременно»
 async def async_fetch_all():
     r1, r2, r3 = await asyncio.gather(
-        fetch(url1),          # ждём 0.5 сек
-        fetch(url2),          # ждём 0.5 сек
-        fetch(url3),          # ждём 0.5 сек
+        fetch(url1),          # ждём 0.5 с
+        fetch(url2),          # ждём 0.5 с
+        fetch(url3),          # ждём 0.5 с
     )
-    # Итого: 0.5 сек
+    # Итого: 0.5 с
 ```
 
 Асинхронность = **конкурентность в одном потоке**. Не параллелизм (CPU не используется одновременно), а конкурентность по I/O (пока одна задача ждёт ответа — другая работает).
@@ -430,7 +430,7 @@ async def main():
 | Вызов долгой C-функции (напр. `numpy.linalg.svd` на большом массиве) | `multiprocessing` **или** `threading` | C-расширения отпускают GIL, потоки работают |
 | CPU-bound + I/O-bound смешанный | `multiprocessing` для CPU + `asyncio` для I/O | каждый работает в своей зоне |
 | Legacy sync-код, который нужно ускорить | `ThreadPoolExecutor` для I/O, `ProcessPool` для CPU | минимальные изменения в коде |
-| WebSocket-сервер на 10000 подключений | `asyncio` (websockets/aiohttp) | потоки не масштабируются до 10k (8 MB виртуального стека на поток × 10k = 80 GB **виртуального** адресного пространства + ~1–2 GB реальной RAM на kernel-структуры; asyncio уходит в десятки МБ) |
+| WebSocket-сервер на 10000 подключений | `asyncio` (websockets/aiohttp) | потоки не масштабируются до 10k (8 МБ виртуального стека на поток × 10k = 80 ГБ **виртуального** адресного пространства + ~1–2 ГБ реальной RAM на kernel-структуры; asyncio уходит в десятки МБ) |
 | Долгий background-task в sync-приложении | `threading.Thread(daemon=True)` | проще, чем поднимать event loop ради одной задачи |
 
 **Эмпирические пороги** (на CPython 3.12):
@@ -585,7 +585,7 @@ async def main():
         print("Не уложились в 1 секунду")
 
 asyncio.run(main())
-# "Не уложились в 1 секунду" через 1 сек
+# "Не уложились в 1 секунду" через 1 с
 ```
 
 До Python 3.11 использовали `asyncio.wait_for`:
@@ -996,7 +996,7 @@ import asyncio, time
 async def noop(): return 42
 # Замер на CPython 3.12.14, 1000 прогонов asyncio.run(noop()):
 # ≈ 0.069 с, per call ≈ 0.07 мс — пренебрежимо мало для долгоживущих программ,
-# но в hot loop из 100k корутин `asyncio.run` на каждый вызов обойдётся в ~7 c
+# но в hot loop из 100k корутин `asyncio.run` на каждый вызов обойдётся в ~7 с
 # overhead. Поэтому event loop держат один на процесс, а внутри используют gather.
 ```
 

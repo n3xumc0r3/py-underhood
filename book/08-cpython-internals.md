@@ -477,7 +477,7 @@ import threading, sys
 sys.setrecursionlimit(100_000)
 
 # Поток с большим стеком — иначе segfault
-threading.stack_size(256 * 1024 * 1024)   # 256 MB
+threading.stack_size(256 * 1024 * 1024)   # 256 МБ
 
 def deep_rec(n):
     if n == 0:
@@ -491,10 +491,10 @@ t.join()
 
 ⚠️ **Скрытые проблемы с `threading.stack_size`**:
 
-- Значение должно быть **кратно размеру системной страницы памяти** (4 KB на x86/x64 Linux, 16 KB на некоторых ARM). Некратные значения могут округляться или падать с `ValueError`.
-- На **Windows** максимальный размер стека ограничен (~1 GB обычно), и большие значения (> 256 MB) могут либо молча округляться вниз, либо приводить к `OverflowError`.
-- На **macOS** основной поток имеет фиксированный размер стека (обычно 8 MB), который нельзя изменить через `threading.stack_size` — поэтому глубокая рекурсия **обязательно** должна идти в отдельном потоке (как в примере выше), а не в main thread.
-- `setrecursionlimit(10**6)` + `stack_size(256 MB)` на CPython 3.11+ всё равно может **сегфолтнуть**, если C-стек потока (отличается от Python recursion limit) переполнится — особенно на архитектурах с большим frame size (debug builds, ASan/MSan). Лечится только ещё большим `stack_size` или отказом от рекурсии.
+- Значение должно быть **кратно размеру системной страницы памяти** (4 КБ на x86/x64 Linux, 16 КБ на некоторых ARM). Некратные значения могут округляться или падать с `ValueError`.
+- На **Windows** максимальный размер стека ограничен (~1 ГБ обычно), и большие значения (> 256 МБ) могут либо молча округляться вниз, либо приводить к `OverflowError`.
+- На **macOS** основной поток имеет фиксированный размер стека (обычно 8 МБ), который нельзя изменить через `threading.stack_size` — поэтому глубокая рекурсия **обязательно** должна идти в отдельном потоке (как в примере выше), а не в main thread.
+- `setrecursionlimit(10**6)` + `stack_size(256 МБ)` на CPython 3.11+ всё равно может **сегфолтнуть**, если C-стек потока (отличается от Python recursion limit) переполнится — особенно на архитектурах с большим frame size (debug builds, ASan/MSan). Лечится только ещё большим `stack_size` или отказом от рекурсии.
 
 ## 8.11. `contextvars` — контекстно-зависимые переменные { #8.11 }
 
@@ -1002,11 +1002,11 @@ _, peak1 = tracemalloc.get_traced_memory()
 del objs
 objs = [Slotted() for _ in range(1_000_000)]
 _, peak2 = tracemalloc.get_traced_memory()
-print(f"Plain 1M:   {peak1 / 1e6:.1f} MB (tracemalloc)")   # ~88.5 MB — на 3.12 __dict__ не материализуется
-print(f"Slotted 1M: {peak2 / 1e6:.1f} MB (tracemalloc)")   # ~88.5 MB — разницы tracemalloc не видит
+print(f"Plain 1M:   {peak1 / 1e6:.1f} MB (tracemalloc)")   # ~88.5 МБ — на 3.12 __dict__ не материализуется
+print(f"Slotted 1M: {peak2 / 1e6:.1f} MB (tracemalloc)")   # ~88.5 МБ — разницы tracemalloc не видит
 # Честный per-instance через getsizeof: 344 vs 48 байт — ~7.2×
 ```
-Экономия **~7×** на экземпляр по `sys.getsizeof` (344 байта → 48) — уходит `__dict__` (хеш-таблица ~296 байт). Нюанс 3.12: `tracemalloc` на реальном миллионе показывает одинаковые ~88.5 MB — instance-`__dict__` хранится inline (in-object values) и не материализуется, пока к нему не обратятся; честная per-instance картина — через `getsizeof(p) + getsizeof(p.__dict__)`, как выше.
+Экономия **~7×** на экземпляр по `sys.getsizeof` (344 байта → 48) — уходит `__dict__` (хеш-таблица ~296 байт). Нюанс 3.12: `tracemalloc` на реальном миллионе показывает одинаковые ~88.5 МБ — instance-`__dict__` хранится inline (in-object values) и не материализуется, пока к нему не обратятся; честная per-instance картина — через `getsizeof(p) + getsizeof(p.__dict__)`, как выше.
 
 **4. `weakref.WeakValueDictionary` vs обычный `dict` — цена слабых ссылок.**
 ```python
@@ -1040,7 +1040,7 @@ def lru_access():
         od.move_to_end(k)
 # ≈ 0.05 с на 1M операций (зависит от CPU)
 ```
-`OrderedDict`-based LRU — **~20M операций/сек** на одном потоке.
+`OrderedDict`-based LRU — **~20M операций/с** на одном потоке.
 Для сравнения, `functools.lru_cache` (C-реализация) — того же порядка, но с готовой политикой вытеснения.
 На горячих путях берите `lru_cache`; кастомный LRU через `OrderedDict` —
 когда нужен кастомный eviction policy или ограничения не по размеру, а по памяти.
