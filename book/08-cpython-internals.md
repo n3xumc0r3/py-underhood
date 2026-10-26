@@ -394,7 +394,7 @@ dis.dis(f)
 
 Полезно, чтобы понять:
 
-- **Почему `a, b = b, a` быстрее, чем `temp = a; a = b; b = temp`** — в функции `a, b = b, a` компилируется в `LOAD_FAST` + `LOAD_FAST` + `STORE_FAST` + `STORE_FAST` (порядок STORE переставлен; на уровне модуля — `LOAD_NAME` ×2 + `SWAP 2` + `STORE_NAME` ×2; `ROT_TWO` удалён в 3.11).
+- **Почему `a, b = b, a` быстрее, чем `temp = a; a = b; b = temp`** — в функции `a, b = b, a` компилируется в `LOAD_FAST` + `LOAD_FAST` + `STORE_FAST` + `STORE_FAST` (порядок STORE переставлен; на уровне модуля — `LOAD_NAME` 2× + `SWAP 2` + `STORE_NAME` 2×; `ROT_TWO` удалён в 3.11).
 - **Почему `is` быстрее `==`** — `is` это `IS_OP` (сравнение указателей), а `==` вызывает `__eq__` через `COMPARE_OP`.
 - **Что Python реально делает** с вашим кодом.
 
