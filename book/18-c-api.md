@@ -13,7 +13,7 @@ Python-программа может добраться до нативного 
 | Что подключаете | готовую `.so`/`.dll` | готовую `.so`/`.dll` | свой C-код | свой C-код |
 | Объявления | вручную, атрибутами | вручную, `cdef`-строкой | декларации C, парсит `pycparser` | код на C |
 | Проверка сигнатур | только `argtypes` (опционально) | при вызове | при компиляции | компилятором |
-| Цена вызова (18.11) | ~400 нс | ~300 нс | ~90–120 нс | ~60–125 нс |
+| Цена вызова (18.11) | ~400 нс | ~300 нс | ~90–150 нс | ~60–125 нс |
 | GIL-контроль | `CDLL`/`PyDLL` | освобождается | свой код | свой код |
 | Stable ABI | — | — | да | опционально (18.9) |
 | Когда выбирать | быстро дёрнуть системную библиотеку | PyPy-совместимость, много объявлений | большой слой над C-библиотекой | максимум контроля, скорость, свой тип |
@@ -45,9 +45,12 @@ import ctypes.util
 libm = CDLL(ctypes.util.find_library("m"))   # или CDLL("libm.so.6")
 libm.cos.argtypes = [c_double]    # прототип: аргумент
 libm.cos.restype = c_double       # прототип: возвращаемое значение
+libm.sqrt.argtypes = [c_double]   # прототип обязателен и для sqrt: без него int ушёл бы
+libm.sqrt.restype = c_double      # как c_int, а ответ читался бы из rax — мусор (ниже)
 
 libm.cos(0.0)     # 1.0
-libm.sqrt(2)      # 1.4142135623730951  (int конвертируется в c_double автоматически)
+libm.sqrt(2)      # 1.4142135623730951  (при заданном argtypes int конвертируется
+                  # в c_double автоматически)
 ```
 
 Два особенных значения у `CDLL`:
@@ -146,7 +149,7 @@ list(data)   # [1, 2, 3, 5, 7, 9]
 |---|---|---|
 | GIL во время вызова C-функции | **освобождается** | **держится** |
 | Для чего | обычные C-функции (libc, libm, ваша математика) | функции, вызывающие Python C API (например, принимающие `PyObject*`) |
-| Потоки параллельно | да | нет — вызов блокирует interpreter |
+| Потоки параллельно | да | нет — вызов блокирует интерпретатор |
 
 Проверка на живой машине: в одном потоке `libc.sleep(1)`, в главном — счётный цикл, пока поток жив:
 
@@ -179,9 +182,9 @@ C.cos("x")        # TypeError — cffi проверяет типы на вход
 |---|---|---|
 | Что делает | `dlopen` готовой библиотеки, вызовы через libffi (как ctypes) | **генерирует C-код** вашей обёртки и компилирует его расширением |
 | Компилятор | не нужен | нужен (`setuptools` + компилятор) |
-| Скорость вызова | ~300 нс | ~90–120 нс (тот же порядок, что METH_VARARGS) |
+| Скорость вызова | ~300 нс | ~90–150 нс (на одном порядке с METH_VARARGS; машинозависимо) |
 | Объявления | `ffi.cdef(...)` | `cdef()` + `set_source(...)` с вашим C-кодом |
-| Кто так делает | быстрые склейки | `cryptography`, `bcrypt`, `pynacl`, большая часть PyPy stdlib |
+| Кто так делает | быстрые склейки | `cryptography`, `bcrypt`, `pynacl`, часть stdlib PyPy |
 
 API-режим собирает C-файл, в котором ваши Python-вызовы `C.add2(...)` превращаются в прямые вызовы C с проверкой типов на этапе **компиляции** — граница FFI исчезает, остаётся обычный вызов функции расширения (18.11: на одном порядке с METH_*). Именно поэтому у `cryptography` нет бинарных проблем «ctypes-строка не совпала с реальной сигнатурой».
 
@@ -217,8 +220,9 @@ class PyObjectHead(Structure):
 
 x = [1, 2, 3]
 head = PyObjectHead.from_address(id(x))
-head.ob_refcnt                       # 2
-sys.getrefcount(x)                   # 3 — на 1 больше: getrefcount сам держит временный аргумент
+head.ob_refcnt                       # 1 (в обычном скрипте; в другом контексте другое число)
+sys.getrefcount(x)                   # 2 — ровно на 1 больше: getrefcount сам держит
+                                     # временный аргумент; важна разница, а не абсолюты
 ctypes.cast(head.ob_type, ctypes.py_object).value   # list — ob_type
 ```
 
@@ -332,11 +336,32 @@ add_kw(PyObject *self, PyObject *args, PyObject *kwargs)  /* VARARGS|KEYWORDS */
     return PyFloat_FromDouble((x + y) * scale);
 }
 
+static PyObject *
+div_safe(PyObject *self, PyObject *args)      /* METH_VARARGS: 18.7 */
+{
+    long x, y;
+    if (!PyArg_ParseTuple(args, "ll:div_safe", &x, &y))
+        return NULL;
+    if (y == 0) {
+        PyErr_SetString(PyExc_ZeroDivisionError, "division by zero");
+        return NULL;
+    }
+    return PyLong_FromLong(x / y);
+}
+
+static PyObject *
+bad_null(PyObject *self, PyObject *Py_UNUSED(ignored))   /* нарушение контракта */
+{
+    return NULL;   /* без PyErr_* — см. 18.7 */
+}
+
 static PyMethodDef fastext_methods[] = {
     {"fib",      fib_o,       METH_O,                      "fib(n)"},
     {"add",      add_varargs, METH_VARARGS,                "add(x, y)"},
-    {"add_fast", add_fast,    METH_FASTCALL,               "add_fast(x, y)"},
-    {"add_kw",   add_kw,      METH_VARARGS | METH_KEYWORDS, "add_kw(x, y, scale=1.0)"},
+    {"add_fast", (PyCFunction)(void (*)(void))add_fast,    METH_FASTCALL,               "add_fast(x, y)"},
+    {"add_kw",   (PyCFunction)(void (*)(void))add_kw,      METH_VARARGS | METH_KEYWORDS, "add_kw(x, y, scale=1.0)"},
+    {"div_safe", div_safe,    METH_VARARGS,                "div_safe(x, y)"},
+    {"bad_null", bad_null,    METH_NOARGS,                 "нарушает контракт (18.7)"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -389,7 +414,7 @@ fastext.add_kw(y=2, x=1) # 3.0 — именованные аргументы р�
 
 `METH_FASTCALL` — самый быстрый вариант для фиксированной арности: кортеж не создаётся вообще (18.11: 84 нс против 124 нс у VARARGS). Уточнение для stable ABI: в ограниченном API `METH_FASTCALL` доступен только с версии 3.10 (`Py_LIMITED_API >= 0x030A0000` — проверено по `methodobject.h` 3.12).
 
-⚠️ GCC 14 (стандарт C23 по умолчанию) отказывается компилировать таблицу с FASTCALL/KEYWORDS-функциями без явного каста — `ml_meth` декларирован как один тип `PyCFunction` на все конвенции:
+⚠️ GCC 14+ считает несовместимые типы указателей ошибкой по умолчанию — каст `(PyCFunction)(void (*)(void))` обязателен (листинг выше уже содержит его; дефолт C23 у GCC 15+ приводит к тому же, раньше это было лишь предупреждением). Без каста сборка таблицы с FASTCALL/KEYWORDS-функциями падает: `ml_meth` декларирован как один тип `PyCFunction` на все конвенции:
 
 ```c
 {"add_fast", (PyCFunction)(void (*)(void))add_fast, METH_FASTCALL, "..."}
@@ -431,7 +456,7 @@ SystemError: module fastext: m_size may not be negative for
              multi-phase initialization
 ```
 
-Multi-phase init (создание модуля отделено от исполнения `m_exec`) обязателен для free-threaded сборок (18.9) — там глобальное состояние недопустимо в принципе.
+Multi-phase init (создание модуля отделено от исполнения `m_exec`) обязателен для суб-интерпретаторов с per-interpreter GIL (18.9–18.10) — там глобальное состояние недопустимо в принципе. Free-threaded сборке (18.9) достаточно **объявить** поддержку: слот `Py_mod_gil` при multi-phase init либо `PyUnstable_Module_SetGIL()` после `PyModule_Create` при классическом single-phase — не объявивший модуль импортируется с предупреждением и остаётся под GIL.
 
 ## 18.6. Свой тип из C API { #18.6 }
 
@@ -530,7 +555,7 @@ p.sum(1)         # TypeError: Pair.sum() takes no arguments (1 given)
 | `tp_dealloc` | `__del__` | обязан `PyObject_GC_UnTrack` для GC-типов + `tp_free` |
 | `tp_repr` / `tp_str` | `__repr__` / `__str__` | `PyUnicode_FromFormat` — C-printf для объектов |
 | `tp_richcompare` | `__eq__`, `__lt__`, … | один слот на все шесть операций (`op`-аргумент) |
-| `tp_hash` | `__hash__` | без него — объект нехэшируем (как обычный класс с `__eq__`) |
+| `tp_hash` | `__hash__` | у Python-класса с `__eq__` без `__hash__` — нехэшируем; C-тип без обоих слотов наследует identity-хэш (`Pair` хэшируется) |
 | `tp_getattro` | `__getattribute__` | обычно оставляют `PyObject_GenericGetAttr` (6.5) |
 | `tp_methods` / `tp_members` / `tp_getset` | методы / поля / `@property` | getset-слот — это property из C (6.4) |
 | `tp_iter` / `tp_iternext` | `__iter__` / `__next__` | протокол из Части III на C |
@@ -697,12 +722,12 @@ void c_thread_callback(void) {
 
 | | Полный API | `Py_LIMITED_API` |
 |---|---|---|
-| Доступ к полям `PyObject` | да (`ob->ob_refcnt`) | **нет** — структуры непрозрачны с 3.11; только функции `Py_REFCNT()`, `Py_TYPE()` |
+| Доступ к полям `PyObject` | да (`ob->ob_refcnt`) | поля структур **не входят в stable ABI**: `PyTypeObject` и конкретные типы (`PyListObject`…) скрыты целиком; layout `PyObject` в заголовках ещё виден, но опираться на него нельзя — только функции `Py_REFCNT()`, `Py_TYPE()` |
 | `Py_INCREF`/`Py_DECREF` | макросы (быстро) | функции `Py_IncRef`/`Py_DecRef` (медленнее) |
 | `METH_FASTCALL` | да | только `Py_LIMITED_API >= 0x030A0000` (3.10+) |
 | Создание типов | static `PyTypeObject` | **обязательно** `PyType_FromSpec` (18.6) |
 | Суффикс файла | `.cpython-312-x86_64-linux-gnu.so` | **`.abi3.so`** — грузится любой CPython ≥ 3.10 |
-| Wheel-тег | `cp312-cp312-manylinux...` | `cp312-abi3-manylinux...` — один wheel на все версии (17.1) |
+| Wheel-тег | `cp312-cp312-manylinux...` | `cp310-abi3-manylinux...` — один wheel на все версии ≥ 3.10 (17.1) |
 
 `.abi3.so` в порядке поиска суффиксов стоит между тегированным и голым `.so` (16.3). Цена stable ABI — скорость и доступ: макросов нет, структур нет, огромная часть API недокументирована для limited-режима. Для одиночных библиотек типа «обёртка над libfoo» — честный размен; для NumPy-style кода — нет.
 
@@ -714,7 +739,7 @@ void c_thread_callback(void) {
 | Per-interpreter GIL (PEP 684) | **3.12+** | каждый суб-интерпретатор (18.10) — свой GIL; требует multi-phase init (18.5) и `m_size != -1` |
 | Free-threaded (PEP 703) | 3.13 (эксперимент) → 3.14 (поддерживается, PEP 779) | GIL нет вовсе; расширение собирается с `Py_GIL_DISABLED` и обязано быть потокобезопасным |
 
-Free-threaded сборка — отдельный бинарник интерпретатора; обнаружить из C можно по макросу `Py_GIL_DISABLED`, из Python — `sys._is_gil_enabled()` (3.13+). Требования к расширению там радикально выше: разделяемая C-статика, лениво инициализированные глобальные указатели, кэши без блокировок — всё становится гонкой. Поэтому же multi-phase init (18.5) в free-threaded сборке обязателен.
+Free-threaded сборка — отдельный бинарник интерпретатора; обнаружить из C можно по макросу `Py_GIL_DISABLED`, из Python — `sys._is_gil_enabled()` (3.13+). Требования к расширению там радикально выше: разделяемая C-статика, лениво инициализированные глобальные указатели, кэши без блокировок — всё становится гонкой. Поддержку поэтому объявляют явно: слот `Py_mod_gil` при multi-phase init (18.5) либо `PyUnstable_Module_SetGIL()` при single-phase; не объявивший модуль импортируется с предупреждением и получает GIL обратно.
 
 ## 18.10. Встраивание интерпретатора в C { #18.10 }
 
@@ -750,6 +775,7 @@ int main(void)
 Сборка и запуск (libpython линкуется явно, rpath избавляет от LD_LIBRARY_PATH):
 
 ```bash
+INC=$(python3 -c "import sysconfig; print(sysconfig.get_paths()['include'])")
 LIBDIR=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 gcc embed17.c -I"$INC" -L"$LIBDIR" -lpython3.12 -Wl,-rpath,"$LIBDIR" -o embed17
 ./embed17
@@ -763,7 +789,7 @@ gcc embed17.c -I"$INC" -L"$LIBDIR" -lpython3.12 -Wl,-rpath,"$LIBDIR" -o embed17
 
 ### Суб-интерпретаторы { #18.10-subinterps }
 
-В одном процессе можно держать несколько изолированных интерпретаторов — `Py_NewInterpreter()`/`Py_EndInterpreter()`, в 3.13 появился публичный модуль `interpreters` (PEP 734, всё ещё provisional); ранее доступ был только через `_interpreters`. Каждый суб-интерпретатор имеет собственные `sys.modules` и поток-стейты; с 3.12 (PEP 684) каждый может получить и **свой GIL** — это фундамент будущего параллелизма внутри одного процесса. Условие из 18.5 всплывает здесь же: модуль с `m_size = -1` суб-интерпретаторы ломает, и при импорте в новый интерпретатор такие модули переинициализируются с нуля. Для честной изоляции модули должны хранить состояние в самом объекте модуля, а не в C-статике.
+В одном процессе можно держать несколько изолированных интерпретаторов — `Py_NewInterpreter()`/`Py_EndInterpreter()`; публичный модуль `concurrent.interpreters` (PEP 734, Final) вошёл в 3.14, до того доступ был только через приватный `_interpreters`. Каждый суб-интерпретатор имеет собственные `sys.modules` и поток-стейты; с 3.12 (PEP 684) каждый может получить и **свой GIL** — это фундамент будущего параллелизма внутри одного процесса. Условие из 18.5 всплывает здесь же: модуль с `m_size = -1` суб-интерпретаторы ломает, и при импорте в новый интерпретатор такие модули переинициализируются с нуля. Для честной изоляции модули должны хранить состояние в самом объекте модуля, а не в C-статике.
 
 Практическая альтернатива, покрывающая 90% хотелок «встроить Python» — отдельный процесс: `subprocess` (11.30) или сокет к обычному интерпретатору; встраивание оправдано, когда нужен именно in-process вызов с нулевой задержкой границы.
 
@@ -778,14 +804,14 @@ gcc embed17.c -I"$INC" -L"$LIBDIR" -lpython3.12 -Wl,-rpath,"$LIBDIR" -o embed17
 | `PYTHONMALLOCSTATS` (10.3) | статистика арены pymalloc при выходе | env |
 | `PYTHONDUMPREFS` (10.3) | все живые объекты с refcnt при выходе | только debug-сборки CPython (`--with-pydebug`) |
 | `gdb` + `python-gdb.py` | C-стек сегфолта **плюс** Python-стек (`py-bt`) | `gdb python3 core`; скрипт идёт с поставкой CPython |
-| `-X perf` (11.7, 15.5) | профилирование C-функций расширения в perf | `python3 -X perf script.py` + `perf record` |
+| `-X perf` (11.32) | профилирование C-функций расширения в perf | `python3 -X perf script.py` + `perf record` |
 | valgrind + suppression-файл | общие ошибки памяти | файл `valgrind-python.supp` из поставки CPython глушит ложные срабатывания интерпретатора |
 
 Базовая стратегия «кто испортил память»: собрать CPython/расширение с AddressSanitizer (`-fsanitize=address`) или запустить с `PYTHONMALLOC=debug` — обе дороги находят двойные `Py_DECREF` и выходы за границы буферов. Классическая утечка в расширении ловится дешёвым циклом: N раз вызвать подозрительную функцию, сравнить `sys.getrefcount`/RSS до и после (8.5, 8.6).
 
 ### Бенчмарки к Части XVIII { #18.11-benchmarki }
 
-Машина: 2 ядра, CPython 3.12.14, gcc 17.2, `timeit` best-of-5. Абсолютные числа — свойство машины; интересны отношения.
+Машина: 2 ядра, CPython 3.12.14, gcc 14.2, `timeit` best-of-5. Абсолютные числа — свойство машины; интересны отношения.
 
 **B1. Стоимость вызова, нс/вызов** (та же семантика «сложить два double», где применимо):
 
@@ -795,10 +821,11 @@ gcc embed17.c -I"$INC" -L"$LIBDIR" -lpython3.12 -Wl,-rpath,"$LIBDIR" -o embed17
 | C ext `METH_O` (`fib(0)`) | 63.2 | 0.6× |
 | C ext `METH_FASTCALL` | 84.0 | 0.8× |
 | C ext `METH_VARARGS` (`PyArg_ParseTuple`) | 124.0 | 1.2× |
+| `cffi` API (`ffi.compile()`) | ~90–150 | ~0.9–1.4× |
 | `cffi` ABI (`ffi.dlopen`) | 300.3 | 2.9× |
 | `ctypes` (`CDLL` + `argtypes`) | 403.4 | 3.8× |
 
-Иерархия длинная: от 0.6× у `METH_O` (дешевле Python-вызова — фрейм не создаётся) до 3.8× у ctypes (libffi-переход + конверсия аргументов на каждый вызов). API-режим cffi попадает в диапазон METH_VARARGS — на границе остаётся только компиляция, а не интерпретация деклараций.
+Иерархия длинная: от 0.6× у `METH_O` (дешевле Python-вызова — фрейм не создаётся) до 3.8× у ctypes (libffi-переход + конверсия аргументов на каждый вызов). API-режим cffi (~90–150 нс, машинозависимо) — на одном порядке с METH_VARARGS: на границе остаётся только компиляция, а не интерпретация деклараций.
 
 **B2. GIL release, 2 потока CPU-bound, N = 4 000 000** — см. таблицу в 18.8: 1.00× / 1.33× (released) / 2.00× (held).
 
