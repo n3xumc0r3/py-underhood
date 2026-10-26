@@ -82,7 +82,7 @@ print(sys._xoptions)
 - `-X gil=0/1` — принудительно включить/выключить GIL в free-threaded сборках (3.13+; env `PYTHON_GIL`)
 - `-X presite=package.module` — импортировать модуль до `site` и до появления `__main__` (3.13+, env `PYTHON_PRESITE`)
 - `-X showrefcount` — печатать суммарный refcount и число блоков памяти при выходе; только debug-сборки (`--with-pydebug`)
-- `-X disable_remote_debug` — выключить remote-отладку PEP 768 (подключение кода к работающему процессу) (3.14+, env `PYTHON_DISABLE_REMOTE_DEBUG`)
+- `-X disable-remote-debug` — выключить remote-отладку PEP 768 (подключение кода к работающему процессу) (3.14+, env `PYTHON_DISABLE_REMOTE_DEBUG`)
 - 3.14+: `-X thread_inherit_context=0/1`, `-X context_aware_warnings=0/1`, `-X tlbc=0/1` — наследование contextvars в потоках, предупреждения с учётом контекста, счётчики tier-2 байт-кода (экспериментальные)
 - историческое: `-X showalloccount` удалена в 3.9, `-X oldparser` — в 3.10 (сейчас просто игнорируются)
 - неизвестные `-X` не интерпретируются CPython, но сохраняются в `sys._xoptions` (как `True` или строка после `=`); `-X path` не существует — просто попадёт в `sys._xoptions`
@@ -166,7 +166,7 @@ print(interesting)
 - `PYTHON_TLBC` — счётчики tier-2 байт-кода (микро-телеметрия специализированных инструкций, 3.14+).
 - `PYTHON_THREAD_INHERIT_CONTEXT` — наследование `contextvars` в потоках (3.14+).
 - `PYTHON_CONTEXT_AWARE_WARNINGS` — предупреждения с учётом contextvar-контекста (3.14+).
-- `PYTHON_DISABLE_REMOTE_DEBUG` — эквивалент `-X disable_remote_debug` (PEP 768, 3.14+).
+- `PYTHON_DISABLE_REMOTE_DEBUG` — эквивалент `-X disable-remote-debug` (PEP 768, 3.14+).
 
 ⚠️ **Все `PYTHON*` переменные игнорируются** при флаге `-E` или `-I`.
 
